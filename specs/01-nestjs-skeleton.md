@@ -1,6 +1,6 @@
 # SPEC 01 — NestJS API skeleton (M0.3)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** none (M0.1 and M0.2 are already merged into `develop`)
 > **Date:** 2026-11-21
 > **Objective:** Get `apps/api` booting with Nest, `/api` prefix, pino logs, helmet, a global Zod pipe, a problem+json filter and `GET /health`.
@@ -68,17 +68,17 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter api dev` starts on the `PORT` port without errors.
-- [ ] `GET /health` responds 200 `{"status":"ok"}`.
-- [ ] `GET /api/health` responds 404 (health lives outside the prefix).
-- [ ] An unknown route responds 404 with `Content-Type: application/problem+json` and `code: "NOT_FOUND"`.
-- [ ] An invalid body on a route with `ZodValidationPipe` responds 400 with `code: "VALIDATION_ERROR"` and `errors[]` with `path` and `message`.
-- [ ] An unhandled error responds 500 with `code: "INTERNAL_ERROR"` and no stack or internal message in the body.
-- [ ] Every response includes helmet headers (e.g. `x-content-type-options: nosniff`).
-- [ ] Each request produces a pino log line with request id, method, path, status and duration.
-- [ ] `packages/shared` exports `problemSchema` and `ErrorCode`; the filter validates its output against `problemSchema` in tests.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] The M0.3 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] `pnpm --filter api dev` starts on the `PORT` port without errors.
+- [x] `GET /health` responds 200 `{"status":"ok"}`.
+- [x] `GET /api/health` responds 404 (health lives outside the prefix).
+- [x] An unknown route responds 404 with `Content-Type: application/problem+json` and `code: "NOT_FOUND"`.
+- [x] An invalid body on a route with `ZodValidationPipe` responds 400 with `code: "VALIDATION_ERROR"` and `errors[]` with `path` and `message`.
+- [x] An unhandled error responds 500 with `code: "INTERNAL_ERROR"` and no stack or internal message in the body.
+- [x] Every response includes helmet headers (e.g. `x-content-type-options: nosniff`).
+- [x] Each request produces a pino log line with request id, method, path, status and duration.
+- [x] `packages/shared` exports `problemSchema` and `ErrorCode`; the filter validates its output against `problemSchema` in tests.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] The M0.3 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 ## Decisions
 
