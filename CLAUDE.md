@@ -6,6 +6,7 @@ Verso is a personal-first reading platform ("Goodreads done right"): library, re
 
 - `ARCHITECTURE.md` — stack, layout, data model, domain classes, API, jobs. **Source of truth for how things are built.**
 - `docs/DESIGN.md` — every screen, state, token and copy rule. **Source of truth for what the UI does and looks like.**
+- `docs/design/` - visual reference exported from Claude Design. Match its look, but build with our stack and components; don’t copy its code wholesale
 - `ROADMAP.md` — task order. Work on one task at a time.
 
 If code, ARCHITECTURE.md and DESIGN.md disagree, stop and ask; don't silently pick one.
