@@ -16,7 +16,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [x] **M0.4** Prisma setup, first migration (empty), PrismaService, seed script scaffold.
 - [x] **M0.5** Next.js skeleton: App Router, `/api/:path*` rewrite to the API, TanStack Query provider, typed `api-client` with waking-state handling and retries. §2
 - [x] **M0.6** CI workflow: lint, typecheck, unit, integration (Postgres service), build. §14
-- [ ] **M0.7** `docs/adr/` with ADR-001 to ADR-010 (short). §16
+- [x] **M0.7** `docs/adr/` with ADR-001 to ADR-010 (short). §16
 
 **Done when:** `pnpm dev` shows a web page that calls `/api/health` through the proxy; CI is green.
 
