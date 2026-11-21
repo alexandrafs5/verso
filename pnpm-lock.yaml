@@ -175,6 +175,9 @@ importers:
 
   .:
     devDependencies:
+      '@verso/config':
+        specifier: workspace:*
+        version: link:packages/config
       prettier:
         specifier: ^3.10.1
         version: 3.10.1
