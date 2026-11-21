@@ -14,7 +14,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [x] **M0.2** `docker-compose.yml` with Postgres 16 and Mailpit; `.env.example` for both apps. §13
 - [x] **M0.3** NestJS skeleton: `/api` prefix, pino logging, helmet, global Zod validation pipe, problem+json filter, `GET /health`. §8 §15
 - [x] **M0.4** Prisma setup, first migration (empty), PrismaService, seed script scaffold.
-- [ ] **M0.5** Next.js skeleton: App Router, `/api/:path*` rewrite to the API, TanStack Query provider, typed `api-client` with waking-state handling and retries. §2
+- [x] **M0.5** Next.js skeleton: App Router, `/api/:path*` rewrite to the API, TanStack Query provider, typed `api-client` with waking-state handling and retries. §2
 - [ ] **M0.6** CI workflow: lint, typecheck, unit, integration (Postgres service), build. §14
 - [ ] **M0.7** `docs/adr/` with ADR-001 to ADR-010 (short). §16
 

@@ -17,6 +17,7 @@
     "db:seed": "pnpm --filter @verso/api db:seed"
   },
   "devDependencies": {
+    "@verso/config": "workspace:*",
     "prettier": "^3.10.1",
     "turbo": "^2.11.13"
   }
