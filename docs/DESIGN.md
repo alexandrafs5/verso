@@ -74,11 +74,13 @@ Verso should feel like a private library at night: leather, dark wood, tall book
 | text-secondary | #5E554C | #B3A797 | Metadata, helper text |
 | border | #E2D8C6 | #3A322B | Hairlines (1px) |
 | accent (wine) | #5C1A24 | #A04452 | Primary buttons, Reading status, active nav, links |
-| tobacco | #7A4E2D | #A87652 | Secondary accent, charts, generated covers |
+| tobacco | #7A4E2D | #C08F68 | Secondary accent, charts, generated covers |
 | brass | #B08D57 | #C4A26B | Thin rules, focus details, streak and achievements, highlight quote bar |
 | success | #4F6B3A | #7E9C66 | Confirmations |
-| warning | #B07A2A | #D3A04E | Warnings |
-| danger | #B23A2E | #D9675B | Errors, destructive actions (distinct from wine) |
+| warning | #8A5A14 | #D3A04E | Warnings |
+| danger | #B23A2E | #E4806F | Errors, destructive actions (distinct from wine) |
+
+Contrast-adjusted for WCAG AA (text >= 4.5:1 on background, surface and surface-raised): warning light, tobacco dark, danger dark. Brass light (2.6:1) is decorative only; focus rings use `--focus-ring` (#8F6F3A light, brass dark).
 
 Rules: wine is an accent, never a large background except in the landing hero and Wrapped. Brass is the "pop" — used sparingly, mostly as 1px lines and small details. Dark mode follows the system by default; users can force light or dark. All text/background pairs must meet WCAG AA (verify the values above and adjust if needed).
 
