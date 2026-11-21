@@ -1,0 +1,19 @@
+{
+  "name": "@verso/config",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./prettier": "./prettier.json",
+    "./eslint": "./eslint.mjs",
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tsconfig.node.json": "./tsconfig.node.json",
+    "./tsconfig.next.json": "./tsconfig.next.json"
+  },
+  "dependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.14.0",
+    "typescript-eslint": "^8.73.0"
+  }
+}

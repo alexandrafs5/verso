@@ -1,0 +1,4 @@
+{
+  "extends": "@verso/config/tsconfig.node.json",
+  "include": ["src"]
+}
