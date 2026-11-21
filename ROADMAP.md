@@ -22,7 +22,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 
 ### M1. Design system and app shell
 
-- [ ] **M1.1** Tokens (`tokens.css`) for light and dark from DESIGN.md; next-themes (system default); fonts (Cormorant Garamond, Inter) via `next/font`.
+- [x] **M1.1** Tokens (`tokens.css`) for light and dark from DESIGN.md; next-themes (system default); fonts (Cormorant Garamond, Inter) via `next/font`.
 - [ ] **M1.2** shadcn/ui install and restyle: Button, Input, Select, Dialog, Sheet, DropdownMenu, Tabs, Tooltip, Toast, Skeleton, Switch.
 - [ ] **M1.3** Verso components: BookCover, GeneratedCover, ProgressBar, RatingDisplay, RatingInput, StatusDropdown, AddToLibraryButton, TagChip, LockToggle, EmptyState, ErrorState. Component tests for RatingInput and ProgressBar.
 - [ ] **M1.4** `Rating` and `GeneratedCover` in `packages/shared` with unit tests. §6

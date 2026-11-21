@@ -1,0 +1,131 @@
+/*
+ * Verso design tokens. Source of truth: docs/DESIGN.md.
+ * Components read these variables; never use raw hex outside this file.
+ * Theme is set by next-themes through [data-theme="light" | "dark"] on <html>.
+ *
+ * Deviations from DESIGN.md after the WCAG AA check (contrast >= 4.5:1 for text
+ * on background, surface and surface-raised):
+ *   warning (light) #B07A2A -> #8A5A14
+ *   tobacco (dark)  #A87652 -> #C08F68
+ *   danger  (dark)  #D9675B -> #E4806F
+ * Brass is decorative (1px rules, quote bar). Use --focus-ring for focus outlines.
+ */
+
+:root {
+  /* Fonts (variables injected by next/font in app/fonts.ts) */
+  --font-display: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-ui: var(--font-inter), 'Inter', system-ui, sans-serif;
+
+  /* Type scale, desktop: size / line-height */
+  --text-display: 3.5rem;
+  --leading-display: 4rem;
+  --text-h1: 2.5rem;
+  --leading-h1: 3rem;
+  --text-h2: 1.75rem;
+  --leading-h2: 2.25rem;
+  --text-h3: 1.25rem;
+  --leading-h3: 1.75rem;
+  --text-body: 1rem;
+  --leading-body: 1.625rem;
+  --text-small: 0.875rem;
+  --leading-small: 1.375rem;
+  --text-caption: 0.75rem;
+  --leading-caption: 1.125rem;
+
+  /* Radii */
+  --radius-card: 6px;
+  --radius-input: 6px;
+  --radius-button: 6px;
+  --radius-chip: 4px;
+  --radius-cover-spine: 2px;
+  --radius-cover-open: 4px;
+  --radius-round: 9999px; /* toggles and avatars only */
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --content-max: 1200px;
+
+  /* Tag and generated-cover colors (same in both themes) */
+  --tag-wine: #5c1a24;
+  --tag-tobacco: #7a4e2d;
+  --tag-brass: #b08d57;
+  --tag-forest: #2f4a36;
+  --tag-navy: #1c2638;
+  --tag-oxblood: #5a1c1e;
+  --tag-slate: #4a5560;
+  --tag-sand: #c9b48f;
+  --cover-ink: #faf6ee; /* title and author on generated covers */
+  --cover-frame: #b08d57; /* inset 1px frame on generated covers */
+
+  color-scheme: light;
+}
+
+/* Light (default when no theme is resolved) */
+:root,
+:root[data-theme='light'] {
+  --background: #f3ecdf;
+  --surface: #faf6ee;
+  --surface-raised: #fffdf8;
+  --text-primary: #1e1a17;
+  --text-secondary: #5e554c;
+  --border: #e2d8c6;
+  --accent: #5c1a24;
+  --accent-text: #5c1a24; /* wine as text or link color */
+  --on-accent: #faf6ee;
+  --tobacco: #7a4e2d;
+  --brass: #b08d57;
+  --focus-ring: #8f6f3a;
+  --success: #4f6b3a;
+  --warning: #8a5a14;
+  --danger: #b23a2e;
+  --scrim: rgb(30 26 23 / 0.42);
+  --shadow-color: rgb(30 26 23 / 0.08);
+  --shadow-low: 0 1px 2px var(--shadow-color);
+  --shadow-high: 0 1px 2px var(--shadow-color), 0 8px 24px var(--shadow-color);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --background: #1e1a17;
+  --surface: #27221e;
+  --surface-raised: #312a25;
+  --text-primary: #efe6d6;
+  --text-secondary: #b3a797;
+  --border: #3a322b;
+  --accent: #a04452;
+  --accent-text: #d88a95;
+  --on-accent: #fffdf8;
+  --tobacco: #c08f68;
+  --brass: #c4a26b;
+  --focus-ring: #c4a26b;
+  --success: #7e9c66;
+  --warning: #d3a04e;
+  --danger: #e4806f;
+  --scrim: rgb(0 0 0 / 0.6);
+  --shadow-color: rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+/* Mobile (< 768px): display and h1 about 25% smaller */
+@media (max-width: 767px) {
+  :root {
+    --text-display: 2.625rem;
+    --leading-display: 3rem;
+    --text-h1: 1.875rem;
+    --leading-h1: 2.25rem;
+  }
+}
+
+/* Reduced motion: no transitions or animation */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0.01ms;
+    --duration-base: 0.01ms;
+    --duration-slow: 0.01ms;
+  }
+}
