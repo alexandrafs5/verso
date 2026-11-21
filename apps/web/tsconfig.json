@@ -1,4 +1,10 @@
 {
-  "extends": "@verso/config/tsconfig.node.json",
-  "include": ["src"]
+  "extends": "@verso/config/tsconfig.next.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "allowJs": true,
+    "plugins": [{ "name": "next" }]
+  },
+  "include": ["next-env.d.ts", "src", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }
