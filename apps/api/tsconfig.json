@@ -1,4 +1,13 @@
 {
   "extends": "@verso/config/tsconfig.node.json",
-  "include": ["src"]
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": [
+    "src"
+  ]
 }
