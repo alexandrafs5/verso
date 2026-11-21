@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;}
+body{font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+button,input{font:inherit;color:inherit;}
+button{cursor:pointer;}
+a{color:var(--accent-text);text-decoration:none;}
+a:hover{text-decoration:underline;}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
+[data-theme="light"]{--bg:#F3ECDF;--surface:#FAF6EE;--raised:#FFFDF8;--text:#1E1A17;--text2:#5E554C;--border:#E2D8C6;--accent:#5C1A24;--accent-text:#5C1A24;--on-accent:#FAF6EE;--tobacco:#7A4E2D;--brass:#B08D57;--success:#4F6B3A;--danger:#B23A2E;--warning:#B07A2A;color-scheme:light;}
+[data-theme="dark"]{--bg:#1E1A17;--surface:#27221E;--raised:#312A25;--text:#EFE6D6;--text2:#B3A797;--border:#3A322B;--accent:#A04452;--accent-text:#D88A95;--on-accent:#FFFDF8;--tobacco:#A87652;--brass:#C4A26B;--success:#7E9C66;--danger:#D9675B;--warning:#D3A04E;color-scheme:dark;}
+@keyframes vIn{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="min-height:100vh;background:var(--surface);color:var(--text);">
+
+<sc-if value="{{ isAuth }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:100vh;display:grid;grid-template-columns:{{ L.authCols }};grid-template-rows:{{ L.authRows }};">
+  <aside style="background:#5C1A24;color:#F3ECDF;display:flex;flex-direction:column;justify-content:space-between;padding:{{ L.quotePad }};gap:20px;position:relative;overflow:hidden;">
+    <div style="position:absolute;bottom:-200px;left:-160px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(214,160,90,.16),rgba(214,160,90,0) 65%);pointer-events:none;"></div>
+    <a href="Verso Landing.dc.html" style="position:relative;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:500;font-size:{{ L.markSize }};color:#F3ECDF;text-decoration:none;line-height:1;">Verso</a>
+    <figure style="position:relative;margin:0;max-width:520px;">
+      <sc-if value="{{ L.d }}" hint-placeholder-val="{{ true }}"><span style="display:block;width:48px;height:1px;background:#C4A26B;margin-bottom:32px;"></span></sc-if>
+      <blockquote style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:500;font-size:{{ L.quoteSize }};line-height:1.2;text-wrap:balance;">{{ quote.text }}</blockquote>
+      <figcaption style="margin-top:{{ L.capGap }};font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#E2CFC2;">{{ quote.author }}</figcaption>
+    </figure>
+    <sc-if value="{{ L.d }}"><span style="position:relative;font-size:12px;color:#D9C2B5;">A new passage on every visit</span></sc-if>
+  </aside>
+
+  <main style="display:flex;align-items:{{ L.formAlign }};justify-content:center;padding:{{ L.formPad }};">
+    <div style="width:100%;max-width:400px;animation:vIn 250ms ease-out;" key="{{ screen }}">
+
+      <sc-if value="{{ s.signup }}" hint-placeholder-val="{{ false }}">
+        <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:40px;line-height:1.1;">Create account</h1>
+        <p style="margin:8px 0 32px;font-size:15px;color:var(--text2);">Start your library. It takes a minute.</p>
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;">Email
+            <input type="email" value="{{ email }}" onChange="{{ onEmail }}" autoComplete="email" style="height:44px;padding:0 12px;border:1px solid {{ emailBorder }};border-radius:6px;background:var(--raised);font-size:15px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)">
+            <sc-if value="{{ hasEmailErr }}"><span style="font-size:13px;font-weight:400;color:var(--danger);">{{ emailErr }}</span></sc-if>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;">Password
+            <div style="position:relative;"><input type="{{ pwType }}" value="{{ pw }}" onChange="{{ onPw }}" autoComplete="new-password" style="width:100%;box-sizing:border-box;height:44px;padding:0 64px 0 12px;border:1px solid {{ pwBorder }};border-radius:6px;background:var(--raised);font-size:15px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)"><button type="button" onClick="{{ togglePw }}" style="position:absolute;right:4px;top:4px;height:36px;padding:0 10px;border:none;background:none;font-size:13px;color:var(--text2);">{{ pwToggleLabel }}</button></div>
+            <div style="display:flex;gap:4px;margin-top:4px;"><sc-for list="{{ strengthBars }}" as="b" hint-placeholder-count="3"><span style="flex:1;height:3px;border-radius:2px;background:{{ b }};transition:background 200ms ease-out;"></span></sc-for></div>
+            <span style="font-size:12px;font-weight:400;color:{{ strengthColor }};">{{ strengthLabel }}</span>
+          </label>
+          <button onClick="{{ doSignup }}" style="height:46px;border:none;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;margin-top:4px;" style-hover="filter:brightness(1.1)">Create account</button>
+          <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text2);"><span style="flex:1;height:1px;background:var(--border);"></span>or<span style="flex:1;height:1px;background:var(--border);"></span></div>
+          <button onClick="{{ doGoogle }}" style="height:46px;border:1px solid var(--border);border-radius:6px;background:var(--raised);font-size:15px;font-weight:500;" style-hover="border-color:var(--text2)">Continue with Google</button>
+        </div>
+        <p style="margin:28px 0 0;font-size:14px;color:var(--text2);">Already have an account? <button onClick="{{ toSignin }}" style="background:none;border:none;padding:0;color:var(--accent-text);font-weight:500;font-size:14px;">Sign in</button></p>
+      </sc-if>
+
+      <sc-if value="{{ s.signin }}" hint-placeholder-val="{{ true }}">
+        <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:40px;line-height:1.1;">Welcome back</h1>
+        <p style="margin:8px 0 32px;font-size:15px;color:var(--text2);">Sign in to your library.</p>
+        <sc-if value="{{ hasFormErr }}"><div role="alert" style="margin-bottom:20px;padding:12px 14px;border:1px solid var(--danger);border-radius:6px;font-size:14px;color:var(--danger);">{{ formErr }}</div></sc-if>
+        <div style="display:flex;flex-direction:column;gap:18px;">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;">Email
+            <input type="email" value="{{ email }}" onChange="{{ onEmail }}" autoComplete="email" style="height:44px;padding:0 12px;border:1px solid {{ emailBorder }};border-radius:6px;background:var(--raised);font-size:15px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)">
+            <sc-if value="{{ hasEmailErr }}"><span style="font-size:13px;font-weight:400;color:var(--danger);">{{ emailErr }}</span></sc-if>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;"><span style="display:flex;justify-content:space-between;">Password<button type="button" onClick="{{ toForgot }}" style="background:none;border:none;padding:0;font-size:13px;font-weight:400;color:var(--accent-text);">Forgot password?</button></span>
+            <div style="position:relative;"><input type="{{ pwType }}" value="{{ pw }}" onChange="{{ onPw }}" onKeyDown="{{ onSigninKey }}" autoComplete="current-password" style="width:100%;box-sizing:border-box;height:44px;padding:0 64px 0 12px;border:1px solid var(--border);border-radius:6px;background:var(--raised);font-size:15px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)"><button type="button" onClick="{{ togglePw }}" style="position:absolute;right:4px;top:4px;height:36px;padding:0 10px;border:none;background:none;font-size:13px;color:var(--text2);">{{ pwToggleLabel }}</button></div>
+          </label>
+          <button onClick="{{ doSignin }}" style="height:46px;border:none;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;margin-top:4px;" style-hover="filter:brightness(1.1)">{{ signinLabel }}</button>
+          <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text2);"><span style="flex:1;height:1px;background:var(--border);"></span>or<span style="flex:1;height:1px;background:var(--border);"></span></div>
+          <button onClick="{{ doGoogle }}" style="height:46px;border:1px solid var(--border);border-radius:6px;background:var(--raised);font-size:15px;font-weight:500;" style-hover="border-color:var(--text2)">Continue with Google</button>
+        </div>
+        <p style="margin:28px 0 0;font-size:14px;color:var(--text2);">New to Verso? <button onClick="{{ toSignup }}" style="background:none;border:none;padding:0;color:var(--accent-text);font-weight:500;font-size:14px;">Create account</button></p>
+        <p style="margin:10px 0 0;font-size:12px;color:var(--text2);">Demo: any email with password “wrong” shows the error state.</p>
+      </sc-if>
+
+      <sc-if value="{{ s.verify }}">
+        <span style="display:block;width:40px;height:1px;background:var(--brass);margin-bottom:28px;"></span>
+        <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:40px;line-height:1.1;">Check your inbox</h1>
+        <p style="margin:12px 0 0;font-size:15px;line-height:24px;color:var(--text2);">We sent a confirmation link to <strong style="color:var(--text);font-weight:500;">{{ email }}</strong>. Open it to verify your account.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:32px;">
+          <button onClick="{{ resend }}" disabled="{{ resendDisabled }}" style="height:46px;border:1px solid var(--border);border-radius:6px;background:var(--raised);font-size:15px;font-weight:500;color:{{ resendColor }};font-variant-numeric:tabular-nums;">{{ resendLabel }}</button>
+          <button onClick="{{ toOnboarding }}" style="height:46px;border:none;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;">Open the link from the email</button>
+        </div>
+        <p style="margin:24px 0 0;font-size:14px;color:var(--text2);">Wrong address? <button onClick="{{ toSignup }}" style="background:none;border:none;padding:0;color:var(--accent-text);font-weight:500;font-size:14px;">Change email</button></p>
+      </sc-if>
+
+      <sc-if value="{{ s.forgot }}">
+        <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:40px;line-height:1.1;">Reset your password</h1>
+        <sc-if value="{{ forgotSent }}">
+          <p style="margin:12px 0 0;font-size:15px;line-height:24px;color:var(--text2);">If an account exists for {{ email }}, we sent a link to reset your password.</p>
+          <button onClick="{{ toReset }}" style="width:100%;height:46px;margin-top:28px;border:none;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;">Open the link from the email</button>
+        </sc-if>
+        <sc-if value="{{ forgotForm }}">
+          <p style="margin:8px 0 28px;font-size:15px;color:var(--text2);">Enter your email and we'll send you a link.</p>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;">Email
+            <input type="email" value="{{ email }}" onChange="{{ onEmail }}" style="height:44px;padding:0 12px;border:1px solid {{ emailBorder }};border-radius:6px;background:var(--raised);font-size:15px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)">
+            <sc-if value="{{ hasEmailErr }}"><span style="font-size:13px;font-weight:400;color:var(--danger);">{{ emailErr }}</span></sc-if>
+          </label>
+          <button onClick="{{ doForgot }}" style="width:100%;height:46px;margin-top:20px;border:none;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;">Send link</button>
+        </sc-if>
+        <p style="margin:24px 0 0;font-size:14px;"><button onClick="{{ toSignin }}" style="background:none;border:none;padding:0;color:var(--accent-text);font-weight:500;font-size:14px;">Back to sign in</button></p>
+      </sc-if>
+
+      <sc-if value="{{ s.reset }}">
+        <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:40px;line-height:1.1;">Choose a new password</h1>
+        <div style="display:flex;flex-direction:column;gap:18px;margin-top:28px;">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;">New password<input type="password" value="{{ pw }}" onChange="{{ onPw }}" style="height:44px;padding:0 12px;border:1px solid var(--border);border-radius:6px;background:var(--raised);font-size:15px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)">
+            <div style="display:flex;gap:4px;margin-top:4px;"><sc-for list="{{ strengthBars }}" as="b"><span style="flex:1;height:3px;border-radius:2px;background:{{ b }};"></span></sc-for></div><span style="font-size:12px;font-weight:400;color:{{ strengthColor }};">{{ strengthLabel }}</span></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;">Confirm password<input type="password" value="{{ pw2 }}" onChange="{{ onPw2 }}" style="height:44px;padding:0 12px;border:1px solid {{ pw2Border }};border-radius:6px;background:var(--raised);font-size:15px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)">
+            <sc-if value="{{ hasPw2Err }}"><span style="font-size:13px;font-weight:400;color:var(--danger);">{{ pw2Err }}</span></sc-if></label>
+          <button onClick="{{ doReset }}" style="height:46px;border:none;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;">Save password</button>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOnb }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100vh;background:var(--bg);display:flex;flex-direction:column;">
+  <header style="max-width:1200px;width:100%;box-sizing:border-box;margin:0 auto;padding:20px {{ L.padX }};display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:500;font-size:28px;line-height:1;">Verso</span>
+    <span style="font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums;">Step {{ stepNum }} of 7</span>
+  </header>
+  <div style="height:3px;background:var(--border);"><div style="height:100%;width:{{ stepW }};background:var(--brass);transition:width 250ms ease-out;"></div></div>
+  <main style="flex:1;display:flex;justify-content:center;padding:{{ L.onbPad }};">
+    <div style="width:100%;max-width:560px;display:flex;flex-direction:column;animation:vIn 250ms ease-out;" key="{{ step }}">
+      <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:{{ L.onbH }};line-height:1.1;text-wrap:balance;">{{ stepTitle }}</h1>
+      <p style="margin:10px 0 36px;font-size:16px;line-height:26px;color:var(--text2);">{{ stepSub }}</p>
+
+      <sc-if value="{{ o.name }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;">Display name<input value="{{ name }}" onChange="{{ onName }}" placeholder="Ale" style="height:46px;padding:0 12px;border:1px solid var(--border);border-radius:6px;background:var(--raised);font-size:16px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;">Username
+            <div style="position:relative;"><span style="position:absolute;left:12px;top:13px;font-size:16px;font-weight:400;color:var(--text2);">@</span><input value="{{ username }}" onChange="{{ onUsername }}" autoComplete="off" style="width:100%;box-sizing:border-box;height:46px;padding:0 12px 0 30px;border:1px solid {{ userBorder }};border-radius:6px;background:var(--raised);font-size:16px;font-weight:400;outline:none;" style-focus="border-color:var(--brass)"></div>
+            <span style="font-size:13px;font-weight:400;color:{{ userColor }};">{{ userMsg }}</span>
+          </label>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ o.photo }}">
+        <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap;">
+          <div role="img" aria-label="Your profile photo" style="width:128px;height:128px;border-radius:50%;overflow:hidden;background-color:var(--tobacco);background-image:{{ photoBg }};background-size:cover;background-position:center;color:#F3ECDF;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;flex:none;">
+            <sc-if value="{{ noPhoto }}"><span>{{ initials }}</span></sc-if>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <label style="height:42px;padding:0 16px;display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:6px;background:var(--raised);font-size:14px;font-weight:500;cursor:pointer;">{{ photoBtn }}<input type="file" accept="image/*" onChange="{{ onPhoto }}" style="display:none;"></label>
+            <sc-if value="{{ hasPhoto }}"><button onClick="{{ removePhoto }}" style="background:none;border:none;padding:0;text-align:left;font-size:13px;color:var(--text2);">Remove photo</button></sc-if>
+            <span style="font-size:13px;color:var(--text2);">Without a photo, your initials are shown.</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ o.rating }}">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <sc-for list="{{ ratingCards }}" as="c">
+            <div onClick="{{ c.pick }}" role="radio" aria-checked="{{ c.on }}" tabIndex="0" style="padding:20px;border:1px solid {{ c.border }};border-radius:6px;background:{{ c.bg }};cursor:pointer;display:flex;flex-direction:column;gap:14px;transition:border-color 150ms ease-out;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:15px;font-weight:600;">{{ c.label }}</span><span style="width:16px;height:16px;border-radius:50%;box-sizing:border-box;border:1px solid {{ c.radio }};box-shadow:inset 0 0 0 3px var(--raised);background:{{ c.dot }};"></span></div>
+              <sc-if value="{{ c.isStars }}">
+                <div style="display:flex;gap:4px;" onMouseLeave="{{ clearHover }}">
+                  <sc-for list="{{ stars }}" as="s"><div style="position:relative;width:26px;height:26px;"><svg width="26" height="26" viewBox="0 0 24 24" style="position:absolute;inset:0;fill:none;stroke:var(--brass);stroke-width:1.2;stroke-linejoin:round;"><polygon points="12 2.5 14.9 8.6 21.5 9.4 16.6 13.9 17.9 20.5 12 17.2 6.1 20.5 7.4 13.9 2.5 9.4 9.1 8.6"></polygon></svg><div style="position:absolute;top:0;left:0;bottom:0;width:{{ s.fill }};overflow:hidden;"><svg width="26" height="26" viewBox="0 0 24 24" style="fill:var(--brass);stroke:var(--brass);stroke-width:1.2;stroke-linejoin:round;"><polygon points="12 2.5 14.9 8.6 21.5 9.4 16.6 13.9 17.9 20.5 12 17.2 6.1 20.5 7.4 13.9 2.5 9.4 9.1 8.6"></polygon></svg></div><div style="position:absolute;inset:0;display:flex;"><sc-for list="{{ s.zones }}" as="z"><button onClick="{{ z.click }}" onMouseEnter="{{ z.hover }}" aria-label="{{ z.label }}" style="flex:1;border:none;background:none;padding:0;"></button></sc-for></div></div></sc-for>
+                  <span style="margin-left:10px;font-size:14px;color:var(--text2);font-variant-numeric:tabular-nums;align-self:center;">{{ starsText }}</span>
+                </div>
+                <sc-if value="{{ c.on }}"><div style="display:flex;border:1px solid var(--border);border-radius:6px;padding:2px;background:var(--bg);align-self:flex-start;"><sc-for list="{{ stepSeg }}" as="g"><button onClick="{{ g.click }}" style="height:32px;padding:0 12px;border:none;border-radius:4px;background:{{ g.bg }};color:{{ g.color }};font-size:13px;font-weight:500;">{{ g.label }}</button></sc-for></div></sc-if>
+              </sc-if>
+              <sc-if value="{{ c.isSlider }}"><div style="display:flex;align-items:center;gap:14px;"><input type="range" min="{{ c.min }}" max="{{ c.max }}" step="{{ c.step }}" value="{{ c.val }}" onChange="{{ c.onRange }}" onClick="{{ c.pick }}" aria-label="{{ c.label }} preview" style="flex:1;max-width:260px;accent-color:var(--brass);"><span style="font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;min-width:44px;">{{ c.display }}</span></div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ o.progress }}">
+        <div style="display:grid;grid-template-columns:{{ L.twoCols }};gap:12px;">
+          <sc-for list="{{ progressCards }}" as="c">
+            <button onClick="{{ c.pick }}" style="text-align:left;padding:20px;border:1px solid {{ c.border }};border-radius:6px;background:{{ c.bg }};display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;width:100%;"><span style="font-size:15px;font-weight:600;">{{ c.label }}</span><span style="width:16px;height:16px;border-radius:50%;box-sizing:border-box;border:1px solid {{ c.radio }};box-shadow:inset 0 0 0 3px var(--raised);background:{{ c.dot }};"></span></div>
+              <div style="width:100%;"><div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;"><div style="height:100%;width:47%;background:var(--brass);"></div></div><div style="font-size:13px;color:var(--text2);margin-top:8px;font-variant-numeric:tabular-nums;">{{ c.example }}</div></div>
+            </button>
+          </sc-for>
+        </div>
+        <p style="margin:16px 0 0;font-size:13px;color:var(--text2);">Books without a page count always use percentage.</p>
+      </sc-if>
+
+      <sc-if value="{{ o.privacy }}">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <sc-for list="{{ privacyCards }}" as="c">
+            <button onClick="{{ c.pick }}" style="text-align:left;padding:20px;border:1px solid {{ c.border }};border-radius:6px;background:{{ c.bg }};display:flex;gap:16px;align-items:flex-start;">
+              <svg width="22" height="22" viewBox="0 0 24 24" style="flex:none;margin-top:1px;fill:none;stroke:var(--text);stroke-width:1.4;stroke-linecap:round;"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="{{ c.lock }}"></path></svg>
+              <div style="flex:1;"><div style="font-size:15px;font-weight:600;">{{ c.label }}</div><div style="font-size:14px;line-height:22px;color:var(--text2);margin-top:4px;">{{ c.body }}</div></div>
+              <span style="flex:none;width:16px;height:16px;border-radius:50%;box-sizing:border-box;border:1px solid {{ c.radio }};box-shadow:inset 0 0 0 3px var(--raised);background:{{ c.dot }};"></span>
+            </button>
+          </sc-for>
+        </div>
+        <p style="margin:16px 0 0;font-size:13px;color:var(--text2);">You can make any book or highlight private later, whatever you pick here.</p>
+      </sc-if>
+
+      <sc-if value="{{ o.goal }}">
+        <label style="display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:500;max-width:240px;">Books in 2027
+          <div style="display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--brass);padding-bottom:6px;"><input type="number" min="1" max="365" value="{{ goal }}" onChange="{{ onGoal }}" placeholder="24" style="width:100%;border:none;background:none;outline:none;font-size:52px;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums;padding:0;"><span style="font-size:15px;font-weight:400;color:var(--text2);">books</span></div>
+        </label>
+        <p style="margin:14px 0 0;font-size:14px;color:var(--text2);font-variant-numeric:tabular-nums;">{{ goalHint }}</p>
+      </sc-if>
+
+      <sc-if value="{{ o.import }}">
+        <div style="padding:24px;border:1px solid var(--border);border-radius:6px;background:var(--surface);display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:15px;font-weight:600;">What comes with you</div>
+          <sc-for list="{{ importItems }}" as="it"><div style="display:flex;gap:12px;font-size:14px;line-height:22px;"><span style="width:12px;height:1px;background:var(--brass);margin-top:11px;flex:none;"></span>{{ it }}</div></sc-for>
+        </div>
+        <button onClick="{{ doImport }}" style="margin-top:20px;height:46px;border:none;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;align-self:flex-start;padding:0 22px;">Import my library</button>
+      </sc-if>
+
+      <sc-if value="{{ o.done }}">
+        <a href="Verso Prototype.dc.html" style="height:48px;padding:0 24px;display:inline-flex;align-items:center;align-self:flex-start;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;text-decoration:none;">Go to my library</a>
+      </sc-if>
+
+      <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:12px;margin-top:48px;padding-top:24px;border-top:1px solid var(--border);">
+          <sc-if value="{{ canBack }}"><button onClick="{{ back }}" style="height:44px;padding:0 16px;border:1px solid var(--border);border-radius:6px;background:none;font-size:14px;font-weight:500;">Back</button></sc-if>
+          <span style="flex:1;"></span>
+          <sc-if value="{{ canSkip }}"><button onClick="{{ skip }}" style="height:44px;padding:0 16px;border:none;background:none;font-size:14px;font-weight:500;color:var(--text2);" style-hover="color:var(--text)">Skip</button></sc-if>
+          <button onClick="{{ next }}" disabled="{{ nextDisabled }}" style="height:44px;padding:0 22px;border:none;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:14px;font-weight:500;opacity:{{ nextOp }};">{{ nextLabel }}</button>
+        </div>
+      </sc-if>
+    </div>
+  </main>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;start&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Sign in&quot;,&quot;Create account&quot;,&quot;Onboarding&quot;],&quot;default&quot;:&quot;Sign in&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Light&quot;,&quot;Dark&quot;],&quot;default&quot;:&quot;Light&quot;,&quot;tsType&quot;:&quot;'Light'|'Dark'&quot;}}">
+const QUOTES=[
+ {text:'I declare after all there is no enjoyment like reading.',author:'Jane Austen'},
+ {text:'Books are the treasured wealth of the world and the fit inheritance of generations and nations.',author:'Henry David Thoreau'},
+ {text:'Reading is to the mind what exercise is to the body.',author:'Richard Steele'},
+ {text:'Books are the quietest and most constant of friends.',author:'Charles W. Eliot'}];
+const TAKEN=['ale','reader','verso','admin','books'];
+const STEPS=['name','photo','rating','progress','privacy','goal','import'];
+const TITLES={name:['What should we call you?','Your name and username appear on your profile.'],photo:['Add a profile photo','Optional. You can change it any time.'],rating:['How do you rate books?','Ratings are always optional. Try each one.'],progress:['How do you track progress?','You can switch inside the Log progress window too.'],privacy:['Who can see your profile?','This is your default. Change it in Settings.'],goal:['Set a reading goal','How many books do you want to read in 2027?'],import:['Coming from Goodreads?','Bring your shelves, ratings and read dates.'],done:['Your library is ready','Start by adding the book you’re reading.']};
+class Component extends DCLogic {
+  state={screen:(this.props.start||'Sign in')==='Onboarding'?'onb':(this.props.start==='Create account'?'signup':'signin'),
+    quote:QUOTES[Math.floor(Math.random()*QUOTES.length)],email:'',pw:'',pw2:'',showPw:false,touched:false,formErr:'',loading:false,
+    cooldown:0,forgotSent:false,step:0,name:'',username:'',photo:null,scale:'stars',starStep:'half',preview:{stars:70,ten:73,hundred:73},hover:null,unit:'pages',priv:'public',goal:''};
+  componentDidMount(){ this._r=()=>this.forceUpdate(); window.addEventListener('resize',this._r); }
+  componentWillUnmount(){ window.removeEventListener('resize',this._r); clearInterval(this._c); }
+  componentDidUpdate(pp){ if(pp.start!==this.props.start){ this.setState({screen:this.props.start==='Onboarding'?'onb':this.props.start==='Create account'?'signup':'signin',step:0}); } }
+  go(screen){ this.setState({screen,touched:false,formErr:'',pw:'',pw2:'',forgotSent:false}); }
+  emailErr(){ const e=this.state.email.trim(); if(!e)return 'Enter your email'; if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))return 'Enter a valid email address'; if(this.state.screen==='signup'&&e.toLowerCase()==='ale@verso.app')return 'An account with this email already exists · Sign in instead'; return ''; }
+  strength(){ const p=this.state.pw; if(!p)return 0; let s=0; if(p.length>=8)s++; if(/[A-Z]/.test(p)&&/[a-z]/.test(p)||/\d/.test(p))s++; if(p.length>=12&&/[^A-Za-z0-9]/.test(p)||p.length>=16)s++; return Math.max(1,s); }
+  startCooldown(){ this.setState({cooldown:30}); clearInterval(this._c); this._c=setInterval(()=>this.setState(s=>{ if(s.cooldown<=1){clearInterval(this._c);return {cooldown:0};} return {cooldown:s.cooldown-1}; }),1000); }
+  userState(){ const u=this.state.username.trim().toLowerCase(); if(!u)return ['','var(--text2)','Letters, numbers and underscores. 3–20 characters.'];
+    if(!/^[a-z0-9_]{3,20}$/.test(u))return ['bad','var(--danger)','Use 3–20 letters, numbers or underscores']; if(TAKEN.includes(u))return ['bad','var(--danger)',`@${u} is taken`]; return ['ok','var(--success)',`@${u} is available`]; }
+  seg(opts,cur,set){ return opts.map(([v,label])=>({label,bg:cur===v?'var(--surface)':'transparent',color:cur===v?'var(--text)':'var(--text2)',click:e=>{e.stopPropagation();set(v);}})); }
+  card(on){ return {on,border:on?'var(--text)':'var(--border)',bg:on?'var(--raised)':'var(--surface)',radio:on?'var(--accent)':'var(--text2)',dot:on?'var(--accent)':'transparent'}; }
+  renderVals(){
+    const S=this.state, m=window.innerWidth<900, sm=window.innerWidth<600;
+    const L={m,d:!m,padX:sm?'20px':'40px',authCols:m?'1fr':'minmax(0,1fr) minmax(0,1fr)',authRows:m?'auto 1fr':'1fr',quotePad:m?'20px 20px 24px':'48px 64px',
+      markSize:m?'26px':'32px',quoteSize:m?'22px':'44px',capGap:m?'10px':'24px',formAlign:m?'flex-start':'center',formPad:m?'32px 20px 48px':'48px',
+      onbPad:sm?'36px 20px 48px':'72px 40px',onbH:sm?'34px':'44px',twoCols:sm?'1fr':'1fr 1fr'};
+    const eErr=S.touched?this.emailErr():''; const st=this.strength();
+    const sCol=['var(--border)','var(--danger)','var(--warning)','var(--success)'][st];
+    const strengthBars=[1,2,3].map(i=>i<=st?sCol:'var(--border)');
+    const strengthLabel=!S.pw?'At least 8 characters':['','Weak · add length or numbers','Fair · longer is stronger','Strong'][st];
+    const pw2Err=S.touched&&S.pw2!==S.pw?'Passwords don’t match':'';
+    const stepKey=S.step>=7?'done':STEPS[S.step]; const [t,sub]=TITLES[stepKey];
+    const [us,uc,um]=this.userState();
+    const pv=S.preview, stepPts={whole:20,half:10,quarter:5}[S.starStep];
+    const show=S.hover!=null?S.hover:pv.stars;
+    const stars=[0,1,2,3,4].map(i=>{const n=20/stepPts;return {fill:Math.max(0,Math.min(1,show/20-i))*100+'%',zones:Array.from({length:n},(_,j)=>{const v=i*20+(j+1)*stepPts;return {label:`${v/20} stars`,click:e=>{e.stopPropagation();this.setState({scale:'stars',preview:{...pv,stars:v}});},hover:()=>this.setState({hover:v})};})};});
+    const ratingCards=[
+      {key:'stars',label:'Stars',isStars:true,isSlider:false},
+      {key:'ten',label:'1–10 with one decimal',isStars:false,isSlider:true,min:1,max:10,step:0.1,val:pv.ten/10,display:(pv.ten/10).toFixed(1),onRange:e=>this.setState({scale:'ten',preview:{...pv,ten:Math.round(parseFloat(e.target.value)*10)}})},
+      {key:'hundred',label:'1–100',isStars:false,isSlider:true,min:1,max:100,step:1,val:pv.hundred,display:String(pv.hundred),onRange:e=>this.setState({scale:'hundred',preview:{...pv,hundred:parseInt(e.target.value)}})}
+    ].map(c=>({...c,...this.card(S.scale===c.key),pick:()=>this.setState({scale:c.key})}));
+    const progressCards=[['pages','Pages','p. 150 of 320'],['pct','Percentage','47%']].map(([k,label,example])=>({label,example,...this.card(S.unit===k),pick:()=>this.setState({unit:k})}));
+    const privacyCards=[['public','Public','Anyone can see your profile, library, public reviews and highlights.','M8 11V7a4 4 0 0 1 7.75-1.4'],['private','Private','Only people you approve can follow you and see your activity. Your reviews won’t appear on book pages.','M8 11V7a4 4 0 0 1 8 0v4']]
+      .map(([k,label,body,lock])=>({label,body,lock,...this.card(S.priv===k),pick:()=>this.setState({priv:k})}));
+    const g=parseInt(S.goal);
+    const canNext=stepKey!=='name'||(S.name.trim()&&us==='ok');
+    const initials=(S.name.trim()||'A').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
+    return {
+      theme:(this.props.theme||'Light').toLowerCase(), L, screen:S.screen, quote:S.quote,
+      isAuth:S.screen!=='onb', isOnb:S.screen==='onb', s:{[S.screen]:true},
+      email:S.email, pw:S.pw, pw2:S.pw2, onEmail:e=>this.setState({email:e.target.value,formErr:''}), onPw:e=>this.setState({pw:e.target.value,formErr:''}), onPw2:e=>this.setState({pw2:e.target.value}),
+      pwType:S.showPw?'text':'password', pwToggleLabel:S.showPw?'Hide':'Show', togglePw:()=>this.setState(s=>({showPw:!s.showPw})),
+      hasEmailErr:!!eErr, emailErr:eErr, emailBorder:eErr?'var(--danger)':'var(--border)',
+      pwBorder:S.touched&&S.screen==='signup'&&st<1?'var(--danger)':'var(--border)',
+      strengthBars, strengthLabel, strengthColor:S.pw?sCol:'var(--text2)',
+      doSignup:()=>{ this.setState({touched:true}); if(this.emailErr()||this.strength()<2)return; this.go('verify'); this.startCooldown(); },
+      doSignin:()=>{ this.setState({touched:true}); if(this.emailErr())return; if(S.pw==='wrong'||!S.pw){this.setState({formErr:'Email or password is incorrect. Try again or reset your password.'});return;} this.setState({loading:true}); setTimeout(()=>{window.location.href='Verso Prototype.dc.html';},500); },
+      onSigninKey:e=>{ if(e.key==='Enter')this.renderVals().doSignin(); },
+      signinLabel:S.loading?'Signing in…':'Sign in', hasFormErr:!!S.formErr, formErr:S.formErr,
+      doGoogle:()=>this.setState({screen:'onb',step:0}),
+      toSignin:()=>this.go('signin'), toSignup:()=>this.go('signup'), toForgot:()=>this.go('forgot'), toReset:()=>this.go('reset'), toOnboarding:()=>this.setState({screen:'onb',step:0}),
+      resend:()=>this.startCooldown(), resendDisabled:S.cooldown>0, resendColor:S.cooldown>0?'var(--text2)':'var(--text)', resendLabel:S.cooldown>0?`Resend email in 0:${String(S.cooldown).padStart(2,'0')}`:'Resend email',
+      forgotSent:S.forgotSent, forgotForm:!S.forgotSent, doForgot:()=>{ this.setState({touched:true}); if(this.emailErr())return; this.setState({forgotSent:true}); },
+      hasPw2Err:!!pw2Err, pw2Err, pw2Border:pw2Err?'var(--danger)':'var(--border)',
+      doReset:()=>{ this.setState({touched:true}); if(this.strength()<2||S.pw!==S.pw2)return; this.go('signin'); this.setState({formErr:''}); },
+      stepNum:Math.min(7,S.step+1), stepW:(Math.min(7,S.step+1)/7*100)+'%', step:S.step, stepTitle:t.replace('call you','call you'), stepSub:sub, o:{[stepKey]:true},
+      name:S.name, username:S.username, onName:e=>{const v=e.target.value;this.setState(s=>({name:v,username:s.userEdited?s.username:v.toLowerCase().normalize('NFD').replace(/[^a-z0-9_]/g,'').slice(0,20)}));},
+      onUsername:e=>this.setState({username:e.target.value.replace(/\s/g,''),userEdited:true}), userBorder:us==='bad'?'var(--danger)':us==='ok'?'var(--success)':'var(--border)', userColor:uc, userMsg:um,
+      photoBg:S.photo?`url(${S.photo})`:'none', hasPhoto:!!S.photo, noPhoto:!S.photo, initials, photoBtn:S.photo?'Change photo':'Upload photo',
+      onPhoto:e=>{const f=e.target.files&&e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>this.setState({photo:r.result}); r.readAsDataURL(f);}, removePhoto:()=>this.setState({photo:null}),
+      ratingCards, stars, starsText:`${show/20} of 5`, clearHover:()=>this.setState({hover:null}),
+      stepSeg:this.seg([['whole','Whole'],['half','Half'],['quarter','Quarter']],S.starStep,v=>this.setState(s=>({starStep:v,preview:{...s.preview,stars:Math.round(s.preview.stars/({whole:20,half:10,quarter:5}[v]))*({whole:20,half:10,quarter:5}[v])}}))),
+      progressCards, privacyCards,
+      goal:S.goal, onGoal:e=>this.setState({goal:e.target.value}), goalHint:g>0?`About one book every ${Math.max(1,Math.round(365/g))} days.`:'Leave it empty to skip.',
+      importItems:['Exclusive shelves become statuses; others become tags','Ratings convert to your scale','Read dates and reread counts'],
+      doImport:()=>this.setState({step:7}),
+      showNav:stepKey!=='done', canBack:S.step>0, back:()=>this.setState(s=>({step:s.step-1})),
+      canSkip:['photo','goal','import'].includes(stepKey), skip:()=>this.setState(s=>({step:s.step+1})),
+      next:()=>{ if(canNext)this.setState(s=>({step:s.step+1})); }, nextDisabled:!canNext, nextOp:canNext?1:0.45, nextLabel:stepKey==='import'?'Finish':'Continue'
+    };
+  }
+}
+</script>
+</body>
+</html>
