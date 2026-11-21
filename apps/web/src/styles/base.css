@@ -1,63 +1,127 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
 @import './tokens.css';
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+/* next-themes sets data-theme on <html>. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * Tailwind theme mapped onto Verso tokens (tokens.css). `inline` keeps the
+ * utilities pointing at the live CSS variables, so light/dark switch for free.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-raised: var(--surface-raised);
+  --color-foreground: var(--text-primary);
+  --color-muted: var(--text-secondary);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-tobacco: var(--tobacco);
+  --color-brass: var(--brass);
+  --color-ring: var(--focus-ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-scrim: var(--scrim);
+
+  --font-sans: var(--font-ui);
+  --font-serif: var(--font-display);
+
+  --text-xs: var(--text-caption);
+  --text-xs--line-height: var(--leading-caption);
+  --text-sm: var(--text-small);
+  --text-sm--line-height: var(--leading-small);
+  --text-base: var(--text-body);
+  --text-base--line-height: var(--leading-body);
+  --text-lg: var(--text-h3);
+  --text-lg--line-height: var(--leading-h3);
+
+  --shadow-card: var(--shadow-low);
+  --shadow-popover: var(--shadow-high);
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-}
+/* Unlayered rules would beat Tailwind utilities, so the base lives in a layer. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop {
+    border-color: var(--border);
+  }
 
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: var(--text-body);
-  line-height: var(--leading-body);
-  -webkit-font-smoothing: antialiased;
-}
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
 
-h1,
-h2,
-h3 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 500;
-}
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+  }
 
-h1 {
-  font-size: var(--text-h1);
-  line-height: var(--leading-h1);
-}
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+  }
 
-h2 {
-  font-size: var(--text-h2);
-  line-height: var(--leading-h2);
-}
+  h1 {
+    font-size: var(--text-h1);
+    line-height: var(--leading-h1);
+  }
 
-h3 {
-  font-size: var(--text-h3);
-  line-height: var(--leading-h3);
-}
+  h2 {
+    font-size: var(--text-h2);
+    line-height: var(--leading-h2);
+  }
 
-a {
-  color: var(--accent-text);
-}
+  h3 {
+    font-size: var(--text-h3);
+    line-height: var(--leading-h3);
+  }
 
-:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
+  a {
+    color: var(--accent-text);
+  }
 
-::selection {
-  background: var(--accent);
-  color: var(--on-accent);
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
 }
 
 /* Utility: numbers in stats use Inter with tabular figures */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion: also covers tw-animate-css enter/exit animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::after,
+  ::before {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

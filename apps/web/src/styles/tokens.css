@@ -83,6 +83,7 @@
   --success: #4f6b3a;
   --warning: #8a5a14;
   --danger: #b23a2e;
+  --on-danger: #faf6ee;
   --scrim: rgb(30 26 23 / 0.42);
   --shadow-color: rgb(30 26 23 / 0.08);
   --shadow-low: 0 1px 2px var(--shadow-color);
@@ -106,6 +107,7 @@
   --success: #7e9c66;
   --warning: #d3a04e;
   --danger: #e4806f;
+  --on-danger: #1e1a17; /* light text on #e4806f would fail AA */
   --scrim: rgb(0 0 0 / 0.6);
   --shadow-color: rgb(0 0 0 / 0.35);
   color-scheme: dark;
