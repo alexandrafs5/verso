@@ -1,36 +1,36 @@
-# SPEC 01 — Esqueleto NestJS del API (M0.3)
+# SPEC 01 — NestJS API skeleton (M0.3)
 
 > **Status:** Approved
-> **Depends on:** ninguna (M0.1 y M0.2 ya mergeados en `develop`)
+> **Depends on:** none (M0.1 and M0.2 are already merged into `develop`)
 > **Date:** 2026-11-21
-> **Objective:** Dejar `apps/api` arrancando con Nest, prefijo `/api`, logs pino, helmet, pipe Zod global, filtro problem+json y `GET /health`.
+> **Objective:** Get `apps/api` booting with Nest, `/api` prefix, pino logs, helmet, a global Zod pipe, a problem+json filter and `GET /health`.
 
 ## Scope
 
 **In:**
 
-- Dependencias Nest en `apps/api` (`@nestjs/common`, `@nestjs/core`, `@nestjs/platform-express`, `reflect-metadata`, `rxjs`, `helmet`, `nestjs-pino`, `pino-http`, `zod`; dev: `tsx`, `unplugin-swc` + `@swc/core` para Vitest).
-- `apps/api/src/main.ts`: bootstrap, prefijo global `/api` con `/health` excluido, helmet, pino, pipe y filtro globales, puerto desde `PORT` (default 4000).
+- Nest dependencies in `apps/api` (`@nestjs/common`, `@nestjs/core`, `@nestjs/platform-express`, `reflect-metadata`, `rxjs`, `helmet`, `nestjs-pino`, `pino-http`, `zod`; dev: `tsx`, `unplugin-swc` + `@swc/core` for Vitest).
+- `apps/api/src/main.ts`: bootstrap, global `/api` prefix with `/health` excluded, helmet, pino, global pipe and filter, port from `PORT` (default 4000).
 - `apps/api/src/app.module.ts`.
-- `apps/api/src/common/`: `ZodValidationPipe` y `ProblemJsonFilter`.
-- `apps/api/src/modules/health/`: `HealthController` con `GET /health` → `{ "status": "ok" }`.
-- `packages/shared`: `problemSchema` (Zod) y enum `ErrorCode` con los códigos iniciales.
-- Scripts `dev` (`tsx watch`), `build` (`tsc`) y `start` en `apps/api/package.json`.
-- Tests: unit del pipe y del filtro; integración de `/health` y del shape de error con Supertest.
+- `apps/api/src/common/`: `ZodValidationPipe` and `ProblemJsonFilter`.
+- `apps/api/src/modules/health/`: `HealthController` with `GET /health` → `{ "status": "ok" }`.
+- `packages/shared`: `problemSchema` (Zod) and `ErrorCode` enum with the initial codes.
+- `dev` (`tsx watch`), `build` (`tsc`) and `start` scripts in `apps/api/package.json`.
+- Tests: unit tests for the pipe and the filter; integration tests for `/health` and the error shape with Supertest.
 
-**Out of scope (para otros specs):**
+**Out of scope (for other specs):**
 
-- Prisma, `PrismaService` y chequeo de DB en `/health` (M0.4).
-- Estado de la cola en `/health` (M9.1).
+- Prisma, `PrismaService` and the DB check in `/health` (M0.4).
+- Queue status in `/health` (M9.1).
 - Better Auth, `SessionGuard`, rate limiting (M2).
-- CORS y check de `Origin` contra `WEB_ORIGIN` (se añaden con los primeros endpoints de escritura, M2).
-- OpenAPI generado desde Zod.
-- Dockerfile y deploy en Render (M12.5).
+- CORS and the `Origin` check against `WEB_ORIGIN` (added with the first write endpoints, M2).
+- OpenAPI generated from Zod.
+- Dockerfile and Render deploy (M12.5).
 - CI (M0.6).
 
 ## Data model
 
-No hay tablas. Contrato nuevo en `packages/shared/src/problem.ts`, exportado desde `index.ts`:
+No tables. New contract in `packages/shared/src/problem.ts`, exported from `index.ts`:
 
 ```ts
 export const ErrorCode = {
@@ -40,69 +40,69 @@ export const ErrorCode = {
 } as const;
 
 export const problemSchema = z.object({
-  type: z.string(),        // 'about:blank' por defecto
+  type: z.string(),        // 'about:blank' by default
   title: z.string(),
   status: z.number().int(),
   detail: z.string().optional(),
   code: z.nativeEnum(ErrorCode),
-  errors: z.array(z.object({ path: z.string(), message: z.string() })).optional(), // solo VALIDATION_ERROR
+  errors: z.array(z.object({ path: z.string(), message: z.string() })).optional(), // VALIDATION_ERROR only
 });
 ```
 
-Convenciones:
+Conventions:
 
-- Respuestas de error con `Content-Type: application/problem+json`.
-- Errores 5xx nunca exponen stack ni mensaje interno; solo `INTERNAL_ERROR` genérico. El stack va al log.
-- Cada spec posterior añade sus códigos al enum antes de usarlos.
+- Error responses use `Content-Type: application/problem+json`.
+- 5xx errors never expose the stack or the internal message; only a generic `INTERNAL_ERROR`. The stack goes to the log.
+- Each later spec adds its codes to the enum before using them.
 
 ## Implementation plan
 
-1. Añadir dependencias a `apps/api` y scripts `dev`/`build`/`start`. Verificar: `pnpm install` y `pnpm --filter api typecheck` pasan.
-2. Crear `problemSchema` y `ErrorCode` en `packages/shared` con test unitario del schema.
-3. Crear `AppModule`, `HealthModule`, `HealthController` y `main.ts` mínimo (prefijo `/api`, `/health` excluido). Verificar: `pnpm --filter api dev` y `curl localhost:4000/health` → `{"status":"ok"}`.
-4. Verificar inyección de dependencias bajo `tsx`. Si falla por falta de `emitDecoratorMetadata`, cambiar `dev` a loader SWC (ver Riesgos) antes de seguir.
-5. Añadir helmet y `nestjs-pino` (JSON en prod, `pino-pretty` solo si ya está instalado en dev; si no, JSON siempre). Verificar: cada request loguea método, ruta, status y duración.
-6. Implementar `ProblemJsonFilter` (HttpException, ZodError y errores desconocidos) y registrarlo global. Verificar: ruta inexistente → 404 problem+json con `NOT_FOUND`.
-7. Implementar `ZodValidationPipe` (recibe un schema, lanza `VALIDATION_ERROR` con `errors[]`) y registrarlo vía decorador por parámetro. Verificar con un controller de prueba dentro del test.
-8. Configurar Vitest con `unplugin-swc` y escribir tests de integración (`/health` fuera de `/api`, `/api/nope` → 404 problem+json, validación → 400, error inesperado → 500 sin fuga de stack).
+1. Add dependencies to `apps/api` and the `dev`/`build`/`start` scripts. Verify: `pnpm install` and `pnpm --filter api typecheck` pass.
+2. Create `problemSchema` and `ErrorCode` in `packages/shared` with a unit test for the schema.
+3. Create `AppModule`, `HealthModule`, `HealthController` and a minimal `main.ts` (`/api` prefix, `/health` excluded). Verify: `pnpm --filter api dev` and `curl localhost:4000/health` → `{"status":"ok"}`.
+4. Verify dependency injection under `tsx`. If it fails for lack of `emitDecoratorMetadata`, switch `dev` to the SWC loader (see Risks) before continuing.
+5. Add helmet and `nestjs-pino` (JSON in prod, `pino-pretty` only if already installed in dev; otherwise always JSON). Verify: each request logs method, path, status and duration.
+6. Implement `ProblemJsonFilter` (HttpException, ZodError and unknown errors) and register it globally. Verify: unknown route → 404 problem+json with `NOT_FOUND`.
+7. Implement `ZodValidationPipe` (takes a schema, throws `VALIDATION_ERROR` with `errors[]`) and register it via a per-parameter decorator. Verify with a test controller inside the test.
+8. Configure Vitest with `unplugin-swc` and write the integration tests (`/health` outside `/api`, `/api/nope` → 404 problem+json, validation → 400, unexpected error → 500 with no stack leak).
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter api dev` arranca en el puerto de `PORT` sin errores.
-- [ ] `GET /health` responde 200 `{"status":"ok"}`.
-- [ ] `GET /api/health` responde 404 (health vive fuera del prefijo).
-- [ ] Una ruta inexistente responde 404 con `Content-Type: application/problem+json` y `code: "NOT_FOUND"`.
-- [ ] Un body inválido en una ruta con `ZodValidationPipe` responde 400 con `code: "VALIDATION_ERROR"` y `errors[]` con `path` y `message`.
-- [ ] Un error no controlado responde 500 con `code: "INTERNAL_ERROR"` y sin stack ni mensaje interno en el body.
-- [ ] Toda respuesta incluye cabeceras de helmet (p. ej. `x-content-type-options: nosniff`).
-- [ ] Cada request genera una línea de log pino con request id, método, ruta, status y duración.
-- [ ] `packages/shared` exporta `problemSchema` y `ErrorCode`; el filtro valida su salida contra `problemSchema` en tests.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pasan.
-- [ ] La casilla M0.3 de `ROADMAP.md` queda marcada en el mismo PR.
+- [ ] `pnpm --filter api dev` starts on the `PORT` port without errors.
+- [ ] `GET /health` responds 200 `{"status":"ok"}`.
+- [ ] `GET /api/health` responds 404 (health lives outside the prefix).
+- [ ] An unknown route responds 404 with `Content-Type: application/problem+json` and `code: "NOT_FOUND"`.
+- [ ] An invalid body on a route with `ZodValidationPipe` responds 400 with `code: "VALIDATION_ERROR"` and `errors[]` with `path` and `message`.
+- [ ] An unhandled error responds 500 with `code: "INTERNAL_ERROR"` and no stack or internal message in the body.
+- [ ] Every response includes helmet headers (e.g. `x-content-type-options: nosniff`).
+- [ ] Each request produces a pino log line with request id, method, path, status and duration.
+- [ ] `packages/shared` exports `problemSchema` and `ErrorCode`; the filter validates its output against `problemSchema` in tests.
+- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [ ] The M0.3 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 ## Decisions
 
-- **Sí:** `tsx watch` para dev y `tsc` para build. Simple, ESM nativo, sin Nest CLI.
-- **No:** Nest CLI. Pelea con ESM puro y obligaría a CommonJS.
-- **Sí:** `ZodValidationPipe` propio (~20 líneas). Sin dependencia nueva y usa directo los schemas de `packages/shared`.
-- **No:** `nestjs-zod`. Dependencia extra; revisitar solo si se decide generar OpenAPI desde los schemas.
-- **Sí:** `/health` solo devuelve `{ status: 'ok' }`. No construir chequeos de infra que aún no existen.
-- **Sí:** `problemSchema` y `ErrorCode` en `packages/shared`. Es contrato API↔web y la web los mapea a i18n (regla de CLAUDE.md: schema primero).
-- **No:** códigos de error solo en `apps/api`. Habría que moverlos cuando la web los necesite.
-- **Sí:** `unplugin-swc` solo para Vitest, porque esbuild no emite metadata de decoradores.
+- **Yes:** `tsx watch` for dev and `tsc` for build. Simple, native ESM, no Nest CLI.
+- **No:** Nest CLI. It fights pure ESM and would force CommonJS.
+- **Yes:** own `ZodValidationPipe` (~20 lines). No new dependency and it uses the schemas from `packages/shared` directly.
+- **No:** `nestjs-zod`. Extra dependency; revisit only if we decide to generate OpenAPI from the schemas.
+- **Yes:** `/health` only returns `{ status: 'ok' }`. Don't build infra checks for infra that doesn't exist yet.
+- **Yes:** `problemSchema` and `ErrorCode` in `packages/shared`. It is the API↔web contract and the web maps the codes to i18n (CLAUDE.md rule: schema first).
+- **No:** error codes only in `apps/api`. They would have to be moved when the web needs them.
+- **Yes:** `unplugin-swc` for Vitest only, because esbuild does not emit decorator metadata.
 
 ## Risks
 
 | Risk | Mitigation |
 | ---- | ---------- |
-| `tsx` (esbuild) no emite `emitDecoratorMetadata`, la DI de Nest por tipo de constructor falla en runtime | Paso 4 lo verifica pronto. Si falla, `dev` usa `node --watch --import @swc-node/register/esm-register` y se anota en el PR |
-| Nuevas dependencias sin aprobación | Cada una lleva su razón en la descripción del PR (regla de CLAUDE.md) |
-| `/health` fuera del prefijo se rompe por un cambio futuro del prefijo | Test de integración fija ambos comportamientos |
+| `tsx` (esbuild) does not emit `emitDecoratorMetadata`, so Nest constructor-type DI fails at runtime | Step 4 checks it early. If it fails, `dev` uses `node --watch --import @swc-node/register/esm-register` and it is noted in the PR |
+| New dependencies without approval | Each one gets its reason in the PR description (CLAUDE.md rule) |
+| `/health` outside the prefix breaks on a future prefix change | An integration test pins both behaviors |
 
 ## What is **not** in this spec
 
-- Prisma ni acceso a base de datos.
-- Autenticación, guards ni rate limiting.
-- CORS, check de `Origin`, OpenAPI.
-- Dockerfile, CI ni deploy.
-- Cualquier endpoint de negocio.
+- Prisma or any database access.
+- Authentication, guards or rate limiting.
+- CORS, `Origin` check, OpenAPI.
+- Dockerfile, CI or deploy.
+- Any business endpoint.
