@@ -58,6 +58,10 @@ export function BookCover({
     <div className={cn('shrink-0', width, className)}>
       {showImage ? (
         <img
+          // The image can fail before hydration, so onError never fires: check on mount too.
+          ref={(img) => {
+            if (img?.complete && img.naturalWidth === 0) setFailedUrl(coverUrl ?? null);
+          }}
           src={coverUrl as string}
           alt={coverAlt}
           loading="lazy"

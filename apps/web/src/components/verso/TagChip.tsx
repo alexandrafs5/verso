@@ -27,7 +27,10 @@ export function TagChip({ name, color, selected = false, onToggle, className }: 
     <>
       <span
         aria-hidden="true"
-        className={cn('size-2.5 shrink-0 rounded-(--radius-round) border border-border', DOT_BG[color])}
+        className={cn(
+          'size-2.5 shrink-0 rounded-(--radius-round) border border-muted/60',
+          DOT_BG[color],
+        )}
       />
       <span className="truncate">{name}</span>
     </>
