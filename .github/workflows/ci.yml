@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: verso
+          POSTGRES_PASSWORD: verso
+          POSTGRES_DB: verso
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U verso -d verso"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://verso:verso@localhost:5432/verso
+      DIRECT_DATABASE_URL: postgresql://verso:verso@localhost:5432/verso
+      TURBO_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Apply migrations
+        run: pnpm --filter @verso/api db:deploy
+
+      - name: Test (unit + integration)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
