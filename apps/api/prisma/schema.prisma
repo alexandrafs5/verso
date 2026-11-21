@@ -1,0 +1,11 @@
+// Verso data model. Tables are added milestone by milestone (see ROADMAP.md, ARCHITECTURE.md §5.3).
+// The connection URL lives in prisma.config.ts (Prisma 7).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
