@@ -1,6 +1,6 @@
 # SPEC 03 — Verso UI components (M1.3)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 02
 > **Date:** 2026-11-21
 > **Objective:** Build the eleven presentational Verso components in `apps/web/src/components/verso/` (BookCover, GeneratedCover, ProgressBar, RatingDisplay, RatingInput, StatusDropdown, AddToLibraryButton, TagChip, LockToggle, EmptyState, ErrorState), with component tests for RatingInput and ProgressBar.
@@ -75,24 +75,24 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] `components/verso/` exports all eleven components from `index.ts`.
-- [ ] No component imports `next-intl`, `@tanstack/react-query` or `api-client`.
-- [ ] No hardcoded user-facing strings in components (the dev demo page is the only exception).
-- [ ] No raw hex colors or arbitrary color values; only tokens from `styles/tokens.css`.
-- [ ] `RatingInput` with `STARS_HALF`: pressing the left half of the third star calls `onChange(50)`; clicking the same value again or the clear action calls `onChange(null)`.
-- [ ] `RatingInput` with `STARS_WHOLE`, ArrowRight/ArrowLeft change the value by 20 and clamp to 0–100.
-- [ ] `RatingInput` with `DECIMAL_10`, typing `7.3` in the field calls `onChange(73)`; with `HUNDRED`, typing `73` calls `onChange(73)`.
-- [ ] `ProgressBar` exposes `role="progressbar"` with `aria-valuenow` equal to `valueBp / 100`.
-- [ ] `ProgressBar` clamps `-5` to 0 and `12000` to 10000.
-- [ ] `RatingDisplay` with `value: null` shows `emptyLabel` and no stars.
-- [ ] `BookCover` falls back to `GeneratedCover` when `coverUrl` is null or the image errors.
-- [ ] `AddToLibraryButton` with `status: null` calls `onAdd('WANT_TO_READ')` on the main click and `onAdd(<chosen>)` from the menu; with a status it renders the `StatusDropdown`.
-- [ ] `LockToggle` is a button with `aria-pressed` reflecting `visibility` and shows the `tooltip` text on focus and hover.
-- [ ] Every interactive component is reachable and operable by keyboard and shows the 2 px brass focus ring; touch targets are at least 44 px.
-- [ ] Animations are disabled under `prefers-reduced-motion`.
-- [ ] `/dev/components` renders in development and returns 404 in a production build.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] The M1.3 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] `components/verso/` exports all eleven components from `index.ts`.
+- [x] No component imports `next-intl`, `@tanstack/react-query` or `api-client`.
+- [x] No hardcoded user-facing strings in components (the dev demo page is the only exception).
+- [x] No raw hex colors or arbitrary color values; only tokens from `styles/tokens.css`.
+- [x] `RatingInput` with `STARS_HALF`: pressing the left half of the third star calls `onChange(50)`; clicking the same value again or the clear action calls `onChange(null)`.
+- [x] `RatingInput` with `STARS_WHOLE`, ArrowRight/ArrowLeft change the value by 20 and clamp to 0–100.
+- [x] `RatingInput` with `DECIMAL_10`, typing `7.3` in the field calls `onChange(73)`; with `HUNDRED`, typing `73` calls `onChange(73)`.
+- [x] `ProgressBar` exposes `role="progressbar"` with `aria-valuenow` equal to `valueBp / 100`.
+- [x] `ProgressBar` clamps `-5` to 0 and `12000` to 10000.
+- [x] `RatingDisplay` with `value: null` shows `emptyLabel` and no stars.
+- [x] `BookCover` falls back to `GeneratedCover` when `coverUrl` is null or the image errors.
+- [x] `AddToLibraryButton` with `status: null` calls `onAdd('WANT_TO_READ')` on the main click and `onAdd(<chosen>)` from the menu; with a status it renders the `StatusDropdown`.
+- [x] `LockToggle` is a button with `aria-pressed` reflecting `visibility` and shows the `tooltip` text on focus and hover.
+- [x] Every interactive component is reachable and operable by keyboard and shows the 2 px brass focus ring; touch targets are at least 44 px.
+- [x] Animations are disabled under `prefers-reduced-motion`.
+- [x] `/dev/components` renders in development and returns 404 in a production build.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] The M1.3 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 ### UI states: BookCover
 
