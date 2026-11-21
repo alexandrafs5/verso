@@ -6,7 +6,6 @@ Verso is a personal-first reading platform ("Goodreads done right"): library, re
 
 - `ARCHITECTURE.md` — stack, layout, data model, domain classes, API, jobs. **Source of truth for how things are built.**
 - `docs/DESIGN.md` — every screen, state, token and copy rule. **Source of truth for what the UI does and looks like.**
-- `docs/design/` - visual reference exported from Claude Design. Match its look, but build with our stack and components; don’t copy its code wholesale
 - `ROADMAP.md` — task order. Work on one task at a time.
 
 If code, ARCHITECTURE.md and DESIGN.md disagree, stop and ask; don't silently pick one.
@@ -36,7 +35,6 @@ Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pa
 **Language:** all code, comments, commits, docs and identifiers in English. UI text exists in English and Spanish through `packages/i18n` — never hardcode user-facing strings.
 
 **Backend (apps/api):**
-
 - Module layout: `controller → service → (domain, repository)`. Controllers: HTTP and validation only. Repositories: Prisma only. Business rules: pure classes in `domain/` with no Nest or Prisma imports.
 - Cross-module access only through the other module's exported service. Side effects across modules through events.
 - Every endpoint validates input with Zod schemas from `packages/shared`. Errors as problem+json with a stable `code`.
@@ -45,7 +43,6 @@ Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pa
 - Ratings are integers 0–100. Percentages are basis points 0–10000. Dates for sessions are local dates in the user's time zone.
 
 **Frontend (apps/web):**
-
 - Colors, type, radii and shadows only from tokens (`styles/tokens.css`), never raw hex.
 - Every screen implements default, loading (skeleton), empty and error states, in light and dark, at mobile/tablet/desktop widths.
 - No emojis anywhere in the UI. Thin line icons always paired with text labels (except close, search, more, bell).
@@ -65,8 +62,7 @@ Before saying a task is done: `pnpm lint && pnpm typecheck && pnpm test` must pa
 
 ## Git workflow
 
-- Branches: `main` only receives the final release. All approved work merges into `develop`, always via PR (never push directly to `develop` or `main`). PRs target `develop`, not `main`.
-- One ROADMAP task per branch, cut from `develop`: `feat/<task-id>-short-name` (e.g. `feat/m4.2-add-to-library`).
+- One ROADMAP task per branch: `feat/<task-id>-short-name` (e.g. `feat/m4.2-add-to-library`).
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`.
 - Small PRs. Update the ROADMAP checkbox in the same PR.
 - Migrations are forward-only. Never edit a migration that's on `main`.
