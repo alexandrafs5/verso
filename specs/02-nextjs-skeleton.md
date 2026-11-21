@@ -1,6 +1,6 @@
 # SPEC 02 — Next.js web skeleton (M0.5)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 01
 > **Date:** 2026-11-21
 > **Objective:** Get `apps/web` booting with Next.js App Router, the `/api/:path*` rewrite to the API, a TanStack Query provider and a typed `api-client` that handles the waking state and retries.
@@ -75,20 +75,20 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] `pnpm dev` starts web on `:3000` and API on `:4000` without errors.
-- [ ] `http://localhost:3000` shows the `status` value `ok` returned by `GET /api/health` through the proxy.
-- [ ] `curl localhost:3000/api/health` returns `{"status":"ok"}`.
-- [ ] `curl localhost:3000/api/nope` returns a 404 `application/problem+json` from the API.
-- [ ] `api.get` throws `ApiError` with `code` and `problem` set when the API returns problem+json.
-- [ ] `api.get` throws `ApiError` with `code: null` when the body does not match the schema.
-- [ ] A request taking more than 3 s sets `WakingState` to `waking`; it returns to `idle` when the request ends.
-- [ ] A 503 followed by a 200 resolves with the data and does not throw.
-- [ ] Repeated 503 responses stop after 75 s and throw `ApiError` with status 503.
-- [ ] A POST that receives 504 is not retried; a GET that receives 504 is.
-- [ ] A 400 or 500 is never retried.
-- [ ] `apps/web` has no hardcoded user-facing strings and no raw hex colors.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass.
-- [ ] The M0.5 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] `pnpm dev` starts web on `:3000` and API on `:4000` without errors.
+- [x] `http://localhost:3000` shows the `status` value `ok` returned by `GET /api/health` through the proxy.
+- [x] `curl localhost:3000/api/health` returns `{"status":"ok"}`.
+- [x] `curl localhost:3000/api/nope` returns a 404 `application/problem+json` from the API.
+- [x] `api.get` throws `ApiError` with `code` and `problem` set when the API returns problem+json.
+- [x] `api.get` throws `ApiError` with `code: null` when the body does not match the schema.
+- [x] A request taking more than 3 s sets `WakingState` to `waking`; it returns to `idle` when the request ends.
+- [x] A 503 followed by a 200 resolves with the data and does not throw.
+- [x] Repeated 503 responses stop after 75 s and throw `ApiError` with status 503.
+- [x] A POST that receives 504 is not retried; a GET that receives 504 is.
+- [x] A 400 or 500 is never retried.
+- [x] `apps/web` has no hardcoded user-facing strings and no raw hex colors.
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass.
+- [x] The M0.5 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 ## Decisions
 
