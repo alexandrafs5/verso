@@ -1,6 +1,6 @@
 # SPEC 04 — Rating and GeneratedCover in shared (M1.4)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 03
 > **Date:** 2026-11-21
 > **Objective:** Add the `Rating` value object and the `GeneratedCover` tone picker to `packages/shared`, with unit tests, so web and API convert and choose identically.
@@ -72,22 +72,22 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] `Rating.of(101)`, `Rating.of(-1)` and `Rating.of(50.5)` throw `RangeError`.
-- [ ] `Rating.fromInput('STARS_HALF', 3.5).value` is `70`; `fromInput('STARS_WHOLE', 3.5).value` is `80` (snaps to step 20, rounds half up).
-- [ ] `Rating.fromInput('STARS_QUARTER', 3.25).value` is `65`.
-- [ ] `Rating.fromInput('DECIMAL_10', 7.3).value` is `73`; `fromInput('HUNDRED', 73).value` is `73`.
-- [ ] `fromInput` clamps: `('HUNDRED', 150)` gives `100`; `('HUNDRED', -5)` gives `0`.
-- [ ] `fromInput` with `NaN` throws `RangeError`.
-- [ ] `Rating.of(70).format('STARS_HALF')` is `"3.5"`; `of(60).format('STARS_WHOLE')` is `"3"`; `of(65).format('STARS_QUARTER')` is `"3.25"`.
-- [ ] `Rating.of(73).format('DECIMAL_10')` is `"7.3"`; `of(70).format('DECIMAL_10')` is `"7.0"`; `of(73).format('HUNDRED')` is `"73"`.
-- [ ] For every style, `fromInput(style, parseFloat(r.format(style))).value` equals `r.value` when `r.value` is a multiple of the style step.
-- [ ] `pickCoverTone` returns the same tone for the same title on repeated calls, ignoring case and surrounding spaces.
-- [ ] `pickCoverTone` returns only members of `COVER_TONES`, and a sample of 200 distinct titles uses all six tones.
-- [ ] `pickCoverTone('')` returns `'wine'`.
-- [ ] `apps/web` has no local definition of `RatingStyle` or `CoverTone`; typecheck passes.
-- [ ] Coverage of `rating.ts` and `generated-cover.ts` is at least 90% lines.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] The M1.4 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] `Rating.of(101)`, `Rating.of(-1)` and `Rating.of(50.5)` throw `RangeError`.
+- [x] `Rating.fromInput('STARS_HALF', 3.5).value` is `70`; `fromInput('STARS_WHOLE', 3.5).value` is `80` (snaps to step 20, rounds half up).
+- [x] `Rating.fromInput('STARS_QUARTER', 3.25).value` is `65`.
+- [x] `Rating.fromInput('DECIMAL_10', 7.3).value` is `73`; `fromInput('HUNDRED', 73).value` is `73`.
+- [x] `fromInput` clamps: `('HUNDRED', 150)` gives `100`; `('HUNDRED', -5)` gives `0`.
+- [x] `fromInput` with `NaN` throws `RangeError`.
+- [x] `Rating.of(70).format('STARS_HALF')` is `"3.5"`; `of(60).format('STARS_WHOLE')` is `"3"`; `of(65).format('STARS_QUARTER')` is `"3.25"`.
+- [x] `Rating.of(73).format('DECIMAL_10')` is `"7.3"`; `of(70).format('DECIMAL_10')` is `"7.0"`; `of(73).format('HUNDRED')` is `"73"`.
+- [x] For every style, `fromInput(style, parseFloat(r.format(style))).value` equals `r.value` when `r.value` is a multiple of the style step.
+- [x] `pickCoverTone` returns the same tone for the same title on repeated calls, ignoring case and surrounding spaces.
+- [x] `pickCoverTone` returns only members of `COVER_TONES`, and a sample of 200 distinct titles uses all six tones.
+- [x] `pickCoverTone('')` returns `'wine'`.
+- [x] `apps/web` has no local definition of `RatingStyle` or `CoverTone`; typecheck passes.
+- [x] Coverage of `rating.ts` and `generated-cover.ts` is at least 90% lines.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] The M1.4 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 UI states: N/A, this spec touches no screen or component behavior.
 
