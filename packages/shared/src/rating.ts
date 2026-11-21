@@ -58,4 +58,19 @@ export class Rating {
     const snapped = Math.round(scaled / step) * step;
     return new Rating(Math.min(MAX_VALUE, Math.max(MIN_VALUE, snapped)));
   }
+
+  /** Locale-free text (always a dot). Values finer than the style step round to that step first. */
+  format(style: RatingStyle): string {
+    const step = STEP[style];
+    const snapped = Math.round(this.value / step) * step;
+    switch (style) {
+      case 'DECIMAL_10':
+        return (snapped / 10).toFixed(1);
+      case 'HUNDRED':
+        return String(snapped);
+      default:
+        // Stars: 20 points per star; at most two decimals (quarter step). Number() trims trailing zeros.
+        return String(Number((snapped / 20).toFixed(2)));
+    }
+  }
 }
