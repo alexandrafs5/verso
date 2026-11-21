@@ -1,0 +1,38 @@
+{
+  "common": {
+    "retry": "Reintentar",
+    "close": "Cerrar",
+    "language": "Idioma",
+    "theme": "Cambiar tema"
+  },
+  "locale": {
+    "en": "English",
+    "es": "Español"
+  },
+  "status": {
+    "WANT_TO_READ": "Quiero leer",
+    "READING": "Leyendo",
+    "READ": "Leído",
+    "ABANDONED": "Abandonado"
+  },
+  "visibility": {
+    "PRIVATE": "Privado",
+    "PUBLIC": "Público"
+  },
+  "rating": {
+    "clear": "Quitar valoración",
+    "star": "{count, plural, one {# estrella} other {# estrellas}} de 5",
+    "slider": "Valoración",
+    "field": "Valor de la valoración",
+    "empty": "Sin valorar"
+  },
+  "library": {
+    "add": "Añadir a la biblioteca",
+    "chooseStatus": "Elige un estado"
+  },
+  "plurals": {
+    "books": "{count, plural, =0 {Ningún libro} one {# libro} other {# libros}}",
+    "pages": "{count, plural, one {# página} other {# páginas}}",
+    "days": "{count, plural, one {# día} other {# días}}"
+  }
+}

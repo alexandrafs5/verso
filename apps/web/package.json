@@ -31,10 +31,12 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.108.2",
+    "@verso/i18n": "workspace:*",
     "@verso/shared": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "next": "^16.4.6",
+    "next-intl": "^4.15.3",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
