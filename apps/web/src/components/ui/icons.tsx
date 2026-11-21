@@ -69,3 +69,11 @@ export function StarIcon(props: SVGProps<SVGSVGElement>) {
     </Icon>
   );
 }
+
+export function PlusIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </Icon>
+  );
+}
