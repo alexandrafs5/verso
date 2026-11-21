@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 

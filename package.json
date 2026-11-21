@@ -12,7 +12,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:migrate": "pnpm --filter @verso/api db:migrate",
+    "db:seed": "pnpm --filter @verso/api db:seed"
   },
   "devDependencies": {
     "prettier": "^3.10.1",
