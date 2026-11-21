@@ -2,4 +2,6 @@
 export { BookCover, type BookCoverSize } from './BookCover';
 export { GeneratedCover } from './GeneratedCover';
 export { ProgressBar } from './ProgressBar';
+export { RatingDisplay } from './RatingDisplay';
+export { RatingInput } from './RatingInput';
 export type { BookStatus, CoverTone, RatingStyle, TagColor, Visibility } from './types';

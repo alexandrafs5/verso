@@ -61,3 +61,11 @@ export function DotIcon(props: SVGProps<SVGSVGElement>) {
     </Icon>
   );
 }
+
+export function StarIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 17l-5.4 3 1.2-6L3.3 9.8l6.1-.7L12 3.5z" />
+    </Icon>
+  );
+}
