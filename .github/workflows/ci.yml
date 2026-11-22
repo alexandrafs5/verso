@@ -36,7 +36,10 @@ jobs:
       DATABASE_URL: postgresql://verso:verso@localhost:5432/verso
       DIRECT_DATABASE_URL: postgresql://verso:verso@localhost:5432/verso
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else
-      TURBO_TELEMETRY_DISABLED: "1"
+      # The API fails to boot without an email provider. SMTP is never contacted in tests (fake provider).
+      SMTP_URL: smtp://localhost:1025
+      EMAIL_FROM: Verso <no-reply@verso.local>
+      TURBO_TELEMETRY_DISABLED: '1'
 
     steps:
       - uses: actions/checkout@v4
