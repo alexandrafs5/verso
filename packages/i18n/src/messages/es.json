@@ -150,5 +150,112 @@
     "books": "{count, plural, =0 {Ningún libro} one {# libro} other {# libros}}",
     "pages": "{count, plural, one {# página} other {# páginas}}",
     "days": "{count, plural, one {# día} other {# días}}"
+  },
+  "onboarding": {
+    "stepOf": "Paso {current} de {total}",
+    "progressLabel": "Progreso de la configuración inicial",
+    "back": "Atrás",
+    "skip": "Omitir",
+    "continue": "Continuar",
+    "saving": "Guardando",
+    "loading": "Cargando tu cuenta",
+    "loadFailedTitle": "No pudimos cargar tu cuenta",
+    "loadFailedBody": "Revisa tu conexión e inténtalo de nuevo.",
+    "saveFailed": "No pudimos guardar los cambios. Revisa tu conexión e inténtalo de nuevo.",
+    "steps": {
+      "name": {
+        "title": "¿Cómo te llamamos?",
+        "description": "Tu nombre y un nombre de usuario. La gente te encuentra por tu usuario."
+      },
+      "photo": {
+        "title": "Añade una foto de perfil",
+        "description": "Opcional. Sin foto, se muestran tus iniciales."
+      },
+      "rating": {
+        "title": "¿Cómo te gusta puntuar los libros?",
+        "description": "Elige un estilo y pruébalo. Podrás cambiarlo después en Ajustes."
+      },
+      "progress": {
+        "title": "¿Cómo llevas tu progreso?",
+        "description": "Elige qué anotas mientras lees. Podrás cambiarlo después en Ajustes."
+      },
+      "privacy": {
+        "title": "¿Quién puede ver tu perfil?",
+        "description": "Podrás cambiarlo después en Ajustes."
+      },
+      "goal": {
+        "title": "Fija una meta anual",
+        "description": "Opcional. Un objetivo amable de cuántos libros leer este año."
+      },
+      "import": {
+        "title": "¿Vienes de Goodreads?",
+        "description": "Opcional. Trae tu biblioteca contigo."
+      }
+    },
+    "name": {
+      "nameLabel": "Nombre",
+      "usernameLabel": "Nombre de usuario",
+      "usernameHint": "De 3 a 20 caracteres: letras, números y guiones bajos.",
+      "errors": {
+        "nameRequired": "Escribe tu nombre.",
+        "nameTooLong": "Usa 80 caracteres o menos.",
+        "usernameRequired": "Elige un nombre de usuario."
+      },
+      "availability": {
+        "checking": "Comprobando disponibilidad",
+        "available": "Este nombre de usuario está disponible.",
+        "TAKEN": "Este nombre de usuario ya está en uso.",
+        "TOO_SHORT": "Usa al menos 3 caracteres.",
+        "TOO_LONG": "Usa 20 caracteres o menos.",
+        "INVALID_CHARACTERS": "Usa solo letras, números y guiones bajos.",
+        "RESERVED": "Este nombre de usuario está reservado. Elige otro.",
+        "checkFailed": "No pudimos comprobar la disponibilidad ahora. Aun así puedes continuar."
+      }
+    },
+    "rating": {
+      "groupLabel": "Estilo de puntuación",
+      "precisionLabel": "Precisión de las estrellas",
+      "previewLabel": "Pruébalo",
+      "stars": {
+        "title": "Estrellas",
+        "description": "Cinco estrellas, a la manera clásica."
+      },
+      "decimal": {
+        "title": "De 1 a 10",
+        "description": "Una nota sobre 10, con un decimal."
+      },
+      "hundred": {
+        "title": "De 1 a 100",
+        "description": "Una nota precisa sobre 100."
+      },
+      "whole": "Estrellas enteras",
+      "half": "Medias estrellas",
+      "quarter": "Cuartos de estrella"
+    },
+    "progress": {
+      "groupLabel": "Estilo de progreso",
+      "previewLabel": "Vista previa",
+      "pages": {
+        "title": "Páginas",
+        "description": "Anota la página por la que vas.",
+        "preview": "p. 150 de 300"
+      },
+      "percent": {
+        "title": "Porcentaje",
+        "description": "Anota cuánto llevas, útil para ebooks y audiolibros.",
+        "preview": "50%"
+      }
+    },
+    "privacy": {
+      "groupLabel": "Privacidad del perfil",
+      "public": {
+        "title": "Público",
+        "description": "Cualquiera puede ver tu perfil, tus lecturas y tus reseñas."
+      },
+      "private": {
+        "title": "Privado",
+        "description": "Solo las personas que apruebes ven tu perfil. Tu biblioteca queda oculta."
+      }
+    }
   }
 }

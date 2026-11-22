@@ -24,6 +24,8 @@ export class ApiError extends Error {
 
 export interface RequestOptions {
   signal?: AbortSignal;
+  /** Sent as JSON. */
+  body?: unknown;
 }
 
 export const WAKING_THRESHOLD_MS = 3_000;
@@ -35,6 +37,8 @@ function backoffDelay(retryIndex: number): number {
 }
 
 function isRetryable(method: string, error: ApiError): boolean {
+  // The app answered with its own 503 (storage is not configured): waiting will not help.
+  if (error.code === 'STORAGE_UNAVAILABLE') return false;
   if (method === 'GET') return [0, 502, 503, 504].includes(error.status);
   // Non-GET: only when the request surely never reached the app.
   return error.status === 502 || error.status === 503;
@@ -76,7 +80,11 @@ async function attempt<T>(
   try {
     response = await fetch(path, {
       method,
-      headers: { Accept: 'application/json, application/problem+json' },
+      headers: {
+        Accept: 'application/json, application/problem+json',
+        ...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
       signal: opts.signal,
     });
   } catch (cause) {
@@ -139,5 +147,14 @@ export async function request<T>(
 export const api = {
   get<T>(path: string, schema: z.ZodType<T>, opts?: RequestOptions): Promise<T> {
     return request('GET', path, schema, opts);
+  },
+  post<T>(path: string, schema: z.ZodType<T>, body?: unknown, opts?: RequestOptions): Promise<T> {
+    return request('POST', path, schema, { ...opts, body });
+  },
+  patch<T>(path: string, schema: z.ZodType<T>, body: unknown, opts?: RequestOptions): Promise<T> {
+    return request('PATCH', path, schema, { ...opts, body });
+  },
+  put<T>(path: string, schema: z.ZodType<T>, body: unknown, opts?: RequestOptions): Promise<T> {
+    return request('PUT', path, schema, { ...opts, body });
   },
 };
