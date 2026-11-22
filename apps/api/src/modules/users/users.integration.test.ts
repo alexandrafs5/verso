@@ -448,12 +448,11 @@ describe('Users module: /v1/me endpoints (integration)', () => {
 
     it('rejects a year outside current and next with 400', async () => {
       const { cookie } = await createSession();
-      expect(
-        (await send('put', `/v1/me/goals/${year - 1}`, cookie).send({ targetBooks: 5 })).status,
-      ).toBe(400);
-      expect(
-        (await send('put', `/v1/me/goals/${year + 2}`, cookie).send({ targetBooks: 5 })).status,
-      ).toBe(400);
+      for (const bad of [year - 1, year + 2]) {
+        const res = await send('put', `/v1/me/goals/${bad}`, cookie).send({ targetBooks: 5 });
+        expect(res.status).toBe(400);
+        expect(problemSchema.parse(res.body).code).toBe('GOAL_YEAR_INVALID');
+      }
       expect((await send('put', '/v1/me/goals/abc', cookie).send({ targetBooks: 5 })).status).toBe(
         400,
       );

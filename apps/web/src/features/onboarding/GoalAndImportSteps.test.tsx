@@ -126,8 +126,13 @@ describe('StepImport (step 7)', () => {
     expect(onBack).toHaveBeenCalledOnce();
   });
 
-  it('shows an inline problem message when finishing fails', () => {
-    renderWithProviders(<StepImport pending={false} failed onBack={vi.fn()} onSkip={vi.fn()} />);
+  it('shows an inline problem message with an explicit retry when finishing fails', async () => {
+    const ui = userEvent.setup();
+    const onSkip = vi.fn();
+    renderWithProviders(<StepImport pending={false} failed onBack={vi.fn()} onSkip={onSkip} />);
+
     expect(screen.getByRole('alert')).toHaveTextContent(t.saveFailed);
+    await ui.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(onSkip).toHaveBeenCalledOnce();
   });
 });

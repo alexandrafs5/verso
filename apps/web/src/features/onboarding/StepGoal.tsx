@@ -5,6 +5,7 @@ import { type Me, goalSchema, upsertGoalSchema } from '@verso/shared';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { useRestoreFocus } from '@/features/auth/use-restore-focus';
 import { api } from '@/lib/api-client';
 import { currentYearIn } from '@/lib/time-zone';
 import { OnboardingShell, STEP_FORM_ID } from './OnboardingShell';
@@ -25,6 +26,9 @@ export function StepGoal({ me, onBack, onNext }: StepGoalProps) {
       api.put(`/api/v1/me/goals/${year}`, goalSchema, { targetBooks }),
     onSuccess: onNext,
   });
+
+  // The field is disabled while saving; this puts focus back where it was afterwards.
+  useRestoreFocus(save.isPending);
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();

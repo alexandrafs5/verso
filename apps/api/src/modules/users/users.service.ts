@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -129,7 +128,7 @@ export class UsersService {
   async upsertGoal(userId: string, year: number, targetBooks: number): Promise<Goal> {
     const user = await this.requireUser(userId);
     if (!GoalPolicy.isYearAllowed(year, user.timeZone)) {
-      throw new BadRequestException('Goal year must be the current year or the next one');
+      throw new ApiException(400, 'GOAL_YEAR_INVALID');
     }
     const goal = await this.users.upsertGoal(userId, year, targetBooks);
     return { year: goal.year, targetBooks: goal.targetBooks };

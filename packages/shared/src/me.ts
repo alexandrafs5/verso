@@ -116,3 +116,6 @@ export const goalYearParamSchema = z
   .string()
   .regex(/^\d{4}$/)
   .transform(Number);
+
+/** Path param of `GET /v1/usernames/{username}/availability`. Only a sanity bound: UsernamePolicy decides what is valid and reports the reason. */
+export const usernameParamSchema = z.string().min(1).max(255);

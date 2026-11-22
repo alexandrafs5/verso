@@ -4,6 +4,7 @@ import {
   goalYearParamSchema,
   updateMeSchema,
   updateSettingsSchema,
+  usernameParamSchema,
   upsertGoalSchema,
 } from './me.js';
 
@@ -114,5 +115,17 @@ describe('goalYearParamSchema', () => {
     for (const bad of ['26', '20266', 'abc', '2026.5', '-2026', '']) {
       expect(goalYearParamSchema.safeParse(bad).success).toBe(false);
     }
+  });
+});
+
+describe('usernameParamSchema', () => {
+  it('accepts any non-empty string up to 255 characters, so the policy can report the reason', () => {
+    expect(usernameParamSchema.safeParse('a').success).toBe(true);
+    expect(usernameParamSchema.safeParse('x'.repeat(255)).success).toBe(true);
+  });
+
+  it('rejects an empty or absurdly long value', () => {
+    expect(usernameParamSchema.safeParse('').success).toBe(false);
+    expect(usernameParamSchema.safeParse('x'.repeat(256)).success).toBe(false);
   });
 });

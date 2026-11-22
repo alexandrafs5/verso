@@ -24,6 +24,7 @@ import {
   updateMeSchema,
   updateSettingsSchema,
   upsertGoalSchema,
+  usernameParamSchema,
 } from '@verso/shared';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { CurrentUser, SessionGuard, type AuthUser } from '../auth/index.js';
@@ -68,7 +69,7 @@ export class UsersController {
   @Get('usernames/:username/availability')
   checkUsername(
     @CurrentUser() user: AuthUser,
-    @Param('username') username: string,
+    @Param('username', new ZodValidationPipe(usernameParamSchema)) username: string,
   ): Promise<UsernameAvailability> {
     return this.users.checkUsername(user.id, username);
   }

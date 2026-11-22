@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
 import { AuthField, fieldA11y } from '@/features/auth/AuthFormParts';
+import { useRestoreFocus } from '@/features/auth/use-restore-focus';
 import { useUpdateMe, useUpdateSettings } from '@/features/me/use-me';
 import { ApiError } from '@/lib/api-client';
 import { browserTimeZone } from '@/lib/time-zone';
@@ -51,6 +52,9 @@ export function StepName({ me, onNext }: StepNameProps) {
     resolver: zodResolver(formSchema),
     defaultValues: { name: me.name, username: me.username ?? '' },
   });
+
+  // Inputs are disabled while saving; this puts focus back where it was afterwards.
+  useRestoreFocus(isSubmitting);
 
   // A reason the server gave on save (taken, or rejected by the policy).
   const [serverReason, setServerReason] = useState<Reason | null>(null);
