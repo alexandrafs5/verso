@@ -256,6 +256,27 @@
         "title": "Private",
         "description": "Only people you approve can see your profile. Your library stays hidden."
       }
+    },
+    "photo": {
+      "choose": "Choose a photo",
+      "change": "Choose another photo",
+      "remove": "Remove photo",
+      "save": "Save photo",
+      "fileInput": "Photo file",
+      "currentAlt": "Your current profile photo",
+      "initialsAlt": "Profile photo placeholder with your initials, {initials}",
+      "cropLabel": "Photo crop preview",
+      "cropHint": "Drag the photo, or use the arrow keys, to move it. Use the zoom control to resize. The photo is shown as a circle.",
+      "zoom": "Zoom",
+      "processing": "Preparing and uploading your photo",
+      "errors": {
+        "wrongType": "That file is not a supported image. Use a JPEG, PNG, WebP or GIF.",
+        "unreadable": "We could not open that image. Try another one.",
+        "encode": "Your browser cannot prepare this photo. You can skip this step and add one later.",
+        "tooLarge": "That photo is still too large after compression. Try a smaller image.",
+        "upload": "We could not upload your photo. Your previous photo is unchanged. Try again.",
+        "remove": "We could not remove your photo. Try again."
+      }
     }
   }
 }

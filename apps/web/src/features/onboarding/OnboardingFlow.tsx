@@ -9,6 +9,7 @@ import { ApiError } from '@/lib/api-client';
 import { OnboardingLoading } from './OnboardingLoading';
 import { OnboardingShell } from './OnboardingShell';
 import { StepName } from './StepName';
+import { StepPhoto } from './StepPhoto';
 import { StepPrivacy } from './StepPrivacy';
 import { StepProgressStyle } from './StepProgressStyle';
 import { StepRatingStyle } from './StepRatingStyle';
@@ -57,6 +58,8 @@ export function OnboardingFlow({ step }: OnboardingFlowProps) {
   switch (step) {
     case 1:
       return <StepName me={me} onNext={next} />;
+    case 2:
+      return <StepPhoto me={me} onBack={back} onNext={next} />;
     case 3:
       return <StepRatingStyle me={me} onBack={back} onNext={next} />;
     case 4:
@@ -64,8 +67,8 @@ export function OnboardingFlow({ step }: OnboardingFlowProps) {
     case 5:
       return <StepPrivacy me={me} onBack={back} onNext={next} />;
     default:
-      // Steps 2, 6 and 7 are optional. Their bodies arrive in later plan steps; until then
-      // only the shell shows, with Skip, and skipping the last step finishes onboarding.
+      // Steps 6 and 7 are optional. Their bodies arrive in a later plan step; until then only
+      // the shell shows, with Skip, and skipping the last step finishes onboarding.
       return (
         <OnboardingShell
           step={step}

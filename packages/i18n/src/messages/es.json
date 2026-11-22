@@ -256,6 +256,27 @@
         "title": "Privado",
         "description": "Solo las personas que apruebes ven tu perfil. Tu biblioteca queda oculta."
       }
+    },
+    "photo": {
+      "choose": "Elegir una foto",
+      "change": "Elegir otra foto",
+      "remove": "Quitar foto",
+      "save": "Guardar foto",
+      "fileInput": "Archivo de la foto",
+      "currentAlt": "Tu foto de perfil actual",
+      "initialsAlt": "Marcador de foto de perfil con tus iniciales, {initials}",
+      "cropLabel": "Vista previa del recorte",
+      "cropHint": "Arrastra la foto, o usa las flechas del teclado, para moverla. Usa el control de zoom para cambiar su tamaño. La foto se muestra en círculo.",
+      "zoom": "Zoom",
+      "processing": "Preparando y subiendo tu foto",
+      "errors": {
+        "wrongType": "Ese archivo no es una imagen compatible. Usa JPEG, PNG, WebP o GIF.",
+        "unreadable": "No pudimos abrir esa imagen. Prueba con otra.",
+        "encode": "Tu navegador no puede preparar esta foto. Puedes omitir este paso y añadirla más tarde.",
+        "tooLarge": "Esa foto sigue siendo demasiado grande tras comprimirla. Prueba con una imagen más pequeña.",
+        "upload": "No pudimos subir tu foto. Tu foto anterior no ha cambiado. Inténtalo de nuevo.",
+        "remove": "No pudimos quitar tu foto. Inténtalo de nuevo."
+      }
     }
   }
 }

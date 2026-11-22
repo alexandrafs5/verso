@@ -18,6 +18,8 @@ type OnboardingShellProps = {
   error?: string | null;
   /** Hide the primary button on steps whose only action is Skip. */
   showPrimary?: boolean;
+  /** Replaces "Continue" on the primary button. */
+  primaryLabel?: string;
   /** Not used on step 1: there is nowhere to go back to. */
   onBack?: () => void;
   /** Only called on the optional steps (2, 6 and 7). */
@@ -31,6 +33,7 @@ export function OnboardingShell({
   pending = false,
   error = null,
   showPrimary = true,
+  primaryLabel,
   onBack,
   onSkip,
   children,
@@ -88,7 +91,7 @@ export function OnboardingShell({
             ) : null}
             {showPrimary ? (
               <Button type="submit" form={STEP_FORM_ID} disabled={pending} aria-busy={pending}>
-                {pending ? t('saving') : t('continue')}
+                {pending ? t('saving') : (primaryLabel ?? t('continue'))}
               </Button>
             ) : null}
           </div>
