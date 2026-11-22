@@ -54,7 +54,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 
 ### M4. Library
 
-- [ ] **M4.1** UserBook, Reading, Tag, UserBookTag tables; `ReadingLifecycle` with full unit tests (state diagram in §6.1).
+- [ ] **M4.1** UserBook (including nullable `progressStyle`, see M5.3), Reading, Tag, UserBookTag tables; `ReadingLifecycle` with full unit tests (state diagram in §6.1).
 - [ ] **M4.2** Add to library (persists work + edition + authors lazily); AddToLibraryButton wired everywhere.
 - [ ] **M4.3** Status changes and lifecycle endpoints (finish, reread, abandon, resume, start over).
 - [ ] **M4.4** S7 library: status tabs with counts, tag chips filter, sort, grid/list, hover overlay.
@@ -67,7 +67,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 
 - [ ] **M5.1** `Progress` value object and `StreakCalculator` with unit tests (time zones, edge days).
 - [ ] **M5.2** ReadingSession table; sessions endpoints; `suggestFinish`; edition change converts progress.
-- [ ] **M5.3** S9 Log progress modal (pages/percent toggle, date, "+N pages" helper, finish dialog with brass shimmer).
+- [ ] **M5.3** S9 Log progress modal (pages/percent toggle, date, "+N pages" helper, finish dialog with brass shimmer). The toggle starts on `User.progressStyle` and the last choice is **remembered per book** in `UserBook.progressStyle` (DESIGN S9); a book without a page count is always percentage.
 - [ ] **M5.4** S8 book detail: header, Sessions tab, Readings tab (editable dates, "Date unknown"), rating input in user's scale.
 - [ ] **M5.5** `GET /v1/home` aggregate + S1 Home: changing greeting, currently reading carousel, streak (7 days), yearly goal, this month, want to read, empty state.
 - [ ] **M5.6** Yearly goal endpoints and Settings → Yearly goal.

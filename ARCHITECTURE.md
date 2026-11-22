@@ -269,7 +269,7 @@ Conventions: primary keys are UUID v7 strings (`id`); timestamps are `timestampt
 
 | Table | Key columns |
 | --- | --- |
-| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`) |
+| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `progressStyle` (PAGES, PERCENT, nullable: null means "use `User.progressStyle`"; set when the user switches the toggle in the Log progress modal, see DESIGN S9), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`) |
 | `Reading` | `userBookId`, `number` (1, 2, …), `state` (IN_PROGRESS, FINISHED, ABANDONED), `startedOn` (date, nullable), `finishedOn` (date, nullable), `currentPage` (nullable), `percentBp` (int 0–10000, basis points); partial unique index: one IN_PROGRESS per `userBookId` |
 | `ReadingSession` | `readingId`, `userId` (denormalized for streak and stats queries), `localDate` (date in the user's time zone at write time), `fromPage`, `toPage`, `fromPercentBp`, `toPercentBp`, `pagesRead` (int, derived) |
 | `Tag` | `userId`, `name`, `color` (WINE, TOBACCO, BRASS, FOREST, NAVY, OXBLOOD, SLATE, SAND); unique (`userId`, `name`) |

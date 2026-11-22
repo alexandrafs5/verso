@@ -292,6 +292,7 @@ The most important screen.
 
 - Opened from Home and Book detail only.
 - Fields: current page **or** percentage (toggle, defaults to the user's preference), date (defaults to today, editable for past days).
+- **The toggle is remembered per book.** The first time a book is logged the toggle starts on the user's default (Settings, set in onboarding). When the user switches it, the choice is saved for that book and the modal opens on it from then on, until it is switched again. Changing the default in Settings never rewrites a book's saved choice. A book without a page count is always percentage and the toggle is hidden.
 - Live helper: "+32 pages since your last session" and the updated progress bar.
 - Secondary actions: "Add highlight" and "Add bookmark" (open the annotation form prefilled with the current page).
 - Save → toast "Session saved"; streak updates; if 100%, triggers the finish dialog.
