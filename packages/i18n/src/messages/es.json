@@ -277,6 +277,15 @@
         "upload": "No pudimos subir tu foto. Tu foto anterior no ha cambiado. Inténtalo de nuevo.",
         "remove": "No pudimos quitar tu foto. Inténtalo de nuevo."
       }
+    },
+    "goal": {
+      "label": "¿Cuántos libros quieres leer en {year}?",
+      "hint": "Un número entero del 1 al 999. Déjalo vacío para fijarlo más tarde.",
+      "invalid": "Escribe un número entero del 1 al 999."
+    },
+    "import": {
+      "body": "Trae tu biblioteca de Goodreads a Verso: tus estantes, puntuaciones y reseñas, desde el archivo de exportación que te da Goodreads.",
+      "soon": "La importación todavía no está disponible. Omítelo por ahora. Al omitir, termina la configuración y vas a Inicio."
     }
   }
 }

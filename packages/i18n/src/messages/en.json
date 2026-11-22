@@ -277,6 +277,15 @@
         "upload": "We could not upload your photo. Your previous photo is unchanged. Try again.",
         "remove": "We could not remove your photo. Try again."
       }
+    },
+    "goal": {
+      "label": "How many books do you want to read in {year}?",
+      "hint": "A whole number from 1 to 999. Leave it empty to set it later.",
+      "invalid": "Enter a whole number from 1 to 999."
+    },
+    "import": {
+      "body": "Bring your Goodreads library into Verso: your shelves, ratings and reviews, from the export file Goodreads gives you.",
+      "soon": "Importing is not available yet. Skip for now. Skipping finishes the setup and takes you to Home."
     }
   }
 }

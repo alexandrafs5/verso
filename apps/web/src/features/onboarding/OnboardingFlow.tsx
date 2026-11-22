@@ -7,7 +7,8 @@ import { ErrorState } from '@/components/verso/ErrorState';
 import { useCompleteOnboarding, useMe } from '@/features/me/use-me';
 import { ApiError } from '@/lib/api-client';
 import { OnboardingLoading } from './OnboardingLoading';
-import { OnboardingShell } from './OnboardingShell';
+import { StepGoal } from './StepGoal';
+import { StepImport } from './StepImport';
 import { StepName } from './StepName';
 import { StepPhoto } from './StepPhoto';
 import { StepPrivacy } from './StepPrivacy';
@@ -66,17 +67,16 @@ export function OnboardingFlow({ step }: OnboardingFlowProps) {
       return <StepProgressStyle me={me} onBack={back} onNext={next} />;
     case 5:
       return <StepPrivacy me={me} onBack={back} onNext={next} />;
+    case 6:
+      return <StepGoal me={me} onBack={back} onNext={next} />;
     default:
-      // Steps 6 and 7 are optional. Their bodies arrive in a later plan step; until then only
-      // the shell shows, with Skip, and skipping the last step finishes onboarding.
+      // Step 7 is the last one: skipping it finishes onboarding.
       return (
-        <OnboardingShell
-          step={step}
-          showPrimary={false}
+        <StepImport
           pending={complete.isPending}
-          error={complete.isError ? t('saveFailed') : null}
+          failed={complete.isError}
           onBack={back}
-          onSkip={step === TOTAL_STEPS ? finish : next}
+          onSkip={finish}
         />
       );
   }

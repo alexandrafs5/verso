@@ -11,3 +11,8 @@ export function browserTimeZone(): string | undefined {
     return undefined;
   }
 }
+
+/** The calendar year it is right now in an IANA time zone (the account's, as the API sees it). */
+export function currentYearIn(timeZone: string, now: Date = new Date()): number {
+  return Number(new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric' }).format(now));
+}
