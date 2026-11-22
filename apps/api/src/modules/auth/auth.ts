@@ -11,7 +11,12 @@ const logger = new Logger('Auth');
  * Temporary email hook (M2.1). Logs the recipient and link outside production, sends nothing.
  * M2.3 replaces it with EmailProvider.
  */
-function logEmailStub(kind: 'verification' | 'password reset', to: string, url: string, env: AuthEnv): void {
+function logEmailStub(
+  kind: 'verification' | 'password reset',
+  to: string,
+  url: string,
+  env: AuthEnv,
+): void {
   if (env.NODE_ENV === 'production') return;
   logger.log(`[${kind}] to=${to} url=${url}`);
 }

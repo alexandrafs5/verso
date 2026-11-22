@@ -32,7 +32,11 @@ describe('API skeleton (integration)', () => {
   let server: Parameters<typeof request>[0];
 
   beforeAll(async () => {
-    app = await NestFactory.create(TestAppModule, { bufferLogs: true, logger: false });
+    app = await NestFactory.create(TestAppModule, {
+      bufferLogs: true,
+      logger: false,
+      bodyParser: false,
+    });
     setupApp(app);
     await app.init();
     server = app.getHttpServer() as Parameters<typeof request>[0];
