@@ -64,6 +64,16 @@ describe('SignUpForm', () => {
     expect(mocks.signUpEmail).not.toHaveBeenCalled();
   });
 
+  it('submits with Enter from the password field', async () => {
+    mocks.signUpEmail.mockResolvedValue({ data: {}, error: null });
+    const s = setup();
+    await s.ui.type(s.name, 'Ana');
+    await s.ui.type(s.email, 'ana@example.com');
+    await s.ui.type(s.password, 'longenough1{Enter}');
+
+    await waitFor(() => expect(mocks.signUpEmail).toHaveBeenCalledTimes(1));
+  });
+
   it('rejects a password shorter than 8 characters before any request', async () => {
     const s = setup();
     await fill(s, { password: '1234567' });

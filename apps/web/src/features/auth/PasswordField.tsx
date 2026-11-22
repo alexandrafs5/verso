@@ -26,7 +26,7 @@ export function PasswordField({ className, id, ...props }: PasswordFieldProps) {
         aria-label={visible ? t('hidePassword') : t('showPassword')}
         aria-controls={id}
         disabled={props.disabled}
-        className="absolute top-1 right-1 inline-flex h-9 items-center rounded-(--radius-button) px-3 text-sm text-muted outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:h-8"
+        className="absolute top-0 right-0 inline-flex h-11 items-center rounded-(--radius-button) px-3 text-sm text-muted outline-none hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:h-10"
       >
         {visible ? t('hide') : t('show')}
       </button>

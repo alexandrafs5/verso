@@ -53,6 +53,15 @@ describe('SignInForm', () => {
     expect(mocks.signInEmail).not.toHaveBeenCalled();
   });
 
+  it('submits with Enter from the password field', async () => {
+    mocks.signInEmail.mockResolvedValue({ data: {}, error: null });
+    const { ui, email, password } = setup();
+    await ui.type(email, 'ana@example.com');
+    await ui.type(password, 'secret{Enter}');
+
+    await waitFor(() => expect(mocks.signInEmail).toHaveBeenCalledTimes(1));
+  });
+
   it('shows an invalid email error', async () => {
     const { ui, email, password, submit } = setup();
     await ui.type(email, 'not-an-email');

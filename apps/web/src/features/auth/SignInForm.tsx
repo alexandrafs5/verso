@@ -104,7 +104,7 @@ export function SignInForm({ oauthFailed = false }: { oauthFailed?: boolean }) {
             label={t('fields.password')}
             error={passwordKey && t(`validation.${passwordKey}`)}
             labelAction={
-              <Link href="/forgot-password" className={`text-sm ${linkClass}`}>
+              <Link href="/forgot-password" className={`-my-3 inline-block py-3 text-sm ${linkClass}`}>
                 {t('signIn.forgot')}
               </Link>
             }

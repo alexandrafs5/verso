@@ -41,7 +41,7 @@ export function PasswordStrength({ password, id, className }: PasswordStrengthPr
           <span
             key={n}
             className={cn(
-              'h-[3px] flex-1 rounded-[2px] transition-colors duration-(--duration-base) motion-reduce:transition-none',
+              'h-0.75 flex-1 rounded-(--radius-chip) transition-colors duration-(--duration-base) motion-reduce:transition-none',
               level && n <= level.filled ? level.bar : 'bg-border',
             )}
           />

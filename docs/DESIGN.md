@@ -193,7 +193,7 @@ Alternative headlines for exploration: "Read with intention.", "For those who re
 ### P2. Sign in / Create account \[F1\]
 
 - **Layout:** split screen. Left half (dark, wine or charcoal): a literary quote from a public-domain author in large serif italic, with the author's name; it changes on each visit. Right half: the form on surface color. On mobile the quote collapses to a short band at the top.
-- **Create account:** email, password (with show/hide and strength hint), "Create account" button, divider "or", "Continue with Google". Link to Sign in.
+- **Create account:** name, email, password (with show/hide and strength hint), "Create account" button, divider "or", "Continue with Google". Link to Sign in.
 - **Sign in:** email, password, "Forgot password?" link, Sign in button, Google button, link to Create account.
 - **Verify email:** confirmation screen "Check your inbox" with the email shown and "Resend email" (with cooldown timer).
 - **Forgot password:** email field → "If an account exists, we sent a link". **Reset password:** new password + confirm.

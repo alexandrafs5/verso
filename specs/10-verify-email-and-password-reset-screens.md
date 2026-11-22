@@ -22,6 +22,7 @@ SPEC 09 shipped sign-in and sign-up with temporary inline notices because the ve
 - Sign-in shows a success notice when `?reset=success` is present.
 - Change SPEC 09 forms: after sign-up success and after a sign-in `403`, save the email with `pending-email.ts` and redirect to `/verify-email`. Remove the two inline notices.
 - Change the sign-up `callbackURL` from `/sign-in` to `/verify-email?status=success`. Resend uses the same `callbackURL`.
+- Change the sign-in `callbackURL` as well: SPEC 09 sets it to `/home`, and an unverified sign-in re-sends the verification link (`sendOnSignIn: true`) with that callback. The link would land on `/home`, which has no session and bounces to `/sign-in`. Sign-in must send `callbackURL: '/verify-email?status=success'` for the 403 case, so the re-sent link lands on the success state. (A successful sign-in still goes to `/home` by redirect.)
 - One-line API change in `apps/api/src/modules/auth/auth.ts`: `revokeSessionsOnPasswordReset: true`, with an integration test.
 - EN and ES copy under the `auth` namespace in `packages/i18n/src/messages/{en,es}.json`.
 - Error mapping for 429 and network errors on resend, forgot and reset, reusing `map-auth-error.ts`.
@@ -72,7 +73,7 @@ Conventions:
 1. Add `emailOnlySchema` and `resetPasswordSchema` with unit tests, plus the new EN and ES copy. Verify: `pnpm --filter shared test` and the i18n key-parity test.
 2. Create `pending-email.ts` and `use-resend-cooldown.ts` with unit tests (fake timers). Verify: `pnpm --filter web test`.
 3. Build the verify-email page with its three states and `ResendButton`. Verify: opening `/verify-email`, `/verify-email?status=success` and `/verify-email?error=invalid_token` shows each state.
-4. Change `SignUpForm` and `SignInForm` to save the pending email and redirect to `/verify-email`, remove the inline notices, and set the new `callbackURL`. Update their tests. Verify: sign up, land on `/verify-email` showing the address, open the Mailpit link, see the success state.
+4. Change `SignUpForm` and `SignInForm` to save the pending email and redirect to `/verify-email`, remove the inline notices, and set the new `callbackURL` on both sign-up and sign-in (see Scope). Update the `signIn.email` argument assertion in the SPEC 09 test. Update their tests. Verify: sign up, land on `/verify-email` showing the address, open the Mailpit link, see the success state.
 5. Build forgot-password with the neutral result state. Verify: request a reset for a known and an unknown email; the screen is identical; Mailpit receives one email only for the known one.
 6. Build reset-password with token handling, the invalid-link state and the redirect to `/sign-in?reset=success`, plus the sign-in success notice. Verify: complete a reset from the Mailpit link and sign in with the new password.
 7. Add `revokeSessionsOnPasswordReset: true` in `auth.ts` with an integration test. Verify: `pnpm --filter api test`.
@@ -83,6 +84,7 @@ Conventions:
 - [ ] Submitting sign-up redirects to `/verify-email` and shows the entered email.
 - [ ] A sign-in `403` redirects to `/verify-email`, shows the email, and a new verification email appears in Mailpit.
 - [ ] The inline notices from SPEC 09 no longer exist in the forms.
+- [ ] The verification link re-sent by a `403` sign-in lands on `/verify-email?status=success`, not on `/home` (the `signIn.email` call sends that `callbackURL`).
 - [ ] "Resend email" sends one verification email and then disables itself with a visible countdown of 60 seconds.
 - [ ] Reloading `/verify-email` during the countdown keeps the remaining time.
 - [ ] Opening the Mailpit verification link lands on `/verify-email?status=success` with a "Sign in" button, and the user can then sign in.
