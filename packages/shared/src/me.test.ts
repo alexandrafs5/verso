@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   avatarUploadRequestSchema,
+  goalYearParamSchema,
   updateMeSchema,
   updateSettingsSchema,
   upsertGoalSchema,
@@ -96,5 +97,17 @@ describe('upsertGoalSchema', () => {
     expect(upsertGoalSchema.safeParse({ targetBooks: 0 }).success).toBe(false);
     expect(upsertGoalSchema.safeParse({ targetBooks: 1000 }).success).toBe(false);
     expect(upsertGoalSchema.safeParse({ targetBooks: 12.5 }).success).toBe(false);
+  });
+});
+
+describe('goalYearParamSchema', () => {
+  it('parses a four-digit year to a number', () => {
+    expect(goalYearParamSchema.parse('2026')).toBe(2026);
+  });
+
+  it('rejects anything else', () => {
+    for (const bad of ['26', '20266', 'abc', '2026.5', '-2026', '']) {
+      expect(goalYearParamSchema.safeParse(bad).success).toBe(false);
+    }
   });
 });

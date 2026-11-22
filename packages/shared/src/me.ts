@@ -105,3 +105,6 @@ export type AvatarUploadRequest = z.infer<typeof avatarUploadRequestSchema>;
 export type SignedUpload = z.infer<typeof signedUploadSchema>;
 export type UpsertGoalInput = z.infer<typeof upsertGoalSchema>;
 export type Goal = z.infer<typeof goalSchema>;
+
+/** Path param of `PUT /v1/me/goals/{year}`. The allowed range depends on the user's time zone and is checked by the API. */
+export const goalYearParamSchema = z.string().regex(/^\d{4}$/).transform(Number);
