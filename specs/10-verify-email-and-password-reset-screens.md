@@ -1,6 +1,6 @@
 # SPEC 10 — Verify-email, forgot-password and reset-password screens (M2.4, part 2)
 
-> **Status:** Draft
+> **Status:** Approved
 > **Depends on:** SPEC 08, SPEC 09
 > **Date:** 2026-11-22
 > **Objective:** Build the verify-email, forgot-password and reset-password screens, replace the inline notices from SPEC 09 with a redirect to verify-email, and close M2.4.
@@ -23,6 +23,7 @@ SPEC 09 shipped sign-in and sign-up with temporary inline notices because the ve
 - Change SPEC 09 forms: after sign-up success and after a sign-in `403`, save the email with `pending-email.ts` and redirect to `/verify-email`. Remove the two inline notices.
 - Change the sign-up `callbackURL` from `/sign-in` to `/verify-email?status=success`. Resend uses the same `callbackURL`.
 - Change the sign-in `callbackURL` as well: SPEC 09 sets it to `/home`, and an unverified sign-in re-sends the verification link (`sendOnSignIn: true`) with that callback. The link would land on `/home`, which has no session and bounces to `/sign-in`. Sign-in must send `callbackURL: '/verify-email?status=success'` for the 403 case, so the re-sent link lands on the success state. (A successful sign-in still goes to `/home` by redirect.)
+- Implementation note (found in step 4): Better Auth's default client redirect plugin follows `callbackURL` on any `redirect: true` response, so a successful email sign-in with the verify-email callback would navigate there instead of `/home`. `apps/web/src/lib/auth-client.ts` therefore sets `disableDefaultFetchPlugins: true` and registers `lib/social-redirect-plugin.ts`, which follows the redirect only for `/sign-in/social` (Google) and only for http(s) URLs, with unit tests. Email sign-in goes to `/home` through `router.replace`.
 - One-line API change in `apps/api/src/modules/auth/auth.ts`: `revokeSessionsOnPasswordReset: true`, with an integration test.
 - EN and ES copy under the `auth` namespace in `packages/i18n/src/messages/{en,es}.json`.
 - Error mapping for 429 and network errors on resend, forgot and reset, reusing `map-auth-error.ts`.

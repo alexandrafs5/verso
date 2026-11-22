@@ -75,9 +75,7 @@
       "submitting": "Signing in",
       "noAccount": "New to Verso?",
       "createLink": "Create account",
-      "resetSuccess": "Your password was changed. Sign in with the new one.",
-      "unverifiedTitle": "Verify your email",
-      "unverifiedBody": "We sent a new verification link to {email}. Open it, then sign in."
+      "resetSuccess": "Your password was changed. Sign in with the new one."
     },
     "signUp": {
       "title": "Create account",
@@ -85,10 +83,7 @@
       "submit": "Create account",
       "submitting": "Creating account",
       "hasAccount": "Already have an account?",
-      "signInLink": "Sign in",
-      "checkInboxTitle": "Check your inbox",
-      "checkInboxBody": "We sent a verification link to {email}. Open it to activate your account.",
-      "backToSignIn": "Back to sign in"
+      "signInLink": "Sign in"
     },
     "verifyEmail": {
       "pendingTitle": "Check your inbox",

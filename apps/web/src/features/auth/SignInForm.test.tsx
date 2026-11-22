@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { messages } from '@verso/i18n';
+import { clearPendingEmail, getPendingEmail } from './pending-email';
 import { SignInForm } from './SignInForm';
 
 const mocks = vi.hoisted(() => ({
@@ -40,6 +41,7 @@ beforeEach(() => {
   mocks.signInEmail.mockReset();
   mocks.signInSocial.mockReset();
   mocks.session.data = null;
+  clearPendingEmail();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')));
 });
 
@@ -84,7 +86,7 @@ describe('SignInForm', () => {
     expect(mocks.signInEmail).toHaveBeenCalledWith({
       email: 'ana@example.com',
       password: 'secret',
-      callbackURL: '/home',
+      callbackURL: '/verify-email?status=success',
     });
   });
 
@@ -102,19 +104,18 @@ describe('SignInForm', () => {
     expect(mocks.replace).not.toHaveBeenCalled();
   });
 
-  it('shows the unverified notice with the email', async () => {
+  it('saves the email and redirects to /verify-email on a 403', async () => {
     mocks.signInEmail.mockResolvedValue({
       data: null,
       error: { status: 403, code: 'EMAIL_NOT_VERIFIED' },
     });
     const { ui, email, password, submit } = setup();
-    await ui.type(email, 'ana@example.com');
+    await ui.type(email, ' Ana@Example.com ');
     await ui.type(password, 'secret');
     await ui.click(submit);
 
-    const notice = await screen.findByRole('status');
-    expect(notice).toHaveTextContent('ana@example.com');
-    expect(notice).toHaveTextContent(t.signIn.unverifiedTitle);
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/verify-email'));
+    expect(getPendingEmail()).toBe('ana@example.com');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { messages } from '@verso/i18n';
+import { clearPendingEmail, getPendingEmail } from './pending-email';
 import { SignUpForm } from './SignUpForm';
 
 const mocks = vi.hoisted(() => ({
@@ -51,6 +52,7 @@ beforeEach(() => {
   mocks.signUpEmail.mockReset();
   mocks.signInSocial.mockReset();
   mocks.session.data = null;
+  clearPendingEmail();
 });
 
 describe('SignUpForm', () => {
@@ -91,25 +93,31 @@ describe('SignUpForm', () => {
     expect(s.submit).toBeEnabled();
   });
 
-  it('calls signUp.email and then shows "Check your inbox" with the email', async () => {
+  it('calls signUp.email, saves the email and redirects to /verify-email', async () => {
     mocks.signUpEmail.mockResolvedValue({ data: {}, error: null });
     const s = setup();
     await fill(s, { email: ' Ana@Example.com ' });
     await s.ui.click(s.submit);
 
-    expect(await screen.findByRole('heading', { name: t.signUp.checkInboxTitle })).toHaveFocus();
-    expect(screen.getByText(/ana@example\.com/)).toBeInTheDocument();
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/verify-email'));
+    expect(getPendingEmail()).toBe('ana@example.com');
     expect(mocks.signUpEmail).toHaveBeenCalledWith({
       name: 'Ana',
       email: 'ana@example.com',
       password: 'longenough1',
-      callbackURL: '/sign-in',
+      callbackURL: '/verify-email?status=success',
     });
-    expect(screen.getByRole('link', { name: t.signUp.backToSignIn })).toHaveAttribute(
-      'href',
-      '/sign-in',
-    );
-    expect(screen.queryByLabelText(t.fields.password)).not.toBeInTheDocument();
+  });
+
+  it('does not save the email or redirect when sign-up fails', async () => {
+    mocks.signUpEmail.mockResolvedValue({ data: null, error: { status: 429 } });
+    const s = setup();
+    await fill(s);
+    await s.ui.click(s.submit);
+
+    await screen.findByRole('alert');
+    expect(getPendingEmail()).toBeNull();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('shows "email in use" with a link to sign in', async () => {
@@ -159,7 +167,7 @@ describe('SignUpForm', () => {
     expect(s.email).toBeDisabled();
 
     finish({ data: {}, error: null });
-    await screen.findByRole('heading', { name: t.signUp.checkInboxTitle });
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/verify-email'));
   });
 
   it('starts Google sign-in', async () => {

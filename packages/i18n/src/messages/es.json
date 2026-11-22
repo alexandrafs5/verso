@@ -75,9 +75,7 @@
       "submitting": "Iniciando sesión",
       "noAccount": "¿Eres nuevo en Verso?",
       "createLink": "Crear cuenta",
-      "resetSuccess": "Tu contraseña se cambió. Inicia sesión con la nueva.",
-      "unverifiedTitle": "Verifica tu correo",
-      "unverifiedBody": "Enviamos un nuevo enlace de verificación a {email}. Ábrelo y después inicia sesión."
+      "resetSuccess": "Tu contraseña se cambió. Inicia sesión con la nueva."
     },
     "signUp": {
       "title": "Crear cuenta",
@@ -85,10 +83,7 @@
       "submit": "Crear cuenta",
       "submitting": "Creando cuenta",
       "hasAccount": "¿Ya tienes una cuenta?",
-      "signInLink": "Iniciar sesión",
-      "checkInboxTitle": "Revisa tu bandeja de entrada",
-      "checkInboxBody": "Enviamos un enlace de verificación a {email}. Ábrelo para activar tu cuenta.",
-      "backToSignIn": "Volver a iniciar sesión"
+      "signInLink": "Iniciar sesión"
     },
     "verifyEmail": {
       "pendingTitle": "Revisa tu bandeja de entrada",

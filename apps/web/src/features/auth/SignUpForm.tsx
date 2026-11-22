@@ -3,50 +3,30 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signUpSchema, type SignUpInput } from '@verso/shared';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { signUp } from '@/lib/auth-client';
 import { AuthAlert, AuthField, OrDivider, fieldA11y, linkClass } from './AuthFormParts';
+import { VERIFY_EMAIL_CALLBACK } from './auth-routes';
 import { GoogleButton } from './GoogleButton';
 import { mapAuthError, type AuthErrorKind } from './map-auth-error';
 import { PasswordField } from './PasswordField';
 import { PasswordStrength } from './PasswordStrength';
+import { setPendingEmail } from './pending-email';
 import { useRedirectIfSignedIn } from './use-redirect-if-signed-in';
 import { validationKey } from './validation-messages';
 import { withWaking } from './with-waking';
 
 type Failure = Exclude<AuthErrorKind, 'unverified' | 'invalidCredentials'> | 'google';
 
-// SPEC 10 replaces this inline panel with a redirect to /verify-email.
-function CheckInbox({ email }: { email: string }) {
-  const t = useTranslations('auth');
-  const heading = useRef<HTMLHeadingElement>(null);
-
-  // Moves focus to the new content, so keyboard and screen reader users notice the change.
-  useEffect(() => heading.current?.focus(), []);
-
-  return (
-    <div role="status">
-      <span aria-hidden="true" className="mb-7 block h-px w-10 bg-brass" />
-      <h1 ref={heading} tabIndex={-1} className="outline-none">
-        {t('signUp.checkInboxTitle')}
-      </h1>
-      <p className="mt-3 text-muted">{t('signUp.checkInboxBody', { email })}</p>
-      <p className="mt-6 text-sm">
-        <Link href="/sign-in" className={linkClass}>
-          {t('signUp.backToSignIn')}
-        </Link>
-      </p>
-    </div>
-  );
-}
-
 export function SignUpForm() {
   const t = useTranslations('auth');
+  const router = useRouter();
   useRedirectIfSignedIn();
 
   const {
@@ -61,7 +41,6 @@ export function SignUpForm() {
   });
 
   const [failure, setFailure] = useState<Failure | null>(null);
-  const [sentTo, setSentTo] = useState<string | null>(null);
 
   const password = watch('password');
 
@@ -69,7 +48,7 @@ export function SignUpForm() {
     setFailure(null);
     try {
       const { error } = await withWaking(() =>
-        signUp.email({ name, email, password, callbackURL: '/sign-in' }),
+        signUp.email({ name, email, password, callbackURL: VERIFY_EMAIL_CALLBACK }),
       );
       if (error) {
         const kind = mapAuthError(error);
@@ -77,14 +56,13 @@ export function SignUpForm() {
         setFailure(kind === 'unverified' || kind === 'invalidCredentials' ? 'generic' : kind);
         return;
       }
-      setSentTo(email);
+      setPendingEmail(email);
+      router.replace('/verify-email');
     } catch (error) {
       const kind = mapAuthError(error);
       setFailure(kind === 'unverified' || kind === 'invalidCredentials' ? 'generic' : kind);
     }
   });
-
-  if (sentTo) return <CheckInbox email={sentTo} />;
 
   const nameKey = validationKey('name', errors.name?.type, getValues('name'));
   const emailKey = validationKey('email', errors.email?.type, getValues('email'));
