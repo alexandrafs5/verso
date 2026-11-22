@@ -46,6 +46,71 @@
     "userMenu": "Menú de cuenta",
     "wakingUp": "Despertando el servidor. Puede tardar hasta un minuto."
   },
+  "auth": {
+    "quoteLabel": "Cita",
+    "orDivider": "o",
+    "google": "Continuar con Google",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "fields": {
+      "name": "Nombre",
+      "email": "Correo electrónico",
+      "password": "Contraseña"
+    },
+    "strength": {
+      "label": "Seguridad de la contraseña",
+      "hint": "Usa al menos 8 caracteres. Mezclar letras, números y símbolos la hace más segura.",
+      "weak": "Débil",
+      "fair": "Aceptable",
+      "strong": "Fuerte"
+    },
+    "signIn": {
+      "title": "Iniciar sesión",
+      "subtitle": "Te damos la bienvenida de nuevo a tu biblioteca.",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "submit": "Iniciar sesión",
+      "submitting": "Iniciando sesión",
+      "noAccount": "¿Eres nuevo en Verso?",
+      "createLink": "Crear cuenta",
+      "resetSuccess": "Tu contraseña se cambió. Inicia sesión con la nueva.",
+      "unverifiedTitle": "Verifica tu correo",
+      "unverifiedBody": "Enviamos un nuevo enlace de verificación a {email}. Ábrelo y después inicia sesión."
+    },
+    "signUp": {
+      "title": "Crear cuenta",
+      "subtitle": "Empieza tu biblioteca de lectura.",
+      "submit": "Crear cuenta",
+      "submitting": "Creando cuenta",
+      "hasAccount": "¿Ya tienes una cuenta?",
+      "signInLink": "Iniciar sesión",
+      "checkInboxTitle": "Revisa tu bandeja de entrada",
+      "checkInboxBody": "Enviamos un enlace de verificación a {email}. Ábrelo para activar tu cuenta.",
+      "backToSignIn": "Volver a iniciar sesión"
+    },
+    "validation": {
+      "emailRequired": "Escribe tu correo electrónico.",
+      "emailInvalid": "Escribe un correo electrónico válido.",
+      "passwordRequired": "Escribe tu contraseña.",
+      "passwordTooShort": "Usa al menos 8 caracteres.",
+      "passwordTooLong": "Usa 128 caracteres o menos.",
+      "nameRequired": "Escribe tu nombre.",
+      "nameTooLong": "Usa 80 caracteres o menos."
+    },
+    "errors": {
+      "invalidCredentials": "El correo o la contraseña no son correctos.",
+      "emailInUse": "Ya existe una cuenta con este correo.",
+      "rateLimited": "Demasiados intentos. Prueba de nuevo en un minuto.",
+      "network": "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+      "generic": "Algo salió mal. Inténtalo de nuevo.",
+      "google": "No funcionó el acceso con Google. Inténtalo de nuevo o usa tu correo."
+    }
+  },
+  "home": {
+    "title": "Inicio",
+    "checkingSession": "Cargando tu cuenta",
+    "emptyTitle": "Tu biblioteca aparecerá aquí",
+    "emptyBody": "Estamos construyendo Inicio. Tus libros y tu progreso aparecerán pronto en esta página."
+  },
   "plurals": {
     "books": "{count, plural, =0 {Ningún libro} one {# libro} other {# libros}}",
     "pages": "{count, plural, one {# página} other {# páginas}}",
