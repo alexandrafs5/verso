@@ -30,7 +30,7 @@ ROADMAP assigns the yearly-goal endpoints to M5.6, but onboarding step 6 needs t
 - Web: `apps/web/src/app/onboarding/[step]/page.tsx` (steps 1 to 7), `apps/web/src/features/onboarding/` components, avatar crop and WebP compression, `lib/api-client.ts` use through TanStack Query.
 - Redirect rule: a signed-in user with `onboardingCompletedAt = null` is redirected from the app to `/onboarding/{first incomplete step}`. A completed user who opens `/onboarding/*` is redirected to `/home`. The app side lives in `app/(app)/layout.tsx` through `RequireOnboarded`; the onboarding side in `OnboardingFlow`. Both read `GET /v1/me` (client side: there is no middleware) and show a skeleton, never app content, while the account loads or a redirect is pending. A signed-out visitor goes to `/sign-in`.
 - Prefill: name from sign-up or Google; suggested username derived from the name or email and checked for availability.
-- Browser time zone and current UI locale are sent with step 1.
+- Browser time zone and current UI locale are sent with step 1, through `PATCH /v1/me/settings`.
 - EN and ES copy under the `onboarding` namespace in `packages/i18n/src/messages/{en,es}.json`.
 - Tests: unit (shared schemas, goal and avatar-path helpers, step derivation, avatar crop math); integration (every endpoint, including 401, 403 and ownership cases, invalid `targetBooks`, and the `FileStorage` delete on replace and remove); web component tests (redirects in both directions, step 1 availability states and the 409 case, Back and Skip visibility per step, step 2 error states with a mocked failed upload, steps 3 to 7).
 - Tick M2.5 in `ROADMAP.md` (done in this PR, plan step 9).
@@ -119,7 +119,7 @@ Conventions:
 3. Add `FileStorage`, the in-memory fake and `SupabaseFileStorage`, with env validation and `.env.example` kept in sync. Verify: unit test for the path builder and the fake; API boots with empty Supabase vars in test and dev (storage only fails when the avatar endpoint is called).
 4. Create `UsersModule` with `GET /v1/me`, `PATCH /v1/me`, `PATCH /v1/me/settings`, availability, goal upsert and onboarding complete. Verify: integration tests pass, including 401, ownership and the problem+json codes.
 5. Add `POST /v1/me/avatar/upload-url` and the `avatarPath` and `removeAvatar` handling in `PATCH /v1/me`, using the fake in tests. Verify: integration tests for path scoping, wrong user path (403), oversize and wrong content type (400).
-6. Add the onboarding shell: route `onboarding/[step]`, progress bar with "Step N of 7", Back, Skip on optional steps, the redirect rule for the app and for `/onboarding`. Steps 1, 3, 4 and 5 call the API. Verify: component tests for the redirects in both directions, the Back and Skip visibility per step, step 1 (prefill, availability states, the 409 case) and steps 3 to 5; manually, a new account is redirected to step 1 and can walk through steps 1, 3, 4, 5.
+6. Add the onboarding shell: route `onboarding/[step]`, progress bar with "Step N of 7", Back, Skip on optional steps, the redirect rule for the app and for `/onboarding`. Steps 1, 3, 4 and 5 call the API. Steps 2, 6 and 7 show only the shell with Skip until their own plan steps, and skipping step 7 already calls `onboarding/complete` and goes to `/home`, so every plan step leaves the flow runnable end to end. Verify: component tests for the redirects in both directions, the Back and Skip visibility per step, step 1 (prefill, availability states, the 409 case) and steps 3 to 5; manually, a new account is redirected to step 1 and can walk through steps 1, 3, 4, 5.
 7. Add step 2 (avatar): file picker, circle crop on a canvas, WebP compression, signed upload, initials fallback, remove. Verify: component tests with a mocked failed upload, a wrong file type and a file still too large after compression show their messages and keep the previous photo; with real Supabase the avatar appears (manual check).
 8. Add steps 6 and 7 and the final call to `onboarding/complete`, then redirect to `/home`. Add EN and ES copy for all steps. Verify: finishing the flow lands on the empty Home; reloading `/onboarding/1` redirects to `/home`.
 9. Tick M2.5 in `ROADMAP.md`. Verify: `pnpm lint && pnpm typecheck && pnpm test`.
@@ -135,7 +135,7 @@ Conventions:
 - [ ] `POST /v1/me/avatar/upload-url` returns a path under `avatars/{userId}/`; a content type other than `image/webp` or a size over 2 MB returns 400.
 - [ ] `PATCH /v1/me` with an `avatarPath` under another user's folder returns 403.
 - [ ] Replacing or removing an avatar deletes the previous object through `FileStorage`.
-- [ ] `PUT /v1/me/goals/{year}` creates the goal and a second call updates the same row (unique `userId`, `year`); a year outside the allowed range returns 400.
+- [ ] `PUT /v1/me/goals/{year}` creates the goal and a second call updates the same row (unique `userId`, `year`); a year other than the current or the next one (in the user's time zone) returns 400 `GOAL_YEAR_INVALID`; a `targetBooks` outside 1 to 999 or not an integer returns 400 `VALIDATION_ERROR`.
 - [ ] `POST /v1/me/onboarding/complete` returns 409 `USERNAME_REQUIRED` without a username, sets `onboardingCompletedAt` otherwise, and a second call keeps the first timestamp.
 - [ ] No endpoint in this spec allows reading or writing another user's data (every query filters by the session user id).
 - [ ] A signed-in user without `onboardingCompletedAt` who opens `/home` is redirected to onboarding; a completed user who opens `/onboarding/1` is redirected to `/home`.
@@ -143,6 +143,7 @@ Conventions:
 - [ ] Step 1 saves the browser time zone and the current locale.
 - [ ] Step 1 shows an inline message when the server answers 409 `USERNAME_TAKEN`, mapped to an i18n key, and does not move on.
 - [ ] Back works on every step after step 1 (step 1 has nothing to go back to, so it shows no Back); Skip appears only on steps 2, 6 and 7.
+- [ ] Step 6 saves the goal for the current year; leaving the field empty and pressing Continue moves on and saves nothing.
 - [ ] Step 7 shows only Skip, no import action.
 - [ ] No hardcoded user-facing strings; EN and ES key parity test passes.
 - [ ] No raw hex colors; only tokens.

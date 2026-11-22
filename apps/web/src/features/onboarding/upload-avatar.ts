@@ -11,6 +11,7 @@ export async function uploadAvatar(blob: Blob): Promise<string> {
     size: blob.size,
   });
 
+  // Straight to storage, not through lib/api-client: the signed URL points at Supabase, not at our API.
   const response = await fetch(signed.uploadUrl, {
     method: 'PUT',
     headers: { 'Content-Type': AVATAR_CONTENT_TYPE },

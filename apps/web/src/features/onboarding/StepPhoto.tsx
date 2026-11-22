@@ -4,6 +4,7 @@ import type { Me } from '@verso/shared';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useRestoreFocus } from '@/features/auth/use-restore-focus';
 import { useUpdateMe } from '@/features/me/use-me';
 import { AvatarCropper } from './AvatarCropper';
 import { INITIAL_CROP, type Crop, isAllowedImageType } from './avatar-geometry';
@@ -33,6 +34,9 @@ export function StepPhoto({ me, onBack, onNext }: StepPhotoProps) {
   const [crop, setCrop] = useState<Crop>(INITIAL_CROP);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ErrorKey | null>(null);
+
+  // Controls are disabled while uploading; this puts focus back where it was afterwards.
+  useRestoreFocus(busy);
 
   async function onFileChosen(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { useRestoreFocus } from '@/features/auth/use-restore-focus';
 import { OnboardingShell } from './OnboardingShell';
 
 type StepImportProps = {
@@ -18,6 +19,8 @@ type StepImportProps = {
 export function StepImport({ pending, failed, onBack, onSkip }: StepImportProps) {
   const t = useTranslations('onboarding');
   const tCommon = useTranslations('common');
+  // The buttons are disabled while finishing; this puts focus back where it was afterwards.
+  useRestoreFocus(pending);
   return (
     <OnboardingShell
       step={7}

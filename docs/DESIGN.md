@@ -209,7 +209,7 @@ One step per screen, with a thin progress bar and "Step 2 of 7". Back button on 
 4. **Progress style:** Pages or Percentage, with a small progress-bar preview.
 5. **Profile privacy:** Public or Private, each with a one-line explanation of who sees what.
 6. **Yearly goal** (optional): number input "How many books do you want to read in {year}?", where the year is the current year in the user's time zone. Left empty, Continue moves on without saving.
-7. **Coming from Goodreads?** (optional): explanation + "Import my library" (goes to the import flow) or "Skip".
+7. **Coming from Goodreads?** (optional): explanation + "Import my library" (goes to the import flow) or "Skip". Until the import ships (M11, S15) the step shows the explanation and Skip only.
 
 End: lands on Home in its empty state.
 

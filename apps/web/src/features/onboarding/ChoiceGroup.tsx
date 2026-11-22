@@ -55,7 +55,19 @@ export function ChoiceGroup<T extends string>({
               onChange={() => onChange(choice.value)}
               className="sr-only"
             />
-            <span className="font-medium">{choice.title}</span>
+            <span className="flex items-center gap-2 font-medium">
+              {/* The selected state is a filled dot as well as a border color: color is never the only signal. */}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'inline-flex size-4 shrink-0 items-center justify-center rounded-(--radius-round) border',
+                  selected ? 'border-accent' : 'border-border',
+                )}
+              >
+                {selected ? <span className="size-2 rounded-(--radius-round) bg-accent" /> : null}
+              </span>
+              {choice.title}
+            </span>
             {choice.description ? (
               <span className="text-sm text-muted">{choice.description}</span>
             ) : null}
