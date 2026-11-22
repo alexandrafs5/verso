@@ -30,6 +30,7 @@ M2.4 covers five screens (DESIGN P2). Spec 09 ships layout, sign-in and sign-up;
 - EN and ES copy in `packages/i18n/src/messages/{en,es}.json` under an `auth` namespace. No hardcoded user-facing strings.
 - Dependencies: `better-auth` (client, same version as `apps/api`), `react-hook-form`, `@hookform/resolvers`. One-line PR reason: the architecture mandates them and none exists in `apps/web`.
 - Vitest tests for schemas, quote picker, strength function, error mapping and the two forms.
+- API, added after manual testing: an "account already exists" email, sent through Better Auth's `onExistingUserSignUp` hook when someone signs up with an email that is already registered. Files: `apps/api/src/infra/email/templates/account-exists.ts` (EN and ES, same layout as SPEC 08), `AuthEmailService.sendAccountExists`, the hook in `apps/api/src/modules/auth/auth.ts`, and tests. The HTTP response stays identical to a new sign-up.
 
 **Out of scope (for future specs):**
 
@@ -37,6 +38,7 @@ M2.4 covers five screens (DESIGN P2). Spec 09 ships layout, sign-in and sign-up;
 - Onboarding, `/v1/me`, username and avatar (M2.5).
 - Rate limiting on the server (M2.6). The UI only handles a 429 response.
 - Real Home content (M3 and later), real session-based route protection (middleware or server guard).
+- Rate limiting of the sign-up route against mail bombing through duplicate sign-ups (M2.6).
 - A public config flag to hide the Google button when Google is not configured.
 - Quote translations. Quotes stay in their original language.
 - Playwright e2e (no e2e setup exists yet).
@@ -67,7 +69,7 @@ Conventions:
 
 - Password minimum 8 matches `minPasswordLength` in `auth.ts`. The strength meter (`weak | fair | strong`, from length and character variety) is a hint and never blocks submit.
 - Quote text is exempt from i18n because it is public-domain source text. The author name is not translated.
-- Server renders `AUTH_QUOTES[0]`; the client picks a random one in `useEffect` after mount to avoid a hydration mismatch.
+- The `(auth)/layout.tsx` server component picks the quote per request with `pickQuote()` and passes it to `AuthQuote` as a prop. Server and client render the same quote, so there is no hydration mismatch and no visible swap after load.
 - Sign-up calls `signUp.email({ name, email, password, callbackURL: '/sign-in' })`. Sign-in calls `signIn.email({ email, password, callbackURL: '/home' })`. Google calls `signIn.social({ provider: 'google', callbackURL: '/home', errorCallbackURL: '/sign-in?error=oauth' })`.
 - The `/sign-in?error=oauth` query shows the Google failure message.
 - Error mapping uses the Better Auth error `status` and `code`: 401 or `INVALID_EMAIL_OR_PASSWORD` is wrong credentials, 403 is not verified, `USER_ALREADY_EXISTS` is email in use, 429 is rate limited, anything else is generic. Messages never reveal which of email or password was wrong.
@@ -81,17 +83,21 @@ Conventions:
 5. Build `SignInForm` and the sign-in page: validation, submit, error and unverified states, Google button, wake-up ping, redirect when signed in. Verify: sign in against local API with a verified user and land on the placeholder `/home`.
 6. Create the placeholder `(app)/home/page.tsx` with a session check. Verify: signed-out visit to `/home` redirects to `/sign-in`.
 7. Build `SignUpForm`, the sign-up page and the inline "Check your inbox" state. Verify: sign up, read the email in Mailpit (`http://localhost:8025`), open the link, then sign in.
-8. Run `pnpm lint && pnpm typecheck && pnpm test`.
+8. Add the account-exists email: template in EN and ES with a unit test (same checks as SPEC 08 templates), `AuthEmailService.sendAccountExists`, and the `onExistingUserSignUp` hook (not awaited, like the other hooks). Integration test with the in-memory provider. Verify: sign up twice with the same email and read the "account exists" email in Mailpit.
+9. Run `pnpm lint && pnpm typecheck && pnpm test`.
 
 ## Acceptance criteria
 
 - [ ] `/sign-in` and `/sign-up` render the split layout with a quote and author in serif italic on the left panel.
-- [ ] The quote changes between visits (random on mount) and does not cause a hydration warning in the console.
+- [ ] The quote changes between visits (random per request) and the first paint already shows the final quote, with no swap and no hydration warning in the console.
 - [ ] Submitting `/sign-up` with valid data calls `signUp.email` and shows "Check your inbox" with the entered email; a verification email appears in Mailpit.
 - [ ] Password below 8 characters shows a field error before any request is sent.
 - [ ] The strength hint shows `weak`, `fair` or `strong` for the passwords covered in its unit test and never disables the submit button.
 - [ ] The show/hide control toggles the password input type and has an accessible name.
 - [ ] Signing up with an existing email shows the same "Check your inbox" panel as a new email (Better Auth anti-enumeration response, no account is created and no error is shown).
+- [ ] Signing up with an existing email sends exactly one "account already exists" email to that address, in Spanish when `Accept-Language` is `es` (otherwise the user's `locale`, then English). The email links to the sign-in page, not to any token.
+- [ ] The HTTP status and body of a duplicate sign-up match those of a new sign-up (no account enumeration), and no second user is created.
+- [ ] The account-exists email HTML escapes the user's name, contains no images, and does not appear in `info`-level logs with its URL; a send failure is logged without the address (same rules as SPEC 08).
 - [ ] If the API ever answers a sign-up with `USER_ALREADY_EXISTS*` (422), the form shows the "email already in use" message with a link to Sign in (unit test with a mocked client).
 - [ ] Signing in with wrong credentials shows one generic message that does not say which field was wrong.
 - [ ] Signing in with an unverified account shows the inline notice with the email, and a new verification email appears in Mailpit.
@@ -105,6 +111,7 @@ Conventions:
 - [ ] Sign-in page mount sends one `GET /api/health` and does not block rendering.
 - [ ] Every label, placeholder, error and button text comes from `packages/i18n` and exists in EN and ES.
 - [ ] No raw hex colors, no emojis, no new icon without a text label (except show/hide, which has an `aria-label`).
+- [ ] Tab order follows reading order: sign-in is email, password, Show, Forgot password, submit, Google, Create account; sign-up is name, email, password, Show, submit, Google, Sign in (covered by a test).
 - [ ] Both forms are fully usable with the keyboard; inputs have labels; errors are announced (`aria-live` or `aria-describedby`).
 - [ ] Reduced motion is respected for any transition.
 - [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
@@ -160,12 +167,16 @@ Conventions:
 - **Yes:** land on a placeholder `/home` after sign-in. M2.5 later redirects to onboarding. Chosen by the user.
 - **Yes:** always render the Google button and show a generic error if Google is not configured. Chosen by the user. Hiding it needs a new endpoint or env var.
 - **No:** public config flag for Google. Extra scope for a ~5-user project.
-- **Yes:** 12 static EN quotes, random on mount, first quote fixed on the server. Chosen by the user. Per-day rotation was rejected because DESIGN says "changes on each visit".
+- **Yes:** 12 static EN quotes, random per request on the server. Chosen by the user, then changed after manual testing: the first design (fixed first quote on the server, random pick after mount) showed one quote and swapped it a moment later. Per-day rotation was rejected because DESIGN says "changes on each visit".
+- **No:** client-side random pick after mount. It causes the visible swap described above.
+- **Yes:** the `Forgot password?` link comes after the password input in DOM order (a CSS grid keeps it on the label row), so Tab goes email, password, Show, Forgot, submit. Found in manual testing.
 - **Yes:** password min 8 with a non-blocking 3-level hint. Chosen by the user. Stricter composition rules need an API change and add little for this audience.
 - **Yes:** redirect signed-in users away from the auth pages, client-side with `useSession`. Chosen by the user.
 - **Yes:** unverified sign-in shows an inline notice. Chosen by the user. SPEC 10 may turn it into a redirect to `/verify-email`.
 - **Yes (mine, unconfirmed):** sign-up success shows an inline "Check your inbox" panel in this spec, because no verify screen exists yet. SPEC 10 replaces it with a redirect.
 - **Yes:** keep Better Auth's anti-enumeration response for duplicate sign-ups. Chosen by the user during implementation. With `requireEmailVerification: true` the API answers a duplicate with a fake success, so the UI cannot say "email in use". The "email in use" message stays in the form only as a fallback for a 422.
+- **Yes:** send an "account already exists" email on a duplicate sign-up. Chosen by the user after manual testing: with the generic response, a real person who forgot their account would wait for an email that never arrives. The email says an account exists and links to sign-in; the sign-in page has "Forgot password?" (reset screens ship in SPEC 10, so the email does not link to them).
+- **No:** leave duplicate sign-ups silent. Confusing for a legitimate user.
 - **No:** turn the generic duplicate response off in `auth.ts`. It would reveal which emails are registered and needs an API change outside this spec.
 - **Yes (mine, unconfirmed):** sign-up asks for `name` because Better Auth requires it. M2.5 step 1 lets the user edit the display name.
 - **Yes (mine, unconfirmed):** verification link `callbackURL` is `/sign-in`. No auto sign-in after verification.
@@ -180,7 +191,8 @@ Conventions:
 | Error `code` strings differ between Better Auth versions | `map-auth-error.ts` is unit tested against recorded error shapes and falls back to the generic message |
 | Cold start makes the first sign-in take up to a minute | Wake-up ping on mount plus the existing waking banner (SPEC 05) |
 | Google round trip cannot be tested without credentials | Unit test the call arguments; the user verifies the real round trip manually after setting `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` |
-| Quote random pick causes hydration mismatch | Server renders a fixed first quote; pick runs in `useEffect` |
+| Duplicate sign-ups can be used to email-bomb a registered address | Accepted until M2.6 adds rate limiting on auth routes (10 per minute per IP) |
+| Quote random pick causes hydration mismatch or a visible swap | The pick happens once on the server and is passed as a prop; the root layout already makes every route dynamic |
 
 ## What is **not** in this spec
 
