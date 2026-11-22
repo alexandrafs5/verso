@@ -4,6 +4,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { AuthHandlerMiddleware } from './auth-handler.middleware.js';
 import { createAuth } from './auth.js';
 import { AUTH } from './auth.constants.js';
+import { AdminGuard } from './admin.guard.js';
 import { SessionGuard } from './session.guard.js';
 
 @Module({
@@ -16,8 +17,9 @@ import { SessionGuard } from './session.guard.js';
     },
     AuthHandlerMiddleware,
     SessionGuard,
+    AdminGuard,
   ],
-  exports: [AUTH, SessionGuard],
+  exports: [AUTH, SessionGuard, AdminGuard],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
