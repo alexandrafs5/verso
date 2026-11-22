@@ -74,6 +74,7 @@ model User {
   updatedAt                   DateTime             @updatedAt @db.Timestamptz(3)
   sessions                    Session[]
   accounts                    Account[]
+  goals                       YearlyGoal[]
 }
 
 model Session {
@@ -118,4 +119,17 @@ model Verification {
   updatedAt  DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([identifier])
+}
+
+// Yearly reading goal (M2.5 upsert only; reads and Settings UI land in M5.6).
+model YearlyGoal {
+  id          String   @id @default(cuid())
+  userId      String
+  year        Int
+  targetBooks Int
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year])
 }
