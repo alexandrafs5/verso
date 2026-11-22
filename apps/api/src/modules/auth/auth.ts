@@ -41,6 +41,7 @@ export function createAuth(prisma: PrismaService, env: AuthEnv) {
       },
     },
     emailVerification: {
+      sendOnSignUp: true,
       sendVerificationEmail: ({ user, url }) => {
         logEmailStub('verification', user.email, url, env);
         return Promise.resolve();

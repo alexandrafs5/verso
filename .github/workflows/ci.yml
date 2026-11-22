@@ -35,6 +35,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://verso:verso@localhost:5432/verso
       DIRECT_DATABASE_URL: postgresql://verso:verso@localhost:5432/verso
+      BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else
       TURBO_TELEMETRY_DISABLED: "1"
 
     steps:

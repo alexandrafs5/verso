@@ -1,9 +1,11 @@
 import {
   type ArgumentsHost,
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { problemSchema } from '@verso/shared';
 import { describe, expect, it, vi } from 'vitest';
@@ -63,10 +65,19 @@ describe('ProblemJsonFilter', () => {
     expect(problem.errors).toBeUndefined();
   });
 
+  it('maps 401 to UNAUTHENTICATED and 403 to FORBIDDEN', () => {
+    const unauthorized = run(new UnauthorizedException());
+    expect(unauthorized.status).toBe(401);
+    expect(problemSchema.parse(unauthorized.body).code).toBe('UNAUTHENTICATED');
+    const forbidden = run(new ForbiddenException());
+    expect(forbidden.status).toBe(403);
+    expect(problemSchema.parse(forbidden.body).code).toBe('FORBIDDEN');
+  });
+
   it('maps other 4xx HttpExceptions to INTERNAL_ERROR keeping the status', () => {
-    const res = run(new ForbiddenException());
+    const res = run(new ConflictException());
     const problem = problemSchema.parse(res.body);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(409);
     expect(problem.code).toBe('INTERNAL_ERROR');
   });
 
