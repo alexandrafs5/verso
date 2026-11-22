@@ -1,12 +1,15 @@
 import 'reflect-metadata';
+import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { meSchema, problemSchema } from '@verso/shared';
+import { meSchema, problemSchema, signedUploadSchema } from '@verso/shared';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../../app.module.js';
 import { EMAIL_PROVIDER, type EmailProvider } from '../../infra/email/email.provider.js';
 import { InMemoryEmailProvider } from '../../infra/email/in-memory-email.provider.js';
+import { FILE_STORAGE, type FileStorage } from '../../infra/storage/file-storage.js';
+import { InMemoryFileStorage } from '../../infra/storage/in-memory-file-storage.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 import { setupApp } from '../../setup-app.js';
 import { GoalPolicy } from './domain/goal-policy.js';
@@ -28,6 +31,7 @@ describe('Users module: /v1/me endpoints (integration)', () => {
   let prisma: PrismaService;
   let server: Parameters<typeof request>[0];
   const mailbox = new InMemoryEmailProvider();
+  const storage = new InMemoryFileStorage();
 
   const cookieOf = (res: request.Response): string =>
     ((res.headers['set-cookie'] as unknown as string[] | undefined) ?? [])
@@ -77,11 +81,17 @@ describe('Users module: /v1/me endpoints (integration)', () => {
     server = app.getHttpServer() as Parameters<typeof request>[0];
     prisma = app.get(PrismaService);
     app.get<EmailProvider>(EMAIL_PROVIDER).send = (message) => mailbox.send(message);
+    // Route the real storage (Supabase or unconfigured) to the in-memory fake.
+    const realStorage = app.get<FileStorage>(FILE_STORAGE);
+    realStorage.createUploadUrl = (path, contentType) => storage.createUploadUrl(path, contentType);
+    realStorage.delete = (path) => storage.delete(path);
+    realStorage.publicUrl = (path) => storage.publicUrl(path);
     await cleanUsers();
   });
 
   afterEach(async () => {
     mailbox.clear();
+    storage.clear();
     await cleanUsers();
   });
 
@@ -186,6 +196,136 @@ describe('Users module: /v1/me endpoints (integration)', () => {
       await send('patch', '/v1/me', b.cookie).send({ name: 'Bea', bio: 'B bio' });
       const me = await get('/v1/me', a.cookie);
       expect(me.body).toMatchObject({ name: 'Test User', bio: null });
+    });
+  });
+
+  describe('POST /v1/me/avatar/upload-url', () => {
+    const valid = { contentType: 'image/webp', size: 1024 };
+
+    it('returns 401 without a session', async () => {
+      expect((await send('post', '/v1/me/avatar/upload-url').send(valid)).status).toBe(401);
+    });
+
+    it('returns a signed upload for a path under avatars/{userId}/', async () => {
+      const { cookie, email } = await createSession();
+      const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+      const res = await send('post', '/v1/me/avatar/upload-url', cookie).send(valid);
+      expect(res.status).toBe(200);
+      const upload = signedUploadSchema.parse(res.body);
+      expect(upload.path).toMatch(new RegExp(`^avatars/${user.id}/[0-9a-f-]{36}\\.webp$`));
+      expect(storage.uploadRequests).toEqual([{ path: upload.path, contentType: 'image/webp' }]);
+    });
+
+    it('rejects another content type or a size over 2 MB with 400', async () => {
+      const { cookie } = await createSession();
+      const png = await send('post', '/v1/me/avatar/upload-url', cookie).send({
+        ...valid,
+        contentType: 'image/png',
+      });
+      expect(png.status).toBe(400);
+      const big = await send('post', '/v1/me/avatar/upload-url', cookie).send({
+        ...valid,
+        size: 2 * 1024 * 1024 + 1,
+      });
+      expect(big.status).toBe(400);
+      expect(storage.uploadRequests).toHaveLength(0);
+    });
+
+    it('returns 503 STORAGE_UNAVAILABLE when storage fails', async () => {
+      const { cookie } = await createSession();
+      storage.failWith = new Error('supabase down');
+      const res = await send('post', '/v1/me/avatar/upload-url', cookie).send(valid);
+      expect(res.status).toBe(503);
+      expect(problemSchema.parse(res.body).code).toBe('STORAGE_UNAVAILABLE');
+    });
+  });
+
+  describe('PATCH /v1/me avatar', () => {
+    const userIdOf = async (email: string) =>
+      (await prisma.user.findUniqueOrThrow({ where: { email } })).id;
+
+    it('stores the public url for a path under the own folder', async () => {
+      const { cookie, email } = await createSession();
+      const path = `avatars/${await userIdOf(email)}/${randomUUID()}.webp`;
+      const res = await send('patch', '/v1/me', cookie).send({ avatarPath: path });
+      expect(res.status).toBe(200);
+      expect(res.body.image).toBe(storage.publicUrl(path));
+      expect(storage.deleted).toEqual([]);
+    });
+
+    it("returns 403 for a path under another user's folder and changes nothing", async () => {
+      const a = await createSession();
+      const b = await createSession();
+      const path = `avatars/${await userIdOf(b.email)}/${randomUUID()}.webp`;
+      const res = await send('patch', '/v1/me', a.cookie).send({ avatarPath: path });
+      expect(res.status).toBe(403);
+      expect(problemSchema.parse(res.body).code).toBe('FORBIDDEN');
+      expect((await get('/v1/me', a.cookie)).body.image).toBeNull();
+    });
+
+    it('returns 403 for traversal and non-avatar paths', async () => {
+      const { cookie, email } = await createSession();
+      const id = await userIdOf(email);
+      for (const avatarPath of [
+        `avatars/${id}/../x.webp`,
+        `covers/${id}/x.webp`,
+        `avatars/${id}/x.png`,
+      ]) {
+        const res = await send('patch', '/v1/me', cookie).send({ avatarPath });
+        expect(res.status).toBe(403);
+      }
+    });
+
+    it('deletes the previous object when the avatar is replaced', async () => {
+      const { cookie, email } = await createSession();
+      const id = await userIdOf(email);
+      const first = `avatars/${id}/${randomUUID()}.webp`;
+      const second = `avatars/${id}/${randomUUID()}.webp`;
+      await send('patch', '/v1/me', cookie).send({ avatarPath: first });
+      const res = await send('patch', '/v1/me', cookie).send({ avatarPath: second });
+      expect(res.body.image).toBe(storage.publicUrl(second));
+      expect(storage.deleted).toEqual([first]);
+    });
+
+    it('deletes the object and clears the image on removeAvatar', async () => {
+      const { cookie, email } = await createSession();
+      const path = `avatars/${await userIdOf(email)}/${randomUUID()}.webp`;
+      await send('patch', '/v1/me', cookie).send({ avatarPath: path });
+      const res = await send('patch', '/v1/me', cookie).send({ removeAvatar: true });
+      expect(res.status).toBe(200);
+      expect(res.body.image).toBeNull();
+      expect(storage.deleted).toEqual([path]);
+    });
+
+    it('does not delete an image that is not ours (e.g. a Google avatar)', async () => {
+      const { cookie, email } = await createSession();
+      await prisma.user.update({
+        where: { email },
+        data: { image: 'https://lh3.googleusercontent.com/a/x' },
+      });
+      const res = await send('patch', '/v1/me', cookie).send({ removeAvatar: true });
+      expect(res.body.image).toBeNull();
+      expect(storage.deleted).toEqual([]);
+    });
+
+    it('still saves when deleting the old object fails', async () => {
+      const { cookie, email } = await createSession();
+      const first = `avatars/${await userIdOf(email)}/${randomUUID()}.webp`;
+      await send('patch', '/v1/me', cookie).send({ avatarPath: first });
+      storage.failWith = new Error('supabase down');
+      const res = await send('patch', '/v1/me', cookie).send({ removeAvatar: true });
+      expect(res.status).toBe(200);
+      expect(res.body.image).toBeNull();
+    });
+
+    it('rejects avatarPath together with removeAvatar with 400', async () => {
+      const { cookie, email } = await createSession();
+      const path = `avatars/${await userIdOf(email)}/${randomUUID()}.webp`;
+      const res = await send('patch', '/v1/me', cookie).send({
+        avatarPath: path,
+        removeAvatar: true,
+      });
+      expect(res.status).toBe(400);
     });
   });
 

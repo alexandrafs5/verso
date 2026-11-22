@@ -24,6 +24,11 @@ describe('updateMeSchema', () => {
     expect(updateMeSchema.safeParse({ removeAvatar: false }).success).toBe(false);
   });
 
+  it('rejects avatarPath together with removeAvatar', () => {
+    const r = updateMeSchema.safeParse({ avatarPath: 'avatars/u1/x.webp', removeAvatar: true });
+    expect(r.success).toBe(false);
+  });
+
   it('accepts an avatarPath string', () => {
     expect(updateMeSchema.safeParse({ avatarPath: 'avatars/u1/x.webp' }).success).toBe(true);
   });

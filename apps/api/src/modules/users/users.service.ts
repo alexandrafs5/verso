@@ -1,13 +1,24 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import type {
+  AvatarUploadRequest,
   Goal,
   Me,
+  SignedUpload,
   UpdateMeInput,
   UpdateSettingsInput,
   UsernameAvailability,
 } from '@verso/shared';
 import { ApiException } from '../../common/api-exception.js';
 import type { User } from '../../generated/prisma/client.js';
+import { buildAvatarPath, isAvatarPathOwnedBy } from '../../infra/storage/avatar-path.js';
+import { FILE_STORAGE, type FileStorage } from '../../infra/storage/file-storage.js';
 import { GoalPolicy } from './domain/goal-policy.js';
 import { UsernamePolicy } from './domain/username-policy.js';
 import { UsersRepository } from './users.repository.js';
@@ -41,7 +52,12 @@ const isUniqueViolation = (error: unknown): boolean =>
 /** Every method acts on the session user id it is given and never takes a user id from the client. */
 @Injectable()
 export class UsersService {
-  constructor(@Inject(UsersRepository) private readonly users: UsersRepository) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    @Inject(UsersRepository) private readonly users: UsersRepository,
+    @Inject(FILE_STORAGE) private readonly storage: FileStorage,
+  ) {}
 
   async getMe(userId: string): Promise<Me> {
     return toMe(await this.requireUser(userId));
@@ -52,6 +68,19 @@ export class UsersService {
     const data: ProfileUpdate = {};
     if (input.name !== undefined) data.name = input.name;
     if (input.bio !== undefined) data.bio = input.bio;
+
+    // The previous avatar object, deleted once the row points elsewhere.
+    let staleImage: string | null = null;
+    if (input.avatarPath !== undefined) {
+      if (!isAvatarPathOwnedBy(userId, input.avatarPath)) {
+        throw new ForbiddenException('Avatar path does not belong to the current user');
+      }
+      data.image = this.publicUrl(input.avatarPath);
+      if (current.image !== data.image) staleImage = current.image;
+    } else if (input.removeAvatar) {
+      data.image = null;
+      staleImage = current.image;
+    }
 
     if (input.username !== undefined) {
       const result = UsernamePolicy.validate(input.username);
@@ -64,11 +93,23 @@ export class UsersService {
     }
 
     try {
-      return toMe(await this.users.updateProfile(userId, data));
+      const updated = await this.users.updateProfile(userId, data);
+      if (staleImage) await this.deleteStaleAvatar(userId, staleImage);
+      return toMe(updated);
     } catch (error) {
       // The unique index is the source of truth when two saves race.
       if (isUniqueViolation(error)) throw new ApiException(409, 'USERNAME_TAKEN');
       throw error;
+    }
+  }
+
+  async createAvatarUpload(userId: string, input: AvatarUploadRequest): Promise<SignedUpload> {
+    await this.requireUser(userId);
+    try {
+      return await this.storage.createUploadUrl(buildAvatarPath(userId), input.contentType);
+    } catch (error) {
+      this.logger.error(error instanceof Error ? error.message : 'Avatar upload url failed');
+      throw new ApiException(503, 'STORAGE_UNAVAILABLE');
     }
   }
 
@@ -99,6 +140,28 @@ export class UsersService {
     if (!user.username) throw new ApiException(409, 'USERNAME_REQUIRED');
     await this.users.markOnboardingCompleted(userId, new Date());
     return this.getMe(userId);
+  }
+
+  private publicUrl(path: string): string {
+    try {
+      return this.storage.publicUrl(path);
+    } catch (error) {
+      this.logger.error(error instanceof Error ? error.message : 'Storage public url failed');
+      throw new ApiException(503, 'STORAGE_UNAVAILABLE');
+    }
+  }
+
+  /** Best effort: a leftover object is harmless, so a storage failure never fails the save. Images not stored by us (e.g. Google) are skipped. */
+  private async deleteStaleAvatar(userId: string, image: string): Promise<void> {
+    try {
+      const prefix = this.storage.publicUrl('');
+      if (!image.startsWith(prefix)) return;
+      const path = decodeURIComponent(image.slice(prefix.length));
+      if (!isAvatarPathOwnedBy(userId, path)) return;
+      await this.storage.delete(path);
+    } catch (error) {
+      this.logger.warn(error instanceof Error ? error.message : 'Avatar delete failed');
+    }
   }
 
   private async requireUser(userId: string): Promise<User> {

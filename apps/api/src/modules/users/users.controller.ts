@@ -11,9 +11,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  type AvatarUploadRequest,
+  avatarUploadRequestSchema,
   goalYearParamSchema,
   type Goal,
   type Me,
+  type SignedUpload,
   type UpdateMeInput,
   type UpdateSettingsInput,
   type UpsertGoalInput,
@@ -51,6 +54,15 @@ export class UsersController {
     @Body(new ZodValidationPipe(updateSettingsSchema)) body: UpdateSettingsInput,
   ): Promise<Me> {
     return this.users.updateSettings(user.id, body);
+  }
+
+  @Post('me/avatar/upload-url')
+  @HttpCode(200)
+  createAvatarUpload(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(avatarUploadRequestSchema)) body: AvatarUploadRequest,
+  ): Promise<SignedUpload> {
+    return this.users.createAvatarUpload(user.id, body);
   }
 
   @Get('usernames/:username/availability')

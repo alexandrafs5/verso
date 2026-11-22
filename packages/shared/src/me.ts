@@ -52,13 +52,18 @@ export const meSchema = z.object({
   onboardingCompletedAt: z.string().nullable(),
 });
 
-export const updateMeSchema = z.object({
-  name: z.string().trim().min(1).max(80).optional(),
-  username: z.string().optional(), // normalized and validated by UsernamePolicy
-  bio: z.string().trim().max(300).nullable().optional(),
-  avatarPath: z.string().min(1).max(256).optional(),
-  removeAvatar: z.literal(true).optional(),
-});
+export const updateMeSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).optional(),
+    username: z.string().optional(), // normalized and validated by UsernamePolicy
+    bio: z.string().trim().max(300).nullable().optional(),
+    avatarPath: z.string().min(1).max(256).optional(),
+    removeAvatar: z.literal(true).optional(),
+  })
+  .refine((v) => !(v.avatarPath !== undefined && v.removeAvatar), {
+    message: 'avatarPath and removeAvatar cannot be combined',
+    path: ['removeAvatar'],
+  });
 
 /** Strict: reminder fields and unknown keys are rejected (reminders belong to P6). */
 export const updateSettingsSchema = z.strictObject({
@@ -107,4 +112,7 @@ export type UpsertGoalInput = z.infer<typeof upsertGoalSchema>;
 export type Goal = z.infer<typeof goalSchema>;
 
 /** Path param of `PUT /v1/me/goals/{year}`. The allowed range depends on the user's time zone and is checked by the API. */
-export const goalYearParamSchema = z.string().regex(/^\d{4}$/).transform(Number);
+export const goalYearParamSchema = z
+  .string()
+  .regex(/^\d{4}$/)
+  .transform(Number);
