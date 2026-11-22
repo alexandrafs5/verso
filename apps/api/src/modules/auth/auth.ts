@@ -59,6 +59,21 @@ export function createAuth(prisma: PrismaService, env: AuthEnv) {
       additionalFields: {
         // Read-only for clients: changed only in the database until the admin flow exists.
         role: { type: 'string', defaultValue: 'USER', input: false },
+        // Profile and settings (M2.2). Better Auth has no enum type: enums are declared as
+        // strings and the database enforces the values. `input: false` blocks writes through
+        // /api/auth/*; M2.5 changes them through /v1/me. Defaults live in the database.
+        username: { type: 'string', required: false, input: false },
+        bio: { type: 'string', required: false, input: false },
+        profileVisibility: { type: 'string', required: false, input: false },
+        defaultAnnotationVisibility: { type: 'string', required: false, input: false },
+        ratingStyle: { type: 'string', required: false, input: false },
+        progressStyle: { type: 'string', required: false, input: false },
+        locale: { type: 'string', required: false, input: false },
+        theme: { type: 'string', required: false, input: false },
+        timeZone: { type: 'string', required: false, input: false },
+        reminderEnabled: { type: 'boolean', required: false, input: false },
+        reminderTime: { type: 'string', required: false, input: false },
+        onboardingCompletedAt: { type: 'date', required: false, input: false },
       },
     },
   });
