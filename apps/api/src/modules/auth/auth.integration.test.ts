@@ -410,6 +410,35 @@ describe('Better Auth + guards (integration)', () => {
       expect(message?.html).toContain('lang="es"');
     });
 
+    it('revokes older sessions after a password reset and accepts the new password', async () => {
+      const email = uniqueEmail();
+      const oldCookie = await signUpAndSignIn(email);
+      expect((await request(server).get('/api/test/me').set('Cookie', oldCookie)).status).toBe(200);
+
+      await resetRequest(email);
+      const reset = (await emailsTo(email, 2))[1];
+      const token = new URL(linkIn(reset?.text as string)).pathname.split('/').pop() as string;
+
+      const newPassword = 'a brand new passphrase';
+      const res = await request(server)
+        .post('/api/auth/reset-password')
+        .set('Origin', ORIGIN)
+        .send({ newPassword, token });
+      expect(res.status).toBe(200);
+
+      expect((await request(server).get('/api/test/me').set('Cookie', oldCookie)).status).toBe(401);
+      expect((await signIn(email, PASSWORD)).status).toBe(401);
+      expect((await signIn(email, newPassword)).status).toBe(200);
+    });
+
+    it('rejects a password reset with an invalid token', async () => {
+      const res = await request(server)
+        .post('/api/auth/reset-password')
+        .set('Origin', ORIGIN)
+        .send({ newPassword: 'a brand new passphrase', token: 'not-a-real-token' });
+      expect(res.status).toBe(400);
+    });
+
     it('sends no email for a password-reset request with an unknown address', async () => {
       const res = await resetRequest(uniqueEmail());
       expect(res.status).toBe(200);
