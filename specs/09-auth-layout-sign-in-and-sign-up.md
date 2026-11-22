@@ -91,7 +91,8 @@ Conventions:
 - [ ] Password below 8 characters shows a field error before any request is sent.
 - [ ] The strength hint shows `weak`, `fair` or `strong` for the passwords covered in its unit test and never disables the submit button.
 - [ ] The show/hide control toggles the password input type and has an accessible name.
-- [ ] Signing up with an existing email shows the "email already in use" message with a link to Sign in.
+- [ ] Signing up with an existing email shows the same "Check your inbox" panel as a new email (Better Auth anti-enumeration response, no account is created and no error is shown).
+- [ ] If the API ever answers a sign-up with `USER_ALREADY_EXISTS*` (422), the form shows the "email already in use" message with a link to Sign in (unit test with a mocked client).
 - [ ] Signing in with wrong credentials shows one generic message that does not say which field was wrong.
 - [ ] Signing in with an unverified account shows the inline notice with the email, and a new verification email appears in Mailpit.
 - [ ] Signing in with a verified account redirects to `/home`.
@@ -136,7 +137,7 @@ Conventions:
 - [ ] **Normal:** name, email, password with strength hint, submit, Google, link to Sign in.
 - [ ] **Loading:** pending submit as in Sign in.
 - [ ] **Empty:** the "Check your inbox" panel after success, with the email and a link back to Sign in. Empty fields show validation errors on submit.
-- [ ] **Error:** email in use, rate limited, network and Google failure.
+- [ ] **Error:** email in use (fallback only), rate limited, network and Google failure.
 - [ ] **Light theme:** legible and token-based.
 - [ ] **Dark theme:** legible and token-based.
 - [ ] **Mobile:** no horizontal scroll.
@@ -164,6 +165,8 @@ Conventions:
 - **Yes:** redirect signed-in users away from the auth pages, client-side with `useSession`. Chosen by the user.
 - **Yes:** unverified sign-in shows an inline notice. Chosen by the user. SPEC 10 may turn it into a redirect to `/verify-email`.
 - **Yes (mine, unconfirmed):** sign-up success shows an inline "Check your inbox" panel in this spec, because no verify screen exists yet. SPEC 10 replaces it with a redirect.
+- **Yes:** keep Better Auth's anti-enumeration response for duplicate sign-ups. Chosen by the user during implementation. With `requireEmailVerification: true` the API answers a duplicate with a fake success, so the UI cannot say "email in use". The "email in use" message stays in the form only as a fallback for a 422.
+- **No:** turn the generic duplicate response off in `auth.ts`. It would reveal which emails are registered and needs an API change outside this spec.
 - **Yes (mine, unconfirmed):** sign-up asks for `name` because Better Auth requires it. M2.5 step 1 lets the user edit the display name.
 - **Yes (mine, unconfirmed):** verification link `callbackURL` is `/sign-in`. No auto sign-in after verification.
 - **No:** server-side route protection (middleware). Everything behind sign-in is client-rendered (ARCHITECTURE §3); real guards come with the app shell work in later tasks.
