@@ -1,12 +1,10 @@
-import { getTranslations } from 'next-intl/server';
+import { SignInForm } from '@/features/auth/SignInForm';
 
-// Stub until the form lands (SPEC 09, step 5).
-export default async function SignInPage() {
-  const t = await getTranslations('auth.signIn');
-  return (
-    <>
-      <h1>{t('title')}</h1>
-      <p className="mt-2 text-muted">{t('subtitle')}</p>
-    </>
-  );
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+  return <SignInForm oauthFailed={error === 'oauth'} />;
 }
