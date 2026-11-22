@@ -1,27 +1,11 @@
-import { Logger } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { v7 as uuidv7 } from 'uuid';
 import type { AuthEnv } from '../../config/auth-env.js';
 import type { PrismaService } from '../../infra/prisma/prisma.service.js';
+import type { AuthEmailService } from './auth-email.service.js';
 
-const logger = new Logger('Auth');
-
-/**
- * Temporary email hook (M2.1). Logs the recipient and link outside production, sends nothing.
- * M2.3 replaces it with EmailProvider.
- */
-function logEmailStub(
-  kind: 'verification' | 'password reset',
-  to: string,
-  url: string,
-  env: AuthEnv,
-): void {
-  if (env.NODE_ENV === 'production') return;
-  logger.log(`[${kind}] to=${to} url=${url}`);
-}
-
-export function createAuth(prisma: PrismaService, env: AuthEnv) {
+export function createAuth(prisma: PrismaService, env: AuthEnv, authEmail: AuthEmailService) {
   const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
   return betterAuth({
@@ -35,15 +19,20 @@ export function createAuth(prisma: PrismaService, env: AuthEnv) {
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
-      sendResetPassword: ({ user, url }) => {
-        logEmailStub('password reset', user.email, url, env);
+      // Google users arrive verified; password users must verify before signing in.
+      requireEmailVerification: true,
+      // The hooks do not await the send: awaiting slows the response and leaks account existence.
+      sendResetPassword: ({ user, url }, request) => {
+        authEmail.sendPasswordReset(user, url, request);
         return Promise.resolve();
       },
     },
     emailVerification: {
       sendOnSignUp: true,
-      sendVerificationEmail: ({ user, url }) => {
-        logEmailStub('verification', user.email, url, env);
+      // An unverified sign-in attempt (403) re-sends the verification email.
+      sendOnSignIn: true,
+      sendVerificationEmail: ({ user, url }, request) => {
+        authEmail.sendVerification(user, url, request);
         return Promise.resolve();
       },
     },
