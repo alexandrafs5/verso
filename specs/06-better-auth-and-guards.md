@@ -1,6 +1,6 @@
 # SPEC 06 — Better Auth and session guards (M2.1)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 01
 > **Date:** 2026-11-21
 > **Objective:** Mount Better Auth (email + password, Google when configured) at `/api/auth/*` in the API, with the auth tables migrated and `SessionGuard`, `AdminGuard` and `@CurrentUser()` available to every module.
@@ -100,25 +100,25 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] `pnpm db:migrate` on an empty database creates `User`, `Session`, `Account`, `Verification` and the `Role` enum; new users get `role = USER`.
-- [ ] The API fails to start with a clear error when `BETTER_AUTH_SECRET` is missing.
-- [ ] `POST /api/auth/sign-up/email` with a valid email and an 8+ character password returns 200 and sets an `HttpOnly` cookie; the created user has a UUID v7 id.
-- [ ] Sign-up with a password shorter than 8 characters is rejected (4xx) and creates no user.
-- [ ] Sign-up body cannot set `role`: a request with `role: "ADMIN"` produces a `USER`.
-- [ ] `POST /api/auth/sign-in/email` with the right password returns a session cookie; with a wrong password it returns 401 and no cookie.
-- [ ] `GET /api/auth/get-session` with the cookie returns the user; without it returns no session.
-- [ ] `POST /api/auth/sign-out` invalidates the session: the same cookie then fails `SessionGuard`.
-- [ ] A route with `SessionGuard` returns 401 problem+json with `code: "UNAUTHENTICATED"` without a cookie and 200 with a valid one.
-- [ ] `@CurrentUser()` returns the signed-in user's `id`, `email` and `role`.
-- [ ] A route with `SessionGuard` and `AdminGuard` returns 403 problem+json with `code: "FORBIDDEN"` for a `USER` and 200 for an `ADMIN` (role set directly in the test database).
-- [ ] An expired session (`expiresAt` in the past) fails `SessionGuard` with 401.
-- [ ] With `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` unset, `POST /api/auth/sign-in/social` for `google` fails with a provider-not-found error; with both set (dummy values), it returns a redirect URL to Google.
-- [ ] Other routes still accept JSON bodies and the Zod validation pipe still runs on them (existing integration tests pass).
-- [ ] The sign-up verification email hook logs the verification URL and does not send mail or throw.
-- [ ] No auth secrets or user data appear in logs at `info` in production mode (the stub logs nothing when `NODE_ENV=production`).
-- [ ] `.env.example` lists every new variable.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] The M2.1 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] `pnpm db:migrate` on an empty database creates `User`, `Session`, `Account`, `Verification` and the `Role` enum; new users get `role = USER`.
+- [x] The API fails to start with a clear error when `BETTER_AUTH_SECRET` is missing.
+- [x] `POST /api/auth/sign-up/email` with a valid email and an 8+ character password returns 200 and sets an `HttpOnly` cookie; the created user has a UUID v7 id.
+- [x] Sign-up with a password shorter than 8 characters is rejected (4xx) and creates no user.
+- [x] Sign-up body cannot set `role`: a request with `role: "ADMIN"` produces a `USER`.
+- [x] `POST /api/auth/sign-in/email` with the right password returns a session cookie; with a wrong password it returns 401 and no cookie.
+- [x] `GET /api/auth/get-session` with the cookie returns the user; without it returns no session.
+- [x] `POST /api/auth/sign-out` invalidates the session: the same cookie then fails `SessionGuard`.
+- [x] A route with `SessionGuard` returns 401 problem+json with `code: "UNAUTHENTICATED"` without a cookie and 200 with a valid one.
+- [x] `@CurrentUser()` returns the signed-in user's `id`, `email` and `role`.
+- [x] A route with `SessionGuard` and `AdminGuard` returns 403 problem+json with `code: "FORBIDDEN"` for a `USER` and 200 for an `ADMIN` (role set directly in the test database).
+- [x] An expired session (`expiresAt` in the past) fails `SessionGuard` with 401.
+- [x] With `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` unset, `POST /api/auth/sign-in/social` for `google` fails with a provider-not-found error; with both set (dummy values), it returns a redirect URL to Google.
+- [x] Other routes still accept JSON bodies and the Zod validation pipe still runs on them (existing integration tests pass).
+- [x] The sign-up verification email hook logs the verification URL and does not send mail or throw.
+- [x] No auth secrets or user data appear in logs at `info` in production mode (the stub logs nothing when `NODE_ENV=production`).
+- [x] `.env.example` lists every new variable.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] The M2.1 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 UI states: N/A, this spec touches no screen or component.
 
