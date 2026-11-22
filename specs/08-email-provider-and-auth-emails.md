@@ -1,6 +1,6 @@
 # SPEC 08 — EmailProvider and auth emails (M2.3)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 06, SPEC 07
 > **Date:** 2026-11-22
 > **Objective:** Add an `EmailProvider` interface with Mailpit (SMTP) and Brevo (HTTP) implementations and use it to send localized (EN/ES) verification and password-reset emails from Better Auth.
@@ -66,22 +66,22 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] With only `SMTP_URL` set, a sign-up delivers a verification email visible in Mailpit.
-- [ ] With `BREVO_API_KEY` set, `BrevoEmailProvider` sends a `POST` to the Brevo endpoint with the `api-key` header and the sender, recipient, subject and both bodies (stubbed `fetch` test).
-- [ ] A non-2xx Brevo response makes `send` reject.
-- [ ] With `NODE_ENV=production` and no `BREVO_API_KEY`, the API fails to boot with a clear error.
-- [ ] Sign-up with `Accept-Language: es` sends the verification email in Spanish; without the header it is in English.
-- [ ] A password-reset request for an existing user sends one email in the user's `locale` (or `Accept-Language` when present) containing a link that starts with `BETTER_AUTH_URL`.
-- [ ] A password-reset request for an unknown email sends no email.
-- [ ] Sign-in with email + password before verification is rejected with 403 and sends a new verification email.
-- [ ] Sign-in succeeds after opening the verification link.
-- [ ] If `EmailProvider.send` rejects, sign-up still returns 200 and creates the user, and the error is logged without the recipient address or URL.
-- [ ] The HTML of both templates escapes HTML characters in the user's name.
-- [ ] No log line at `info` or above contains a verification or reset URL.
-- [ ] `auth.ts` no longer contains `logEmailStub`.
-- [ ] `.env.example` still lists every email variable, with a comment on which provider each selects.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] The M2.3 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] With only `SMTP_URL` set, a sign-up delivers a verification email visible in Mailpit.
+- [x] With `BREVO_API_KEY` set, `BrevoEmailProvider` sends a `POST` to the Brevo endpoint with the `api-key` header and the sender, recipient, subject and both bodies (stubbed `fetch` test).
+- [x] A non-2xx Brevo response makes `send` reject.
+- [x] With `NODE_ENV=production` and no `BREVO_API_KEY`, the API fails to boot with a clear error.
+- [x] Sign-up with `Accept-Language: es` sends the verification email in Spanish; without the header it is in English.
+- [x] A password-reset request for an existing user sends one email in the user's `locale` (or `Accept-Language` when present) containing a link that starts with `BETTER_AUTH_URL`.
+- [x] A password-reset request for an unknown email sends no email.
+- [x] Sign-in with email + password before verification is rejected with 403 and sends a new verification email.
+- [x] Sign-in succeeds after opening the verification link.
+- [x] If `EmailProvider.send` rejects, sign-up still returns 200 and creates the user, and the error is logged without the recipient address or URL.
+- [x] The HTML of both templates escapes HTML characters in the user's name.
+- [x] No log line at `info` or above contains a verification or reset URL.
+- [x] `auth.ts` no longer contains `logEmailStub`.
+- [x] `.env.example` still lists every email variable, with a comment on which provider each selects.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] The M2.3 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 UI states: N/A, this spec touches no screen or component. Email layout is checked manually in Mailpit in light and dark mail clients by the user.
 
