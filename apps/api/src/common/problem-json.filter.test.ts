@@ -10,6 +10,7 @@ import {
 import { problemSchema } from '@verso/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+import { ApiException } from './api-exception.js';
 import { ProblemJsonFilter } from './problem-json.filter.js';
 
 function run(exception: unknown) {
@@ -79,6 +80,20 @@ describe('ProblemJsonFilter', () => {
     const problem = problemSchema.parse(res.body);
     expect(res.status).toBe(409);
     expect(problem.code).toBe('INTERNAL_ERROR');
+  });
+
+  it('maps ApiException to its own status and stable code, with the detail', () => {
+    const res = run(new ApiException(409, 'USERNAME_TAKEN'));
+    const problem = problemSchema.parse(res.body);
+    expect(res.status).toBe(409);
+    expect(problem.code).toBe('USERNAME_TAKEN');
+    expect(problem.detail).toBeUndefined();
+
+    const invalid = problemSchema.parse(
+      run(new ApiException(400, 'USERNAME_INVALID', 'RESERVED')).body,
+    );
+    expect(invalid.code).toBe('USERNAME_INVALID');
+    expect(invalid.detail).toBe('RESERVED');
   });
 
   it('hides message and stack for 5xx HttpException and logs it', () => {

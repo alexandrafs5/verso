@@ -150,5 +150,142 @@
     "books": "{count, plural, =0 {No books} one {# book} other {# books}}",
     "pages": "{count, plural, one {# page} other {# pages}}",
     "days": "{count, plural, one {# day} other {# days}}"
+  },
+  "onboarding": {
+    "stepOf": "Step {current} of {total}",
+    "progressLabel": "Onboarding progress",
+    "back": "Back",
+    "skip": "Skip",
+    "continue": "Continue",
+    "saving": "Saving",
+    "loading": "Loading your account",
+    "loadFailedTitle": "We could not load your account",
+    "loadFailedBody": "Check your connection and try again.",
+    "saveFailed": "We could not save that. Check your connection and try again.",
+    "steps": {
+      "name": {
+        "title": "What should we call you?",
+        "description": "Your name and a username. People find you by your username."
+      },
+      "photo": {
+        "title": "Add a profile photo",
+        "description": "Optional. Without one, your initials are shown."
+      },
+      "rating": {
+        "title": "How do you like to rate books?",
+        "description": "Pick a style and try it. You can change it later in Settings."
+      },
+      "progress": {
+        "title": "How do you track your progress?",
+        "description": "It is your default. You can change it in Settings or when you log progress, and each book remembers the last one you used. Books without a page count use percentage."
+      },
+      "privacy": {
+        "title": "Who can see your profile?",
+        "description": "You can change this later in Settings."
+      },
+      "goal": {
+        "title": "Set a yearly goal",
+        "description": "Optional. A gentle target for how many books to read this year."
+      },
+      "import": {
+        "title": "Coming from Goodreads?",
+        "description": "Optional. Bring your library with you."
+      }
+    },
+    "name": {
+      "nameLabel": "Name",
+      "usernameLabel": "Username",
+      "usernameHint": "3 to 20 characters: letters, numbers and underscores.",
+      "errors": {
+        "nameRequired": "Enter your name.",
+        "nameTooLong": "Use 80 characters or fewer.",
+        "usernameRequired": "Choose a username."
+      },
+      "availability": {
+        "checking": "Checking availability",
+        "available": "This username is available.",
+        "TAKEN": "This username is already taken.",
+        "TOO_SHORT": "Use at least 3 characters.",
+        "TOO_LONG": "Use 20 characters or fewer.",
+        "INVALID_CHARACTERS": "Use only letters, numbers and underscores.",
+        "RESERVED": "This username is reserved. Choose another.",
+        "checkFailed": "We could not check availability right now. You can still continue."
+      }
+    },
+    "rating": {
+      "groupLabel": "Rating style",
+      "precisionLabel": "Star precision",
+      "previewLabel": "Try it",
+      "stars": {
+        "title": "Stars",
+        "description": "Five stars, the classic way."
+      },
+      "decimal": {
+        "title": "1 to 10",
+        "description": "A score out of 10, with one decimal."
+      },
+      "hundred": {
+        "title": "1 to 100",
+        "description": "A fine-grained score out of 100."
+      },
+      "whole": "Whole stars",
+      "half": "Half stars",
+      "quarter": "Quarter stars"
+    },
+    "progress": {
+      "groupLabel": "Progress style",
+      "previewLabel": "Preview",
+      "pages": {
+        "title": "Pages",
+        "description": "Note the page you are on.",
+        "preview": "p. 150 of 300"
+      },
+      "percent": {
+        "title": "Percentage",
+        "description": "Note how far along you are, handy for ebooks and audiobooks.",
+        "preview": "50%"
+      }
+    },
+    "privacy": {
+      "groupLabel": "Profile privacy",
+      "public": {
+        "title": "Public",
+        "description": "Anyone can see your profile, your reading and your reviews."
+      },
+      "private": {
+        "title": "Private",
+        "description": "Only people you approve can see your profile. Your library stays hidden."
+      }
+    },
+    "photo": {
+      "choose": "Choose a photo",
+      "change": "Choose another photo",
+      "remove": "Remove photo",
+      "save": "Save photo",
+      "fileInput": "Photo file",
+      "currentAlt": "Your current profile photo",
+      "initialsAlt": "Profile photo placeholder with your initials, {initials}",
+      "cropLabel": "Photo crop preview",
+      "cropHint": "Drag the photo, or use the arrow keys, to move it. Use the zoom control to resize. The photo is shown as a circle.",
+      "zoom": "Zoom",
+      "processing": "Preparing and uploading your photo",
+      "errors": {
+        "wrongType": "That file is not a supported image. Use a JPEG, PNG, WebP or GIF.",
+        "unreadable": "We could not open that image. Try another one.",
+        "encode": "Your browser cannot prepare this photo. You can skip this step and add one later.",
+        "tooLarge": "That photo is still too large after compression. Try a smaller image.",
+        "upload": "We could not upload your photo. Your previous photo is unchanged. Try again.",
+        "remove": "We could not remove your photo. Try again."
+      }
+    },
+    "goal": {
+      "label": "How many books do you want to read in {year}?",
+      "hint": "A whole number from 1 to 999. Leave it empty to set it later.",
+      "invalid": "Enter a whole number from 1 to 999."
+    },
+    "import": {
+      "body": "Bring your Goodreads library into Verso: your shelves, ratings and reviews, from the export file Goodreads gives you.",
+      "soon": "Importing is not available yet. Skip for now. Skipping finishes the setup and takes you to Home."
+    }
   }
 }

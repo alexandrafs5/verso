@@ -269,7 +269,7 @@ Conventions: primary keys are UUID v7 strings (`id`); timestamps are `timestampt
 
 | Table | Key columns |
 | --- | --- |
-| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`) |
+| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `progressStyle` (PAGES, PERCENT, nullable: null means "use `User.progressStyle`"; set when the user switches the toggle in the Log progress modal, see DESIGN S9), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`) |
 | `Reading` | `userBookId`, `number` (1, 2, …), `state` (IN_PROGRESS, FINISHED, ABANDONED), `startedOn` (date, nullable), `finishedOn` (date, nullable), `currentPage` (nullable), `percentBp` (int 0–10000, basis points); partial unique index: one IN_PROGRESS per `userBookId` |
 | `ReadingSession` | `readingId`, `userId` (denormalized for streak and stats queries), `localDate` (date in the user's time zone at write time), `fromPage`, `toPage`, `fromPercentBp`, `toPercentBp`, `pagesRead` (int, derived) |
 | `Tag` | `userId`, `name`, `color` (WINE, TOBACCO, BRASS, FOREST, NAVY, OXBLOOD, SLATE, SAND); unique (`userId`, `name`) |
@@ -451,13 +451,13 @@ Conventions:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/v1/me` | Current user, settings, onboarding state |
-| PATCH | `/v1/me` | Name, username, bio |
-| PATCH | `/v1/me/settings` | Rating style, progress style, locale, theme, time zone, privacy defaults, reminder |
+| PATCH | `/v1/me` | Name, username, bio, avatar (`avatarPath` after a signed upload, or `removeAvatar`; not both) |
+| PATCH | `/v1/me/settings` | Rating style, progress style, locale, theme, time zone, privacy defaults. Reminder fields are rejected until P6 (F1.5) adds them |
 | POST | `/v1/me/onboarding/complete` | Mark onboarding done |
 | GET | `/v1/usernames/{username}/availability` | Live check |
 | POST | `/v1/me/avatar/upload-url` | Signed upload URL (Supabase) |
 | PUT | `/v1/me/favorites` | Four favorites |
-| GET / PUT | `/v1/me/goals/{year}` | Yearly goal |
+| GET / PUT | `/v1/me/goals/{year}` | Yearly goal. `PUT` lands with onboarding step 6 (M2.5); `GET` with M5.6 |
 | DELETE | `/v1/me` | Delete account (requires typed username) |
 
 **Catalog**

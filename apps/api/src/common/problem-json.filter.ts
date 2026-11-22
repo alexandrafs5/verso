@@ -10,6 +10,7 @@ import {
 import { ErrorCode, type Problem } from '@verso/shared';
 import type { Response } from 'express';
 import { ZodError } from 'zod';
+import { ApiException } from './api-exception.js';
 
 @Catch()
 export class ProblemJsonFilter implements ExceptionFilter {
@@ -33,6 +34,13 @@ export class ProblemJsonFilter implements ExceptionFilter {
           path: issue.path.map(String).join('.'),
           message: issue.message,
         })),
+      };
+    }
+
+    if (exception instanceof ApiException) {
+      return {
+        ...this.base(exception.getStatus(), exception.code),
+        ...(exception.detail ? { detail: exception.detail } : {}),
       };
     }
 

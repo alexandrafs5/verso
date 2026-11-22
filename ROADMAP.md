@@ -37,7 +37,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [x] **M2.2** User extensions (username, settings fields, role); `UsernamePolicy` with tests.
 - [x] **M2.3** `EmailProvider`: SMTP (Mailpit) locally, Brevo in production; verification and reset emails in EN/ES. §9
 - [x] **M2.4** Screens P2: sign in, create account (split layout with rotating public-domain quote), verify email, forgot and reset password.
-- [ ] **M2.5** P3 onboarding (7 steps; step 7 "Import from Goodreads" links to S15, which ships in M11 — until then the step shows only Skip) + `GET/PATCH /v1/me`, `/v1/me/settings`, username availability, avatar upload (Supabase signed URL, WebP compression).
+- [x] **M2.5** P3 onboarding (7 steps; step 7 "Import from Goodreads" links to S15, which ships in M11 — until then the step shows only Skip) + `GET/PATCH /v1/me`, `/v1/me/settings`, username availability, avatar upload (Supabase signed URL, WebP compression).
 - [ ] **M2.6** Rate limiting on auth routes; integration tests for sign-up, sign-in, guards.
 
 **Done when:** a new user can register (email or Google), verify, finish onboarding and land on an empty Home.
@@ -54,7 +54,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 
 ### M4. Library
 
-- [ ] **M4.1** UserBook, Reading, Tag, UserBookTag tables; `ReadingLifecycle` with full unit tests (state diagram in §6.1).
+- [ ] **M4.1** UserBook (including nullable `progressStyle`, see M5.3), Reading, Tag, UserBookTag tables; `ReadingLifecycle` with full unit tests (state diagram in §6.1).
 - [ ] **M4.2** Add to library (persists work + edition + authors lazily); AddToLibraryButton wired everywhere.
 - [ ] **M4.3** Status changes and lifecycle endpoints (finish, reread, abandon, resume, start over).
 - [ ] **M4.4** S7 library: status tabs with counts, tag chips filter, sort, grid/list, hover overlay.
@@ -67,10 +67,10 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 
 - [ ] **M5.1** `Progress` value object and `StreakCalculator` with unit tests (time zones, edge days).
 - [ ] **M5.2** ReadingSession table; sessions endpoints; `suggestFinish`; edition change converts progress.
-- [ ] **M5.3** S9 Log progress modal (pages/percent toggle, date, "+N pages" helper, finish dialog with brass shimmer).
+- [ ] **M5.3** S9 Log progress modal (pages/percent toggle, date, "+N pages" helper, finish dialog with brass shimmer). The toggle starts on `User.progressStyle` and the last choice is **remembered per book** in `UserBook.progressStyle` (DESIGN S9); a book without a page count is always percentage.
 - [ ] **M5.4** S8 book detail: header, Sessions tab, Readings tab (editable dates, "Date unknown"), rating input in user's scale.
 - [ ] **M5.5** `GET /v1/home` aggregate + S1 Home: changing greeting, currently reading carousel, streak (7 days), yearly goal, this month, want to read, empty state.
-- [ ] **M5.6** Yearly goal endpoints and Settings → Yearly goal.
+- [ ] **M5.6** `GET /v1/me/goals/{year}` and Settings → Yearly goal (the `YearlyGoal` table and `PUT` already exist from M2.5).
 
 **Done when:** you can read a book in Verso end to end: start, log sessions, see the streak, finish, reread.
 

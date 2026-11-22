@@ -4,8 +4,10 @@ import { LoggerModule } from 'nestjs-pino';
 import { ProblemJsonFilter } from './common/problem-json.filter.js';
 import { serializeRequest } from './common/redact-request.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
+import { StorageModule } from './infra/storage/storage.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
   imports: [
@@ -28,7 +30,9 @@ import { HealthModule } from './modules/health/health.module.js';
       },
     }),
     PrismaModule,
+    StorageModule,
     AuthModule,
+    UsersModule,
     HealthModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ProblemJsonFilter }],

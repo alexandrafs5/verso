@@ -207,3 +207,49 @@ describe('api.get retries and waking state', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('api with a JSON body', () => {
+  it.each([
+    ['post', 'POST'],
+    ['patch', 'PATCH'],
+    ['put', 'PUT'],
+  ] as const)('%s sends the method, a JSON content type and the serialized body', async (name, method) => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ status: 'ok' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api[name]('/api/x', schema, { a: 1 });
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(init.method).toBe(method);
+    expect(init.body).toBe('{"a":1}');
+    expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' });
+  });
+
+  it('post without a body sends no body and no content type', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ status: 'ok' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.post('/api/x', schema);
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(init.body).toBeUndefined();
+    expect(init.headers).not.toHaveProperty('Content-Type');
+  });
+
+  it('does not retry the app own 503 STORAGE_UNAVAILABLE', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        { type: 'about:blank', title: 'Unavailable', status: 503, code: ErrorCode.STORAGE_UNAVAILABLE },
+        503,
+        'application/problem+json',
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.post('/api/x', schema, {})).rejects.toMatchObject({
+      status: 503,
+      code: ErrorCode.STORAGE_UNAVAILABLE,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
