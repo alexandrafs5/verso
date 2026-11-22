@@ -15,6 +15,7 @@ type SessionState = {
 const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   signOut: vi.fn(),
+  assign: vi.fn(),
   refetch: vi.fn(),
   session: {} as SessionState,
 }));
@@ -51,6 +52,8 @@ function setup() {
 beforeEach(() => {
   mocks.replace.mockReset();
   mocks.signOut.mockReset().mockResolvedValue({});
+  mocks.assign.mockReset();
+  vi.stubGlobal('location', { assign: mocks.assign });
   mocks.refetch.mockReset().mockResolvedValue(undefined);
 });
 
@@ -102,7 +105,9 @@ describe('HomePlaceholder', () => {
     await ui.click(screen.getByRole('button', { name: 'Account menu' }));
     await ui.click(await screen.findByRole('menuitem', { name: 'Sign out' }));
 
-    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/sign-in'));
+    await waitFor(() => expect(mocks.assign).toHaveBeenCalledWith('/sign-in'));
     expect(mocks.signOut).toHaveBeenCalledTimes(1);
+    // A full page load, not a soft navigation: stale client state must not survive.
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 });

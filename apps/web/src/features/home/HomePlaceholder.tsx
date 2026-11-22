@@ -7,7 +7,8 @@ import { AppShell } from '@/components/shell/AppShell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/verso/EmptyState';
 import { ErrorState } from '@/components/verso/ErrorState';
-import { authClient, useSession } from '@/lib/auth-client';
+import { signOutAndLeave } from '@/features/auth/sign-out';
+import { useSession } from '@/lib/auth-client';
 
 // Placeholder until the real Home (M3 and later) and server-side route guards exist.
 // It exists so sign-in has somewhere to land and proves the session check works.
@@ -20,14 +21,6 @@ export function HomePlaceholder() {
   useEffect(() => {
     if (!isPending && !error && !user) router.replace('/sign-in');
   }, [isPending, error, user, router]);
-
-  async function handleSignOut() {
-    try {
-      await authClient.signOut();
-    } finally {
-      router.replace('/sign-in');
-    }
-  }
 
   if (error) {
     return (
@@ -69,7 +62,7 @@ export function HomePlaceholder() {
         avatarUrl: user.image ?? null,
         role: user.role === 'ADMIN' ? 'ADMIN' : 'USER',
       }}
-      onSignOut={() => void handleSignOut()}
+      onSignOut={() => void signOutAndLeave()}
     >
       <h1>{t('home.title')}</h1>
       <EmptyState heading={t('home.emptyTitle')} description={t('home.emptyBody')} />
