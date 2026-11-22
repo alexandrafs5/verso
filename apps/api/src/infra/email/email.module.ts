@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { BrevoEmailProvider } from './brevo-email.provider.js';
 import { type EmailEnv, loadEmailEnv, selectEmailProviderKind } from './email-env.js';
 import { EMAIL_PROVIDER, type EmailProvider } from './email.provider.js';
 import { SmtpEmailProvider } from './smtp-email.provider.js';
@@ -9,8 +10,7 @@ export function createEmailProvider(env: EmailEnv): EmailProvider {
     case 'smtp':
       return new SmtpEmailProvider(env.SMTP_URL as string, env.EMAIL_FROM);
     case 'brevo':
-      // Wired in step 4 of SPEC 08.
-      throw new Error('Brevo provider is not wired yet');
+      return new BrevoEmailProvider(env.BREVO_API_KEY as string, env.EMAIL_FROM);
   }
 }
 
