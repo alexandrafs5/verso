@@ -16,7 +16,8 @@ export class SupabaseFileStorage implements FileStorage {
     private readonly bucket: string,
     private readonly fetchImpl: FetchLike = fetch,
   ) {
-    this.base = `${url.replace(/\/+$/, '')}/storage/v1`;
+    // Only the origin counts: a pasted Data API url (.../rest/v1/) must still reach Storage.
+    this.base = `${new URL(url).origin}/storage/v1`;
   }
 
   async createUploadUrl(path: string): Promise<SignedUpload> {

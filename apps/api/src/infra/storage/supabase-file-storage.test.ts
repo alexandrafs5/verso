@@ -18,6 +18,14 @@ describe('SupabaseFileStorage', () => {
     );
   });
 
+  it('uses only the origin of SUPABASE_URL, so a pasted Data API url still reaches Storage', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ url: '/object/upload/sign/verso/a.webp?token=tok' }));
+    const storage: FileStorage = new SupabaseFileStorage(`${URL_BASE}/rest/v1/`, 'secret', 'verso', fetchMock);
+    expect(storage.publicUrl('a.webp')).toBe(`${URL_BASE}/storage/v1/object/public/verso/a.webp`);
+    await storage.createUploadUrl('a.webp', 'image/webp');
+    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe(`${URL_BASE}/storage/v1/object/upload/sign/verso/a.webp`);
+  });
+
   it('requests a signed upload url and returns the absolute url and token', async () => {
     const { storage, fetchMock } = storageWith(
       Response.json({ url: '/object/upload/sign/verso/avatars/u1/a.webp?token=tok' }),
