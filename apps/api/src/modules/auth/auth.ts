@@ -5,17 +5,53 @@ import type { AuthEnv } from '../../config/auth-env.js';
 import type { PrismaService } from '../../infra/prisma/prisma.service.js';
 import type { AuthEmailService } from './auth-email.service.js';
 
+const RATE_LIMIT_WINDOW_SECONDS = 60;
+
+/**
+ * Paths of the per-path special rules built into better-auth@1.7.27 (api/rate-limiter). Each is
+ * overridden with the flat window and max (SPEC 12). Custom rules match the exact path or a
+ * wildcard, so prefix rules (`startsWith`) are listed as exact path plus `/*`.
+ */
+const BUILT_IN_SPECIAL_RULE_PATHS = [
+  '/sign-in',
+  '/sign-in/*',
+  '/sign-up',
+  '/sign-up/*',
+  '/change-password',
+  '/change-email',
+  '/request-password-reset',
+  '/send-verification-email',
+  '/forget-password',
+  '/forget-password/*',
+  '/email-otp/send-verification-otp',
+  '/email-otp/request-password-reset',
+];
+
 export function createAuth(prisma: PrismaService, env: AuthEnv, authEmail: AuthEmailService) {
   const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
   const signInUrl = new URL('/sign-in', env.WEB_ORIGIN).toString();
+  const flatRule = { window: RATE_LIMIT_WINDOW_SECONDS, max: env.AUTH_RATE_LIMIT_MAX };
 
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     trustedOrigins: [env.WEB_ORIGIN],
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
+    // Enabled explicitly: the library default is off in development (SPEC 12).
+    rateLimit: {
+      enabled: env.AUTH_RATE_LIMIT_ENABLED,
+      window: RATE_LIMIT_WINDOW_SECONDS,
+      max: env.AUTH_RATE_LIMIT_MAX,
+      storage: 'memory',
+      customRules: {
+        ...Object.fromEntries(BUILT_IN_SPECIAL_RULE_PATHS.map((path) => [path, flatRule])),
+        // The web calls it on normal navigation.
+        '/get-session': false,
+      },
+    },
     advanced: {
       database: { generateId: () => uuidv7() },
+      ipAddress: { ipAddressHeaders: ['x-forwarded-for'] },
     },
     emailAndPassword: {
       enabled: true,
