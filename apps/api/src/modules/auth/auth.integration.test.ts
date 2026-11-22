@@ -34,6 +34,12 @@ class AuthTestController {
     return { id: user.id, email: user.email, role: user.role };
   }
 
+  @Get('profile')
+  @UseGuards(SessionGuard)
+  profile(@CurrentUser() user: AuthUser) {
+    return user;
+  }
+
   @Get('admin')
   @UseGuards(SessionGuard, AdminGuard)
   admin() {
@@ -199,6 +205,62 @@ describe('Better Auth + guards (integration)', () => {
       const res = await request(server).get('/api/test/me').set('Cookie', cookie);
       expect(res.status).toBe(401);
       expect(problemSchema.parse(res.body).code).toBe(ErrorCode.UNAUTHENTICATED);
+    });
+  });
+
+  describe('user extensions (M2.2)', () => {
+    const DEFAULTS = {
+      username: null,
+      bio: null,
+      profileVisibility: 'PUBLIC',
+      defaultAnnotationVisibility: 'PRIVATE',
+      ratingStyle: 'STARS_HALF',
+      progressStyle: 'PAGES',
+      locale: 'en',
+      theme: 'SYSTEM',
+      timeZone: 'UTC',
+      reminderEnabled: false,
+      reminderTime: null,
+      onboardingCompletedAt: null,
+    } as const;
+
+    it('a new user gets the defaults in the database and through @CurrentUser()', async () => {
+      const email = uniqueEmail();
+      const cookie = cookieOf(await signUp(email));
+      const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+      expect(user).toMatchObject(DEFAULTS);
+
+      const res = await request(server).get('/api/test/profile').set('Cookie', cookie);
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject(DEFAULTS);
+    });
+
+    it.each([
+      ['username', 'hacker'],
+      ['profileVisibility', 'PRIVATE'],
+      ['defaultAnnotationVisibility', 'PUBLIC'],
+      ['ratingStyle', 'HUNDRED'],
+      ['theme', 'DARK'],
+      ['timeZone', 'Europe/Madrid'],
+      ['reminderEnabled', true],
+      ['onboardingCompletedAt', '2026-01-01T00:00:00.000Z'],
+    ])('rejects %s in the sign-up body and creates no user', async (field, value) => {
+      const email = uniqueEmail();
+      const res = await signUp(email, PASSWORD, { [field]: value });
+      expect(res.status).toBe(400);
+      expect((res.body as { code: string }).code).toBe('FIELD_NOT_ALLOWED');
+      expect(await prisma.user.count({ where: { email } })).toBe(0);
+    });
+
+    it('rejects two usernames that differ only by case (citext unique)', async () => {
+      const first = uniqueEmail();
+      const second = uniqueEmail();
+      await signUp(first);
+      await signUp(second);
+      await prisma.user.update({ where: { email: first }, data: { username: 'Maria_01' } });
+      await expect(
+        prisma.user.update({ where: { email: second }, data: { username: 'maria_01' } }),
+      ).rejects.toMatchObject({ code: 'P2002' });
     });
   });
 

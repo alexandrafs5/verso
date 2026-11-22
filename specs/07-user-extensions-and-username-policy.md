@@ -12,7 +12,7 @@
 - One forward-only migration adding the extended `User` columns and their enums (ARCHITECTURE §5.3).
 - `apps/api/src/modules/users/domain/username-policy.ts`: pure class, no Nest or Prisma imports.
 - Unit tests for `UsernamePolicy` in `username-policy.test.ts`.
-- Better Auth `user.additionalFields` for the new columns, all `input: false`, so Better Auth reads and returns them but clients cannot set them through `/api/auth/*`.
+- Better Auth `user.additionalFields` for the new columns, all `input: false`, so Better Auth reads and returns them but clients cannot set them through `/api/auth/*`: a request that includes them is rejected with 400 `FIELD_NOT_ALLOWED`.
 - Extend `AuthUser` in `auth.types.ts` with the new fields.
 - Update the seed scaffold only if it creates users (new columns have defaults).
 - Tick M2.2 in `ROADMAP.md`.
@@ -78,14 +78,14 @@ Conventions:
 1. Create `username-policy.ts` with `normalize` and `validate`, plus `username-policy.test.ts`. Verify: `pnpm --filter api test` runs the new unit tests.
 2. Add the enums and `User` columns to `schema.prisma`; run `pnpm db:migrate` to create the migration. Verify: it applies on a clean database and `pnpm db:seed` still runs.
 3. Register the new columns in `createAuth` as `additionalFields` with `input: false`; extend `AuthUser` in `auth.types.ts` and the guard mapping. Verify: `pnpm --filter api typecheck`.
-4. Extend `auth.integration.test.ts`: a new user gets the defaults, and a sign-up body with `username` or `profileVisibility` is ignored. Verify: `pnpm --filter api test`.
+4. Extend `auth.integration.test.ts`: a new user gets the defaults, and a sign-up body with any of the new fields (`username`, `profileVisibility`, ...) is rejected with 400 `FIELD_NOT_ALLOWED` and creates no user. Verify: `pnpm --filter api test`.
 5. Tick M2.2 in `ROADMAP.md`. Run `pnpm lint && pnpm typecheck && pnpm test`.
 
 ## Acceptance criteria
 
 - [ ] `pnpm db:migrate` on an empty database adds all columns above and the six enums; existing SPEC 06 data is untouched.
 - [ ] A newly signed-up user has `username = null`, `profileVisibility = PUBLIC`, `defaultAnnotationVisibility = PRIVATE`, `ratingStyle = STARS_HALF`, `progressStyle = PAGES`, `locale = en`, `theme = SYSTEM`, `timeZone = "UTC"`, `reminderEnabled = false`, `onboardingCompletedAt = null`.
-- [ ] Sign-up with `username` or `profileVisibility` in the body creates a user with the defaults.
+- [ ] Sign-up with `username`, `profileVisibility` or any other new field in the body is rejected with 400 `FIELD_NOT_ALLOWED` and creates no user.
 - [ ] Two users cannot share a username that differs only by case (database unique violation).
 - [ ] `UsernamePolicy.validate` accepts `ab_1` style names of 3 and 20 characters and rejects 2 and 21 with `TOO_SHORT` and `TOO_LONG`.
 - [ ] `UsernamePolicy.validate` rejects spaces, hyphens, dots, accents and emoji with `INVALID_CHARACTERS`.
