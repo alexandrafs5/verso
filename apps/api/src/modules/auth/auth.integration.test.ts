@@ -1,0 +1,292 @@
+import 'reflect-metadata';
+import { Controller, Get, type INestApplication, Logger, Module, UseGuards } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { ErrorCode, problemSchema } from '@verso/shared';
+import request from 'supertest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { AppModule } from '../../app.module.js';
+import { loadAuthEnv } from '../../config/auth-env.js';
+import { PrismaService } from '../../infra/prisma/prisma.service.js';
+import { setupApp } from '../../setup-app.js';
+import { AdminGuard } from './admin.guard.js';
+import { createAuth } from './auth.js';
+import { AuthModule } from './auth.module.js';
+import type { AuthUser } from './auth.types.js';
+import { CurrentUser } from './current-user.decorator.js';
+import { SessionGuard } from './session.guard.js';
+
+process.env['BETTER_AUTH_SECRET'] ??= 'test-secret-test-secret-test-secret';
+process.env['BETTER_AUTH_URL'] ??= 'http://localhost:3000';
+process.env['WEB_ORIGIN'] ??= 'http://localhost:3000';
+
+const ORIGIN = 'http://localhost:3000';
+const EMAIL_DOMAIN = '@auth-test.local';
+const PASSWORD = 'correct horse battery';
+const TEST_SECRET = 'x'.repeat(32);
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+// Test-only controller: exists only in this test module, never in AppModule.
+@Controller('test')
+class AuthTestController {
+  @Get('me')
+  @UseGuards(SessionGuard)
+  me(@CurrentUser() user: AuthUser) {
+    return { id: user.id, email: user.email, role: user.role };
+  }
+
+  @Get('admin')
+  @UseGuards(SessionGuard, AdminGuard)
+  admin() {
+    return { ok: true };
+  }
+}
+
+@Module({ imports: [AppModule, AuthModule], controllers: [AuthTestController] })
+class AuthTestModule {}
+
+let counter = 0;
+const uniqueEmail = (): string => `user${Date.now()}-${counter++}${EMAIL_DOMAIN}`;
+
+describe('Better Auth + guards (integration)', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  let server: Parameters<typeof request>[0];
+
+  const signUp = (email: string, password = PASSWORD, extra: Record<string, unknown> = {}) =>
+    request(server)
+      .post('/api/auth/sign-up/email')
+      .set('Origin', ORIGIN)
+      .send({ email, password, name: 'Test User', ...extra });
+
+  const setCookies = (res: request.Response): string[] =>
+    (res.headers['set-cookie'] as unknown as string[] | undefined) ?? [];
+
+  const cookieOf = (res: request.Response): string =>
+    setCookies(res)
+      .map((c) => c.split(';')[0])
+      .join('; ');
+
+  const cleanUsers = () => prisma.user.deleteMany({ where: { email: { endsWith: EMAIL_DOMAIN } } });
+
+  beforeAll(async () => {
+    app = await NestFactory.create(AuthTestModule, {
+      bufferLogs: true,
+      logger: false,
+      bodyParser: false,
+    });
+    setupApp(app);
+    await app.init();
+    server = app.getHttpServer() as Parameters<typeof request>[0];
+    prisma = app.get(PrismaService);
+    await cleanUsers();
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await cleanUsers();
+  });
+
+  afterAll(async () => {
+    await cleanUsers();
+    await app.close();
+  });
+
+  describe('sign-up', () => {
+    it('returns 200, sets an HttpOnly cookie and creates a USER with a UUID v7 id', async () => {
+      const email = uniqueEmail();
+      const res = await signUp(email);
+      expect(res.status).toBe(200);
+      expect(cookieOf(res)).toContain('session_token');
+      expect(setCookies(res).join(';')).toMatch(/HttpOnly/i);
+      const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+      expect(user.id).toMatch(UUID_V7);
+      expect(user.role).toBe('USER');
+    });
+
+    it('rejects a password shorter than 8 characters and creates no user', async () => {
+      const email = uniqueEmail();
+      const res = await signUp(email, 'short');
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.status).toBeLessThan(500);
+      expect(await prisma.user.count({ where: { email } })).toBe(0);
+    });
+
+    it('ignores role in the body: role "ADMIN" produces a USER', async () => {
+      const email = uniqueEmail();
+      await signUp(email, PASSWORD, { role: 'ADMIN' });
+      const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+      expect(user.role).toBe('USER');
+    });
+
+    it('logs the verification URL through the email stub without throwing', async () => {
+      const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+      const res = await signUp(uniqueEmail());
+      expect(res.status).toBe(200);
+      expect(log).toHaveBeenCalledWith(expect.stringMatching(/\[verification\].*url=http/));
+    });
+  });
+
+  describe('sign-in, session and sign-out', () => {
+    it('sign-in with the right password returns a session cookie', async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      const res = await request(server)
+        .post('/api/auth/sign-in/email')
+        .set('Origin', ORIGIN)
+        .send({ email, password: PASSWORD });
+      expect(res.status).toBe(200);
+      expect(cookieOf(res)).toContain('session_token');
+    });
+
+    it('sign-in with a wrong password returns 401 and no cookie', async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      const res = await request(server)
+        .post('/api/auth/sign-in/email')
+        .set('Origin', ORIGIN)
+        .send({ email, password: 'wrong password!' });
+      expect(res.status).toBe(401);
+      expect(res.headers['set-cookie']).toBeUndefined();
+    });
+
+    it('get-session returns the user with the cookie and no session without it', async () => {
+      const email = uniqueEmail();
+      const cookie = cookieOf(await signUp(email));
+      const withCookie = await request(server).get('/api/auth/get-session').set('Cookie', cookie);
+      expect(withCookie.status).toBe(200);
+      expect((withCookie.body as { user: { email: string } }).user.email).toBe(email);
+      const without = await request(server).get('/api/auth/get-session');
+      expect(without.body).toBeNull();
+    });
+
+    it('sign-out invalidates the session: the same cookie then fails SessionGuard', async () => {
+      const cookie = cookieOf(await signUp(uniqueEmail()));
+      expect((await request(server).get('/api/test/me').set('Cookie', cookie)).status).toBe(200);
+      const out = await request(server)
+        .post('/api/auth/sign-out')
+        .set('Origin', ORIGIN)
+        .set('Cookie', cookie)
+        .send({});
+      expect(out.status).toBe(200);
+      expect((await request(server).get('/api/test/me').set('Cookie', cookie)).status).toBe(401);
+    });
+  });
+
+  describe('SessionGuard and @CurrentUser()', () => {
+    it('returns 401 problem+json UNAUTHENTICATED without a cookie', async () => {
+      const res = await request(server).get('/api/test/me');
+      expect(res.status).toBe(401);
+      expect(res.headers['content-type']).toMatch(/^application\/problem\+json/);
+      expect(problemSchema.parse(res.body).code).toBe(ErrorCode.UNAUTHENTICATED);
+    });
+
+    it('returns 200 with a valid cookie and @CurrentUser() gives id, email and role', async () => {
+      const email = uniqueEmail();
+      const cookie = cookieOf(await signUp(email));
+      const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+      const res = await request(server).get('/api/test/me').set('Cookie', cookie);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ id: user.id, email, role: 'USER' });
+    });
+
+    it('returns 401 for an expired session', async () => {
+      const email = uniqueEmail();
+      const cookie = cookieOf(await signUp(email));
+      await prisma.session.updateMany({
+        where: { user: { email } },
+        data: { expiresAt: new Date(Date.now() - 60_000) },
+      });
+      const res = await request(server).get('/api/test/me').set('Cookie', cookie);
+      expect(res.status).toBe(401);
+      expect(problemSchema.parse(res.body).code).toBe(ErrorCode.UNAUTHENTICATED);
+    });
+  });
+
+  describe('AdminGuard', () => {
+    it('returns 401 without a session', async () => {
+      expect((await request(server).get('/api/test/admin')).status).toBe(401);
+    });
+
+    it('returns 403 problem+json FORBIDDEN for a USER and 200 for an ADMIN', async () => {
+      const email = uniqueEmail();
+      const cookie = cookieOf(await signUp(email));
+      const forbidden = await request(server).get('/api/test/admin').set('Cookie', cookie);
+      expect(forbidden.status).toBe(403);
+      expect(forbidden.headers['content-type']).toMatch(/^application\/problem\+json/);
+      expect(problemSchema.parse(forbidden.body).code).toBe(ErrorCode.FORBIDDEN);
+
+      await prisma.user.update({ where: { email }, data: { role: 'ADMIN' } });
+      const ok = await request(server).get('/api/test/admin').set('Cookie', cookie);
+      expect(ok.status).toBe(200);
+    });
+  });
+
+  describe('Google provider', () => {
+    const socialSignIn = (auth: ReturnType<typeof createAuth>) =>
+      auth.handler(
+        new Request(`${ORIGIN}/api/auth/sign-in/social`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', origin: ORIGIN },
+          body: JSON.stringify({ provider: 'google', callbackURL: '/' }),
+        }),
+      );
+
+    it('fails with a provider-not-found error when the Google vars are unset', async () => {
+      const auth = createAuth(prisma, loadAuthEnv({ BETTER_AUTH_SECRET: TEST_SECRET }));
+      const res = await socialSignIn(auth);
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(JSON.stringify(await res.json())).toMatch(/provider/i);
+    });
+
+    it('returns a redirect URL to Google when both vars are set', async () => {
+      const auth = createAuth(
+        prisma,
+        loadAuthEnv({
+          BETTER_AUTH_SECRET: TEST_SECRET,
+          GOOGLE_CLIENT_ID: 'dummy-id',
+          GOOGLE_CLIENT_SECRET: 'dummy-secret',
+        }),
+      );
+      const res = await socialSignIn(auth);
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { url: string };
+      expect(body.url).toMatch(/^https:\/\/accounts\.google\.com\//);
+    });
+  });
+
+  describe('email stub in production', () => {
+    it('logs nothing when NODE_ENV=production', async () => {
+      const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+      const auth = createAuth(
+        prisma,
+        loadAuthEnv({ BETTER_AUTH_SECRET: TEST_SECRET, NODE_ENV: 'production' }),
+      );
+      await auth.api.signUpEmail({
+        body: { email: uniqueEmail(), password: PASSWORD, name: 'Prod User' },
+      });
+      expect(log).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('env validation', () => {
+    it('loadAuthEnv throws a clear error when BETTER_AUTH_SECRET is missing', () => {
+      expect(() => loadAuthEnv({})).toThrow(/BETTER_AUTH_SECRET/);
+    });
+
+    it('the app fails to boot when BETTER_AUTH_SECRET is missing', async () => {
+      const saved = process.env['BETTER_AUTH_SECRET'];
+      delete process.env['BETTER_AUTH_SECRET'];
+      try {
+        await expect(
+          NestFactory.create(AuthTestModule, {
+            logger: false,
+            bodyParser: false,
+            abortOnError: false,
+          }),
+        ).rejects.toThrow(/BETTER_AUTH_SECRET/);
+      } finally {
+        process.env['BETTER_AUTH_SECRET'] = saved;
+      }
+    });
+  });
+});

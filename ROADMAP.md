@@ -33,7 +33,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 
 ### M2. Auth and onboarding
 
-- [ ] **M2.1** Better Auth in the API (Prisma adapter, email + password, Google), mounted at `/api/auth`; `SessionGuard`, `AdminGuard`, `@CurrentUser()`. §7 §10
+- [x] **M2.1** Better Auth in the API (Prisma adapter, email + password, Google), mounted at `/api/auth`; `SessionGuard`, `AdminGuard`, `@CurrentUser()`. §7 §10
 - [ ] **M2.2** User extensions (username, settings fields, role); `UsernamePolicy` with tests.
 - [ ] **M2.3** `EmailProvider`: SMTP (Mailpit) locally, Brevo in production; verification and reset emails in EN/ES. §9
 - [ ] **M2.4** Screens P2: sign in, create account (split layout with rotating public-domain quote), verify email, forgot and reset password.

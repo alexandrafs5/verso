@@ -56,6 +56,8 @@ export class ProblemJsonFilter implements ExceptionFilter {
   }
 
   private codeFor(status: number): ErrorCode {
+    if (status === HttpStatus.UNAUTHORIZED) return ErrorCode.UNAUTHENTICATED;
+    if (status === HttpStatus.FORBIDDEN) return ErrorCode.FORBIDDEN;
     if (status === HttpStatus.NOT_FOUND) return ErrorCode.NOT_FOUND;
     if (status === HttpStatus.BAD_REQUEST) return ErrorCode.VALIDATION_ERROR;
     return ErrorCode.INTERNAL_ERROR;
