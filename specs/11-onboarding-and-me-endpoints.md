@@ -19,7 +19,7 @@ ROADMAP assigns the yearly-goal endpoints to M5.6, but onboarding step 6 needs t
 - `UsersModule` in `apps/api/src/modules/users/`: `users.controller.ts`, `users.service.ts`, `users.repository.ts`. Reuses `domain/username-policy.ts`.
 - Endpoints (all behind `SessionGuard`, input validated with the shared schemas, errors as problem+json):
   - `GET /v1/me`: current user, settings, onboarding state.
-  - `PATCH /v1/me`: `name`, `username`, `bio`, `removeAvatar`.
+  - `PATCH /v1/me`: `name`, `username`, `bio`, `avatarPath`, `removeAvatar`. `avatarPath` and `removeAvatar` together return 400.
   - `PATCH /v1/me/settings`: `ratingStyle`, `progressStyle`, `profileVisibility`, `defaultAnnotationVisibility`, `locale`, `theme`, `timeZone`. Reminder fields are not accepted (P6).
   - `GET /v1/usernames/{username}/availability`: live check through `UsernamePolicy` plus a uniqueness lookup.
   - `POST /v1/me/avatar/upload-url`: signed upload URL scoped to `avatars/{userId}/…`.
@@ -28,12 +28,12 @@ ROADMAP assigns the yearly-goal endpoints to M5.6, but onboarding step 6 needs t
 - `FileStorage` interface, `SupabaseFileStorage` and an in-memory fake in `apps/api/src/infra/storage/`. Env validation for `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_BUCKET`.
 - Prisma migration: `YearlyGoal` model.
 - Web: `apps/web/src/app/onboarding/[step]/page.tsx` (steps 1 to 7), `apps/web/src/features/onboarding/` components, avatar crop and WebP compression, `lib/api-client.ts` use through TanStack Query.
-- Redirect rule: a signed-in user with `onboardingCompletedAt = null` is redirected from the app to `/onboarding/{first incomplete step}`. A completed user who opens `/onboarding/*` is redirected to `/home`.
+- Redirect rule: a signed-in user with `onboardingCompletedAt = null` is redirected from the app to `/onboarding/{first incomplete step}`. A completed user who opens `/onboarding/*` is redirected to `/home`. The app side lives in `app/(app)/layout.tsx` through `RequireOnboarded`; the onboarding side in `OnboardingFlow`. Both read `GET /v1/me` (client side: there is no middleware) and show a skeleton, never app content, while the account loads or a redirect is pending. A signed-out visitor goes to `/sign-in`.
 - Prefill: name from sign-up or Google; suggested username derived from the name or email and checked for availability.
 - Browser time zone and current UI locale are sent with step 1.
 - EN and ES copy under the `onboarding` namespace in `packages/i18n/src/messages/{en,es}.json`.
-- Tests: unit (shared schemas, goal and avatar-path helpers, step derivation), integration (every endpoint, including 401 and 403/ownership cases), web component tests.
-- Tick M2.5 in `ROADMAP.md`.
+- Tests: unit (shared schemas, goal and avatar-path helpers, step derivation, avatar crop math); integration (every endpoint, including 401, 403 and ownership cases, invalid `targetBooks`, and the `FileStorage` delete on replace and remove); web component tests (redirects in both directions, step 1 availability states and the 409 case, Back and Skip visibility per step, step 2 error states with a mocked failed upload, steps 3 to 7).
+- Tick M2.5 in `ROADMAP.md` (done in this PR, plan step 9).
 
 **Out of scope (for future specs):**
 
@@ -45,6 +45,7 @@ ROADMAP assigns the yearly-goal endpoints to M5.6, but onboarding step 6 needs t
 - Playwright e2e (no e2e setup exists).
 - Crop library: the crop is a small canvas component, no new dependency.
 - Private bucket and signed read URLs.
+- Prefilling the step 6 field when the user comes back to it: it needs `GET /v1/me/goals/{year}` (M5.6).
 
 ## Data model
 
@@ -69,12 +70,15 @@ model YearlyGoal {
 Contracts (`packages/shared/src/me.ts`):
 
 ```ts
-export const updateMeSchema = z.object({
-  name: z.string().trim().min(1).max(80).optional(),
-  username: z.string().optional(),            // normalized and validated by UsernamePolicy
-  bio: z.string().trim().max(300).nullable().optional(),
-  removeAvatar: z.literal(true).optional(),
-});
+export const updateMeSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).optional(),
+    username: z.string().optional(), // normalized and validated by UsernamePolicy
+    bio: z.string().trim().max(300).nullable().optional(),
+    avatarPath: z.string().min(1).max(256).optional(), // must be under avatars/{userId}/
+    removeAvatar: z.literal(true).optional(),
+  })
+  .refine((v) => !(v.avatarPath !== undefined && v.removeAvatar)); // not both
 
 export const avatarUploadRequestSchema = z.object({
   contentType: z.literal('image/webp'),
@@ -97,11 +101,13 @@ Conventions:
 
 - Avatar object path: `avatars/{userId}/{uuid}.webp`. The API builds it; the client never chooses a path.
 - After the client uploads, it calls `PATCH /v1/me` with `avatarPath`. The service accepts only a path under `avatars/{userId}/`, stores `User.image = publicUrl(path)`, and deletes the previous object on replace. `removeAvatar: true` sets `image = null` and deletes the object. `avatarPath` is therefore also part of `updateMeSchema` (string, optional).
+- No extra `User` column holds the object path. The service finds the previous object by removing the `publicUrl("")` prefix from `User.image`, and deletes it only when the result is a path owned by the user. An image that is not ours (a Google avatar) is never deleted. A failed delete is logged and never fails the save.
 - The bucket is public. Objects are image-only, max 2 MB, WebP.
-- Username rules stay in `UsernamePolicy`. `PATCH /v1/me` with a taken username returns 409 `USERNAME_TAKEN`. An invalid one returns 400 `USERNAME_INVALID` with the policy reason.
-- Availability response: `{ available: boolean, reason?: 'TOO_SHORT' | 'TOO_LONG' | 'INVALID_CHARACTERS' | 'RESERVED' | 'TAKEN' }`. The user's own current username reports available.
-- `timeZone` is validated against `Intl.supportedValuesOf('timeZone')`; invalid value returns 400.
-- `year` in the goal path must be the current year or next year in the user's time zone; otherwise 400.
+- Username rules stay in `UsernamePolicy`. `PATCH /v1/me` with a taken username returns 409 `USERNAME_TAKEN`. An invalid one returns 400 `USERNAME_INVALID` and the policy reason (`TOO_SHORT`, `TOO_LONG`, `INVALID_CHARACTERS` or `RESERVED`, the `UsernameInvalidReason` values from SPEC 07) goes in `detail`.
+- Availability response: `{ available: boolean, reason?: 'TOO_SHORT' | 'TOO_LONG' | 'INVALID_CHARACTERS' | 'RESERVED' | 'TAKEN' }`. The first four are the `UsernameInvalidReason` values from SPEC 07, unchanged; `TAKEN` is added by the uniqueness lookup. The user's own current username reports available. The path param is only bounded (1 to 255 characters) by a shared schema: the policy decides validity.
+- `timeZone` is validated against `Intl.supportedValuesOf('timeZone')`, plus `UTC` explicitly (the SPEC 07 default, which engines leave out of that list); an invalid value returns 400 `VALIDATION_ERROR`. The browser sends its zone only when it passes the same check.
+- `year` in the goal path must be the current year or next year in the user's time zone; otherwise 400 `GOAL_YEAR_INVALID`. Step 6 asks about the **current** year in the user's time zone.
+- Error codes: `USERNAME_TAKEN` (409), `USERNAME_INVALID` (400), `USERNAME_REQUIRED` (409), `GOAL_YEAR_INVALID` (400), `STORAGE_UNAVAILABLE` (503, storage not configured or failing). A path outside the user's avatar folder returns 403 `FORBIDDEN`. Other bad input (settings enums, time zone, `targetBooks`, avatar upload request, `avatarPath` with `removeAvatar`) returns 400 `VALIDATION_ERROR`.
 - `POST /v1/me/onboarding/complete` returns 409 `USERNAME_REQUIRED` if `username` is null. It is idempotent: a second call keeps the original timestamp.
 - Onboarding step is derived, not stored: step 1 incomplete when `username` is null; later steps are optional or have defaults, so a resume lands on step 1 if the username is missing, else on step 2. The client keeps the step in the URL for in-session navigation.
 - Settings enums use the exact `User` enum values from SPEC 07.
@@ -113,8 +119,8 @@ Conventions:
 3. Add `FileStorage`, the in-memory fake and `SupabaseFileStorage`, with env validation and `.env.example` kept in sync. Verify: unit test for the path builder and the fake; API boots with empty Supabase vars in test and dev (storage only fails when the avatar endpoint is called).
 4. Create `UsersModule` with `GET /v1/me`, `PATCH /v1/me`, `PATCH /v1/me/settings`, availability, goal upsert and onboarding complete. Verify: integration tests pass, including 401, ownership and the problem+json codes.
 5. Add `POST /v1/me/avatar/upload-url` and the `avatarPath` and `removeAvatar` handling in `PATCH /v1/me`, using the fake in tests. Verify: integration tests for path scoping, wrong user path (403), oversize and wrong content type (400).
-6. Add the onboarding shell: route `onboarding/[step]`, progress bar with "Step N of 7", Back, Skip on optional steps, the redirect rule for the app and for `/onboarding`. Steps 1, 3, 4 and 5 call the API. Verify: a new account is redirected to step 1 and can walk through steps 1, 3, 4, 5.
-7. Add step 2 (avatar): file picker, circle crop on a canvas, WebP compression, signed upload, initials fallback, remove. Verify: with the in-browser fake of a failed upload the error state shows; with real Supabase the avatar appears (manual check).
+6. Add the onboarding shell: route `onboarding/[step]`, progress bar with "Step N of 7", Back, Skip on optional steps, the redirect rule for the app and for `/onboarding`. Steps 1, 3, 4 and 5 call the API. Verify: component tests for the redirects in both directions, the Back and Skip visibility per step, step 1 (prefill, availability states, the 409 case) and steps 3 to 5; manually, a new account is redirected to step 1 and can walk through steps 1, 3, 4, 5.
+7. Add step 2 (avatar): file picker, circle crop on a canvas, WebP compression, signed upload, initials fallback, remove. Verify: component tests with a mocked failed upload, a wrong file type and a file still too large after compression show their messages and keep the previous photo; with real Supabase the avatar appears (manual check).
 8. Add steps 6 and 7 and the final call to `onboarding/complete`, then redirect to `/home`. Add EN and ES copy for all steps. Verify: finishing the flow lands on the empty Home; reloading `/onboarding/1` redirects to `/home`.
 9. Tick M2.5 in `ROADMAP.md`. Verify: `pnpm lint && pnpm typecheck && pnpm test`.
 
@@ -135,6 +141,7 @@ Conventions:
 - [ ] A signed-in user without `onboardingCompletedAt` who opens `/home` is redirected to onboarding; a completed user who opens `/onboarding/1` is redirected to `/home`.
 - [ ] Step 1 prefills the name and a suggested available username, and shows live availability with the reason text.
 - [ ] Step 1 saves the browser time zone and the current locale.
+- [ ] Step 1 shows an inline message when the server answers 409 `USERNAME_TAKEN`, mapped to an i18n key, and does not move on.
 - [ ] Back works on every step after step 1 (step 1 has nothing to go back to, so it shows no Back); Skip appears only on steps 2, 6 and 7.
 - [ ] Step 7 shows only Skip, no import action.
 - [ ] No hardcoded user-facing strings; EN and ES key parity test passes.
@@ -143,10 +150,10 @@ Conventions:
 
 ### UI states: Onboarding shell and steps 1, 3, 4, 5, 6, 7
 
-- [ ] **Normal:** renders the step, progress bar, Back and primary action.
+- [ ] **Normal:** renders the step, progress bar, Back (except on step 1) and primary action.
 - [ ] **Loading:** skeleton while `GET /v1/me` loads; the primary button shows pending state while saving; no layout jump.
 - [ ] **Empty:** N/A for form steps; a missing username on step 1 is the normal empty-field state with the suggestion filled in.
-- [ ] **Error:** save failure shows an inline problem message with retry; availability-check failure shows a neutral message and does not block typing.
+- [ ] **Error:** save failure shows an inline problem message with retry (on step 7 an explicit "Try again"); availability-check failure shows a neutral message and does not block typing; a 409 `USERNAME_TAKEN` shows the taken message on the field.
 - [ ] **Light theme:** legible, theme tokens only.
 - [ ] **Dark theme:** legible, theme tokens only.
 - [ ] **Mobile:** no horizontal scroll, controls reachable by thumb.
@@ -157,7 +164,7 @@ Conventions:
 - [ ] **Normal:** upload, circle crop preview and initials fallback.
 - [ ] **Loading:** progress state while compressing and uploading.
 - [ ] **Empty:** no photo selected shows the initials avatar and "Skip".
-- [ ] **Error:** wrong file type, file too large after compression, or failed upload shows a message and keeps the previous photo.
+- [ ] **Error:** wrong file type, a file still over 2 MB after compression, or a failed upload shows a message and keeps the previous photo.
 - [ ] **Light theme:** legible, theme tokens only.
 - [ ] **Dark theme:** legible, theme tokens only.
 - [ ] **Mobile:** crop works with touch, no horizontal scroll.
@@ -189,13 +196,13 @@ Accessibility (all steps): every input has a label, focus moves to the step head
 | Supabase project not created yet | You create it before step 3 (see Human steps). Tests use the fake; only the manual avatar check needs the real bucket. |
 | Supabase free project pauses after inactivity | Already covered by the daily tick in M10; out of scope here. |
 | Redirect loop between `/home` and `/onboarding` | The rule reads only `onboardingCompletedAt`; covered by a web test for both directions. |
-| Orphaned avatar objects if the client uploads and never calls `PATCH` | Accepted for F1; the daily cleanup job may remove them later. |
+| Orphaned avatar objects if the client uploads and never calls `PATCH` | Accepted for F1; a daily cleanup job in M10 may remove objects no `User.image` points to. |
 | Username race between availability check and save | The unique index is the source of truth; the save returns 409 and the form shows it. |
 | Canvas WebP encoding unsupported in an old browser | Show the error state with a "Skip" path; avatar is optional. |
 
 ## Human steps
 
-- Before step 3 (real upload only): create a Supabase project and a public bucket named `verso`. Put `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_BUCKET` in your local `apps/api/.env`. Never commit them.
+- Before step 7's manual check (real upload only; tests use the fake): create a Supabase project and a public bucket named `verso`. Put `SUPABASE_URL` (the project origin, `https://<ref>.supabase.co`; the code ignores any path), `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_BUCKET` in your local `apps/api/.env`. Never commit them.
 - During step 7: check a real avatar upload in the browser.
 - After step 8: check the flow in light and dark, at mobile width, and review the Spanish copy.
 

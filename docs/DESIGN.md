@@ -201,14 +201,14 @@ Alternative headlines for exploration: "Read with intention.", "For those who re
 
 ### P3. Onboarding \[F1\]
 
-One step per screen, with a thin progress bar and "Step 2 of 7". Back button on every step; optional steps show "Skip".
+One step per screen, with a thin progress bar and "Step 2 of 7". Back button on every step after the first (step 1 has nowhere to go back to); optional steps show "Skip".
 
 1. **Name and username** (required): display name; @username with live availability check.
 2. **Profile photo** (optional): upload and crop to circle; initials fallback.
 3. **Rating style:** three selectable cards — Stars (then whole/half/quarter), 1–10 with decimal, 1–100 — each with a live interactive preview.
 4. **Progress style:** Pages or Percentage, with a small progress-bar preview.
 5. **Profile privacy:** Public or Private, each with a one-line explanation of who sees what.
-6. **Yearly goal** (optional): number input "How many books do you want to read in 2027?".
+6. **Yearly goal** (optional): number input "How many books do you want to read in {year}?", where the year is the current year in the user's time zone. Left empty, Continue moves on without saving.
 7. **Coming from Goodreads?** (optional): explanation + "Import my library" (goes to the import flow) or "Skip".
 
 End: lands on Home in its empty state.

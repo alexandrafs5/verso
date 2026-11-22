@@ -451,13 +451,13 @@ Conventions:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/v1/me` | Current user, settings, onboarding state |
-| PATCH | `/v1/me` | Name, username, bio |
-| PATCH | `/v1/me/settings` | Rating style, progress style, locale, theme, time zone, privacy defaults, reminder |
+| PATCH | `/v1/me` | Name, username, bio, avatar (`avatarPath` after a signed upload, or `removeAvatar`; not both) |
+| PATCH | `/v1/me/settings` | Rating style, progress style, locale, theme, time zone, privacy defaults. Reminder fields are rejected until P6 (F1.5) adds them |
 | POST | `/v1/me/onboarding/complete` | Mark onboarding done |
 | GET | `/v1/usernames/{username}/availability` | Live check |
 | POST | `/v1/me/avatar/upload-url` | Signed upload URL (Supabase) |
 | PUT | `/v1/me/favorites` | Four favorites |
-| GET / PUT | `/v1/me/goals/{year}` | Yearly goal |
+| GET / PUT | `/v1/me/goals/{year}` | Yearly goal. `PUT` lands with onboarding step 6 (M2.5); `GET` with M5.6 |
 | DELETE | `/v1/me` | Delete account (requires typed username) |
 
 **Catalog**
