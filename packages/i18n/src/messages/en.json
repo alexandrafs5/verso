@@ -47,6 +47,7 @@
     "wakingUp": "Waking up the server. This can take up to a minute."
   },
   "auth": {
+    "newPassage": "A new passage on every visit",
     "quoteLabel": "Quote",
     "orDivider": "or",
     "google": "Continue with Google",

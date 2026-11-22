@@ -47,6 +47,7 @@
     "wakingUp": "Despertando el servidor. Puede tardar hasta un minuto."
   },
   "auth": {
+    "newPassage": "Un pasaje nuevo en cada visita",
     "quoteLabel": "Cita",
     "orDivider": "o",
     "google": "Continuar con Google",
