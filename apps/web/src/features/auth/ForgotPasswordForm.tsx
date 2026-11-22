@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { authClient } from '@/lib/auth-client';
 import { AuthAlert, AuthField, fieldA11y, linkClass } from './AuthFormParts';
 import { mapAuthError } from './map-auth-error';
+import { useRestoreFocus } from './use-restore-focus';
 import { useWakeUpPing } from './use-wake-up-ping';
 import { validationKey } from './validation-messages';
 import { withWaking } from './with-waking';
@@ -61,6 +62,8 @@ export function ForgotPasswordForm() {
     resolver: zodResolver(emailOnlySchema),
     defaultValues: { email: '' },
   });
+
+  useRestoreFocus(isSubmitting);
 
   const [failure, setFailure] = useState<Failure | null>(null);
   const [sent, setSent] = useState(false);

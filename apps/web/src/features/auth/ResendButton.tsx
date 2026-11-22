@@ -9,6 +9,7 @@ import { VERIFY_EMAIL_CALLBACK } from './auth-routes';
 import { mapAuthError } from './map-auth-error';
 import { setPendingEmail } from './pending-email';
 import { useResendCooldown } from './use-resend-cooldown';
+import { useRestoreFocus } from './use-restore-focus';
 import { withWaking } from './with-waking';
 
 type Props = {
@@ -31,8 +32,10 @@ export function ResendButton({ email, onMissingEmail }: Props) {
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
   const [failure, setFailure] = useState<Failure | null>(null);
+  useRestoreFocus(pending);
 
   async function resend() {
+    if (secondsLeft > 0) return;
     if (!email) {
       onMissingEmail();
       return;
@@ -72,9 +75,12 @@ export function ResendButton({ email, onMissingEmail }: Props) {
         type="button"
         variant="secondary"
         onClick={resend}
-        disabled={pending || cooling}
+        // During the cooldown the button stays focusable (aria-disabled), so focus is not lost
+        // for 60 seconds. Only the request itself uses a real disabled state.
+        disabled={pending}
+        aria-disabled={cooling || undefined}
         aria-busy={pending}
-        className="w-full tabular-nums"
+        className="w-full tabular-nums aria-disabled:pointer-events-none aria-disabled:opacity-50"
       >
         {label}
       </Button>

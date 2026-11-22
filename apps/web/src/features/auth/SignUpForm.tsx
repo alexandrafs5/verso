@@ -19,6 +19,7 @@ import { PasswordField } from './PasswordField';
 import { PasswordStrength } from './PasswordStrength';
 import { setPendingEmail } from './pending-email';
 import { useRedirectIfSignedIn } from './use-redirect-if-signed-in';
+import { useRestoreFocus } from './use-restore-focus';
 import { validationKey } from './validation-messages';
 import { withWaking } from './with-waking';
 
@@ -39,6 +40,8 @@ export function SignUpForm() {
     resolver: zodResolver(signUpSchema),
     defaultValues: { name: '', email: '', password: '' },
   });
+
+  useRestoreFocus(isSubmitting);
 
   const [failure, setFailure] = useState<Failure | null>(null);
 

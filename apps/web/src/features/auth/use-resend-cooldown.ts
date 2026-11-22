@@ -12,11 +12,11 @@ function readUntil(): number {
   try {
     const raw = window.sessionStorage.getItem(RESEND_UNTIL_KEY);
     const parsed = raw === null ? 0 : Number(raw);
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   } catch {
-    // Use the in-memory value.
+    // Storage unavailable: use the in-memory value.
+    return memoryUntil;
   }
-  return memoryUntil;
 }
 
 function writeUntil(until: number): void {

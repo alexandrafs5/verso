@@ -18,6 +18,7 @@ import { mapAuthError, type AuthErrorKind } from './map-auth-error';
 import { PasswordField } from './PasswordField';
 import { setPendingEmail } from './pending-email';
 import { SIGNED_IN_HOME, useRedirectIfSignedIn } from './use-redirect-if-signed-in';
+import { useRestoreFocus } from './use-restore-focus';
 import { useWakeUpPing } from './use-wake-up-ping';
 import { validationKey } from './validation-messages';
 import { withWaking } from './with-waking';
@@ -45,6 +46,8 @@ export function SignInForm({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' },
   });
+
+  useRestoreFocus(isSubmitting);
 
   const [failure, setFailure] = useState<Failure | null>(oauthFailed ? 'google' : null);
 

@@ -101,10 +101,37 @@ describe('ResetPasswordForm', () => {
     await ui.type(confirm, 'longenough1');
     await ui.click(submit);
 
-    expect(
-      await screen.findByRole('heading', { name: t.resetPassword.expiredTitle }),
-    ).toBeVisible();
+    const heading = await screen.findByRole('heading', { name: t.resetPassword.expiredTitle });
+    expect(heading).toHaveFocus();
     expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it('tabs in reading order: new password, show, confirm, show, submit, back link', async () => {
+    const { ui, password, confirm, submit } = setup();
+    const [showNew, showConfirm] = screen.getAllByRole('button', { name: t.showPassword });
+    const order = [
+      password,
+      showNew,
+      confirm,
+      showConfirm,
+      submit,
+      screen.getByRole('link', { name: t.forgotPassword.backToSignIn }),
+    ];
+    for (const element of order) {
+      await ui.tab();
+      expect(element).toHaveFocus();
+    }
+  });
+
+  it('keeps focus on the submit button after a failed request', async () => {
+    mocks.resetPassword.mockResolvedValue({ data: null, error: { status: 429 } });
+    const { ui, password, confirm, submit } = setup();
+    await ui.type(password, 'longenough1');
+    await ui.type(confirm, 'longenough1');
+    await ui.click(submit);
+
+    await screen.findByRole('alert');
+    expect(submit).toHaveFocus();
   });
 
   it('shows the rate limited message on 429 and keeps the values', async () => {

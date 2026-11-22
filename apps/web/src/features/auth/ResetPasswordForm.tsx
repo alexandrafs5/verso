@@ -5,7 +5,7 @@ import { resetPasswordSchema, type ResetPasswordInput } from '@verso/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -14,18 +14,28 @@ import { AuthAlert, AuthField, fieldA11y, linkClass } from './AuthFormParts';
 import { mapAuthError } from './map-auth-error';
 import { PasswordField } from './PasswordField';
 import { PasswordStrength } from './PasswordStrength';
+import { useRestoreFocus } from './use-restore-focus';
 import { useWakeUpPing } from './use-wake-up-ping';
 import { validationKey } from './validation-messages';
 import { withWaking } from './with-waking';
 
 type Failure = 'rateLimited' | 'network' | 'generic';
 
-export function ResetExpired() {
+export function ResetExpired({ moveFocus = false }: { moveFocus?: boolean }) {
   const t = useTranslations('auth');
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  // After the form swaps to this state its focused button is gone, so focus moves to the heading.
+  useEffect(() => {
+    if (moveFocus) heading.current?.focus();
+  }, [moveFocus]);
+
   return (
-    <div>
+    <div role={moveFocus ? 'status' : undefined}>
       <span aria-hidden="true" className="mb-7 block h-px w-10 bg-brass" />
-      <h1>{t('resetPassword.expiredTitle')}</h1>
+      <h1 ref={heading} tabIndex={-1} className="outline-none">
+        {t('resetPassword.expiredTitle')}
+      </h1>
       <p className="mt-3 mb-8 text-muted">{t('resetPassword.expiredBody')}</p>
       <Button asChild className="w-full">
         <Link href="/forgot-password">{t('resetPassword.requestNew')}</Link>
@@ -49,6 +59,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { password: '', confirmPassword: '' },
   });
+
+  useRestoreFocus(isSubmitting);
 
   const [failure, setFailure] = useState<Failure | null>(null);
   const [expired, setExpired] = useState(false);
@@ -83,7 +95,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
     }
   });
 
-  if (expired) return <ResetExpired />;
+  if (expired) return <ResetExpired moveFocus />;
 
   const passwordKey = validationKey('password', errors.password?.type, getValues('password'));
   const confirmKey = validationKey(

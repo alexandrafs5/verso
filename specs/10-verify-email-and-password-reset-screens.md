@@ -1,6 +1,6 @@
 # SPEC 10 — Verify-email, forgot-password and reset-password screens (M2.4, part 2)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 08, SPEC 09
 > **Date:** 2026-11-22
 > **Objective:** Build the verify-email, forgot-password and reset-password screens, replace the inline notices from SPEC 09 with a redirect to verify-email, and close M2.4.
@@ -24,6 +24,8 @@ SPEC 09 shipped sign-in and sign-up with temporary inline notices because the ve
 - Change the sign-up `callbackURL` from `/sign-in` to `/verify-email?status=success`. Resend uses the same `callbackURL`.
 - Change the sign-in `callbackURL` as well: SPEC 09 sets it to `/home`, and an unverified sign-in re-sends the verification link (`sendOnSignIn: true`) with that callback. The link would land on `/home`, which has no session and bounces to `/sign-in`. Sign-in must send `callbackURL: '/verify-email?status=success'` for the 403 case, so the re-sent link lands on the success state. (A successful sign-in still goes to `/home` by redirect.)
 - Implementation note (found in step 4): Better Auth's default client redirect plugin follows `callbackURL` on any `redirect: true` response, so a successful email sign-in with the verify-email callback would navigate there instead of `/home`. `apps/web/src/lib/auth-client.ts` therefore sets `disableDefaultFetchPlugins: true` and registers `lib/social-redirect-plugin.ts`, which follows the redirect only for `/sign-in/social` (Google) and only for http(s) URLs, with unit tests. Email sign-in goes to `/home` through `router.replace`.
+- Implementation note (found in manual check): a focused control that becomes `disabled` loses keyboard focus, so Tab restarted at the top of the page. `features/auth/use-restore-focus.ts` returns focus to the last focused control when a request ends, and all four forms and `ResendButton` use it. During the 60-second cooldown `ResendButton` uses `aria-disabled` instead of `disabled`. `ResetExpired` moves focus to its heading when the form swaps to it. Tests cover the hook, the tab order of each screen and focus after a failed request.
+- Files outside `features/auth/` touched: `lib/auth-client.ts`, `lib/social-redirect-plugin.ts` and its test. `disableDefaultFetchPlugins: true` drops all default Better Auth fetch plugins; the app relied only on the redirect plugin, and `socialRedirectPlugin` replaces it.
 - One-line API change in `apps/api/src/modules/auth/auth.ts`: `revokeSessionsOnPasswordReset: true`, with an integration test.
 - EN and ES copy under the `auth` namespace in `packages/i18n/src/messages/{en,es}.json`.
 - Error mapping for 429 and network errors on resend, forgot and reset, reusing `map-auth-error.ts`.
@@ -82,61 +84,64 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] Submitting sign-up redirects to `/verify-email` and shows the entered email.
-- [ ] A sign-in `403` redirects to `/verify-email`, shows the email, and a new verification email appears in Mailpit.
-- [ ] The inline notices from SPEC 09 no longer exist in the forms.
-- [ ] The verification link re-sent by a `403` sign-in lands on `/verify-email?status=success`, not on `/home` (the `signIn.email` call sends that `callbackURL`).
-- [ ] "Resend email" sends one verification email and then disables itself with a visible countdown of 60 seconds.
-- [ ] Reloading `/verify-email` during the countdown keeps the remaining time.
-- [ ] Opening the Mailpit verification link lands on `/verify-email?status=success` with a "Sign in" button, and the user can then sign in.
-- [ ] `/verify-email?error=invalid_token` shows the expired-link state with a Resend action.
-- [ ] `/verify-email` without a stored email shows an email field instead of an address.
-- [ ] The pending email never appears in the URL.
-- [ ] Forgot password with a known email shows the neutral message and sends one email; with an unknown email it shows the same message and sends none.
-- [ ] Reset password with a valid token and matching passwords redirects to `/sign-in?reset=success`, which shows a success notice.
-- [ ] Reset password with mismatched passwords or fewer than 8 characters shows a field error and sends no request.
-- [ ] `/reset-password` without a token, or with `?error=INVALID_TOKEN`, shows the expired-link state with a link to `/forgot-password`.
-- [ ] After a reset, an older session of the same user is no longer valid (API integration test).
-- [ ] A 429 or a network failure on resend, forgot and reset shows a message and keeps the typed values.
-- [ ] Every string comes from `packages/i18n` and exists in EN and ES.
-- [ ] No raw hex colors and no emojis. Icons have text labels, except show/hide which has an `aria-label`.
-- [ ] All three screens work with the keyboard, inputs have labels, and status changes are announced (`aria-live`).
-- [ ] Reduced motion is respected for the countdown and transitions.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] The M2.4 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] Submitting sign-up redirects to `/verify-email` and shows the entered email.
+- [x] A sign-in `403` redirects to `/verify-email`, shows the email, and a new verification email appears in Mailpit.
+- [x] The inline notices from SPEC 09 no longer exist in the forms.
+- [x] The verification link re-sent by a `403` sign-in lands on `/verify-email?status=success`, not on `/home` (the `signIn.email` call sends that `callbackURL`).
+- [x] "Resend email" sends one verification email and then disables itself with a visible countdown of 60 seconds.
+- [x] Reloading `/verify-email` during the countdown keeps the remaining time.
+- [x] Opening the Mailpit verification link lands on `/verify-email?status=success` with a "Sign in" button, and the user can then sign in.
+- [x] `/verify-email?error=invalid_token` shows the expired-link state with a Resend action.
+- [x] `/verify-email` without a stored email shows an email field instead of an address.
+- [x] The pending email never appears in the URL.
+- [x] Forgot password with a known email shows the neutral message and sends one email; with an unknown email it shows the same message and sends none.
+- [x] Reset password with a valid token and matching passwords redirects to `/sign-in?reset=success`, which shows a success notice.
+- [x] Reset password with mismatched passwords or fewer than 8 characters shows a field error and sends no request.
+- [x] `/reset-password` without a token, or with `?error=INVALID_TOKEN`, shows the expired-link state with a link to `/forgot-password`.
+- [x] After a reset, an older session of the same user is no longer valid (API integration test).
+- [x] A 429 or a network failure on resend, forgot and reset shows a message and keeps the typed values.
+- [x] Every string comes from `packages/i18n` and exists in EN and ES.
+- [x] No raw hex colors and no emojis. Icons have text labels, except show/hide which has an `aria-label`.
+- [x] All three screens work with the keyboard, inputs have labels, and status changes are announced (`aria-live`).
+- [x] Reduced motion is respected for the countdown and transitions.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] The M2.4 checkbox in `ROADMAP.md` is ticked in the same PR.
+
+- [x] A verified email sign-in lands on `/home`, not on `/verify-email`, and Google sign-in still redirects to the provider (plugin unit test and manual check).
+- [x] Tab order follows reading order on all five auth screens, and focus is not lost after a failed request, during the Resend cooldown or when the reset form shows the expired state.
 
 ### UI states: Verify email
 
-- [ ] **Normal:** pending, success and expired states each render with their copy and action.
-- [ ] **Loading:** the Resend button shows a pending state while the request runs; no layout jump.
-- [ ] **Empty:** no stored email shows the email field.
-- [ ] **Error:** a failed resend (429 or network) shows a message and allows retry after the cooldown rules.
-- [ ] **Light theme:** legible and token-based.
-- [ ] **Dark theme:** legible and token-based.
-- [ ] **Mobile:** no horizontal scroll, touch targets at least 44px.
-- [ ] **Desktop:** works at desktop width.
+- [x] **Normal:** pending, success and expired states each render with their copy and action.
+- [x] **Loading:** the Resend button shows a pending state while the request runs; no layout jump.
+- [x] **Empty:** no stored email shows the email field.
+- [x] **Error:** a failed resend (429 or network) shows a message and allows retry after the cooldown rules.
+- [x] **Light theme:** legible and token-based.
+- [x] **Dark theme:** legible and token-based.
+- [x] **Mobile:** no horizontal scroll, touch targets at least 44px.
+- [x] **Desktop:** works at desktop width.
 
 ### UI states: Forgot password
 
-- [ ] **Normal:** email field and submit.
-- [ ] **Loading:** pending submit and disabled field.
-- [ ] **Empty:** the neutral "If an account exists, we sent a link" result with a link back to Sign in.
-- [ ] **Error:** 429 or network failure shows a message and keeps the typed email.
-- [ ] **Light theme:** legible and token-based.
-- [ ] **Dark theme:** legible and token-based.
-- [ ] **Mobile:** no horizontal scroll.
-- [ ] **Desktop:** works at desktop width.
+- [x] **Normal:** email field and submit.
+- [x] **Loading:** pending submit and disabled field.
+- [x] **Empty:** the neutral "If an account exists, we sent a link" result with a link back to Sign in.
+- [x] **Error:** 429 or network failure shows a message and keeps the typed email.
+- [x] **Light theme:** legible and token-based.
+- [x] **Dark theme:** legible and token-based.
+- [x] **Mobile:** no horizontal scroll.
+- [x] **Desktop:** works at desktop width.
 
 ### UI states: Reset password
 
-- [ ] **Normal:** new password with strength hint, confirm, submit.
-- [ ] **Loading:** pending submit.
-- [ ] **Empty:** N/A, a form has no empty state; empty fields show validation errors on submit.
-- [ ] **Error:** expired or invalid link state, plus 429 and network messages.
-- [ ] **Light theme:** legible and token-based.
-- [ ] **Dark theme:** legible and token-based.
-- [ ] **Mobile:** no horizontal scroll.
-- [ ] **Desktop:** works at desktop width.
+- [x] **Normal:** new password with strength hint, confirm, submit.
+- [x] **Loading:** pending submit.
+- [x] **Empty:** N/A, a form has no empty state; empty fields show validation errors on submit.
+- [x] **Error:** expired or invalid link state, plus 429 and network messages.
+- [x] **Light theme:** legible and token-based.
+- [x] **Dark theme:** legible and token-based.
+- [x] **Mobile:** no horizontal scroll.
+- [x] **Desktop:** works at desktop width.
 
 ## Decisions
 

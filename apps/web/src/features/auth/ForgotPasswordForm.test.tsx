@@ -93,6 +93,28 @@ describe('ForgotPasswordForm', () => {
     expect(email).toHaveValue('ana@example.com');
   });
 
+  it('tabs in reading order: email, submit, back link', async () => {
+    const { ui, email, submit } = setup();
+    for (const element of [
+      email,
+      submit,
+      screen.getByRole('link', { name: t.forgotPassword.backToSignIn }),
+    ]) {
+      await ui.tab();
+      expect(element).toHaveFocus();
+    }
+  });
+
+  it('keeps focus on the submit button after a failed request', async () => {
+    mocks.requestPasswordReset.mockResolvedValue({ data: null, error: { status: 429 } });
+    const { ui, email, submit } = setup();
+    await ui.type(email, 'ana@example.com');
+    await ui.click(submit);
+
+    await screen.findByRole('alert');
+    expect(submit).toHaveFocus();
+  });
+
   it('disables the field and shows a pending label while submitting', async () => {
     let finish: (value: unknown) => void = () => {};
     mocks.requestPasswordReset.mockReturnValue(new Promise((resolve) => (finish = resolve)));
