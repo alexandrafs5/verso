@@ -1,6 +1,6 @@
 # SPEC 11 — Onboarding (P3), `/v1/me` endpoints and avatar upload (M2.5)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 06, SPEC 07, SPEC 09, SPEC 10
 > **Date:** 2026-11-22
 > **Objective:** Build the 7-step onboarding flow with the `/v1/me` API (profile, settings, username availability, yearly goal, onboarding completion) and avatar upload through `FileStorage` (Supabase), so a new user can finish onboarding and land on an empty Home.
@@ -126,50 +126,50 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] `GET /v1/me` returns the user, settings and `onboardingCompletedAt`; without a session it returns 401.
-- [ ] `PATCH /v1/me` with a taken username returns 409 `USERNAME_TAKEN`; with a reserved or malformed one returns 400 `USERNAME_INVALID`.
-- [ ] `PATCH /v1/me` with a mixed-case valid username stores it lowercased.
-- [ ] `PATCH /v1/me/settings` rejects reminder fields and invalid enum values with 400, and stores valid values.
-- [ ] `PATCH /v1/me/settings` with an invalid `timeZone` returns 400.
-- [ ] `GET /v1/usernames/maria_01/availability` returns `available: false, reason: 'TAKEN'` when another user owns it, and `available: true` for the caller's own username.
-- [ ] `POST /v1/me/avatar/upload-url` returns a path under `avatars/{userId}/`; a content type other than `image/webp` or a size over 2 MB returns 400.
-- [ ] `PATCH /v1/me` with an `avatarPath` under another user's folder returns 403.
-- [ ] Replacing or removing an avatar deletes the previous object through `FileStorage`.
-- [ ] `PUT /v1/me/goals/{year}` creates the goal and a second call updates the same row (unique `userId`, `year`); a year other than the current or the next one (in the user's time zone) returns 400 `GOAL_YEAR_INVALID`; a `targetBooks` outside 1 to 999 or not an integer returns 400 `VALIDATION_ERROR`.
-- [ ] `POST /v1/me/onboarding/complete` returns 409 `USERNAME_REQUIRED` without a username, sets `onboardingCompletedAt` otherwise, and a second call keeps the first timestamp.
-- [ ] No endpoint in this spec allows reading or writing another user's data (every query filters by the session user id).
-- [ ] A signed-in user without `onboardingCompletedAt` who opens `/home` is redirected to onboarding; a completed user who opens `/onboarding/1` is redirected to `/home`.
-- [ ] Step 1 prefills the name and a suggested available username, and shows live availability with the reason text.
-- [ ] Step 1 saves the browser time zone and the current locale.
-- [ ] Step 1 shows an inline message when the server answers 409 `USERNAME_TAKEN`, mapped to an i18n key, and does not move on.
-- [ ] Back works on every step after step 1 (step 1 has nothing to go back to, so it shows no Back); Skip appears only on steps 2, 6 and 7.
-- [ ] Step 6 saves the goal for the current year; leaving the field empty and pressing Continue moves on and saves nothing.
-- [ ] Step 7 shows only Skip, no import action.
-- [ ] No hardcoded user-facing strings; EN and ES key parity test passes.
-- [ ] No raw hex colors; only tokens.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] `GET /v1/me` returns the user, settings and `onboardingCompletedAt`; without a session it returns 401.
+- [x] `PATCH /v1/me` with a taken username returns 409 `USERNAME_TAKEN`; with a reserved or malformed one returns 400 `USERNAME_INVALID`.
+- [x] `PATCH /v1/me` with a mixed-case valid username stores it lowercased.
+- [x] `PATCH /v1/me/settings` rejects reminder fields and invalid enum values with 400, and stores valid values.
+- [x] `PATCH /v1/me/settings` with an invalid `timeZone` returns 400.
+- [x] `GET /v1/usernames/maria_01/availability` returns `available: false, reason: 'TAKEN'` when another user owns it, and `available: true` for the caller's own username.
+- [x] `POST /v1/me/avatar/upload-url` returns a path under `avatars/{userId}/`; a content type other than `image/webp` or a size over 2 MB returns 400.
+- [x] `PATCH /v1/me` with an `avatarPath` under another user's folder returns 403.
+- [x] Replacing or removing an avatar deletes the previous object through `FileStorage`.
+- [x] `PUT /v1/me/goals/{year}` creates the goal and a second call updates the same row (unique `userId`, `year`); a year other than the current or the next one (in the user's time zone) returns 400 `GOAL_YEAR_INVALID`; a `targetBooks` outside 1 to 999 or not an integer returns 400 `VALIDATION_ERROR`.
+- [x] `POST /v1/me/onboarding/complete` returns 409 `USERNAME_REQUIRED` without a username, sets `onboardingCompletedAt` otherwise, and a second call keeps the first timestamp.
+- [x] No endpoint in this spec allows reading or writing another user's data (every query filters by the session user id).
+- [x] A signed-in user without `onboardingCompletedAt` who opens `/home` is redirected to onboarding; a completed user who opens `/onboarding/1` is redirected to `/home`.
+- [x] Step 1 prefills the name and a suggested available username, and shows live availability with the reason text.
+- [x] Step 1 saves the browser time zone and the current locale.
+- [x] Step 1 shows an inline message when the server answers 409 `USERNAME_TAKEN`, mapped to an i18n key, and does not move on.
+- [x] Back works on every step after step 1 (step 1 has nothing to go back to, so it shows no Back); Skip appears only on steps 2, 6 and 7.
+- [x] Step 6 saves the goal for the current year; leaving the field empty and pressing Continue moves on and saves nothing.
+- [x] Step 7 shows only Skip, no import action.
+- [x] No hardcoded user-facing strings; EN and ES key parity test passes.
+- [x] No raw hex colors; only tokens.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
 
 ### UI states: Onboarding shell and steps 1, 3, 4, 5, 6, 7
 
-- [ ] **Normal:** renders the step, progress bar, Back (except on step 1) and primary action.
-- [ ] **Loading:** skeleton while `GET /v1/me` loads; the primary button shows pending state while saving; no layout jump.
-- [ ] **Empty:** N/A for form steps; a missing username on step 1 is the normal empty-field state with the suggestion filled in.
-- [ ] **Error:** save failure shows an inline problem message with retry (on step 7 an explicit "Try again"); availability-check failure shows a neutral message and does not block typing; a 409 `USERNAME_TAKEN` shows the taken message on the field.
-- [ ] **Light theme:** legible, theme tokens only.
-- [ ] **Dark theme:** legible, theme tokens only.
-- [ ] **Mobile:** no horizontal scroll, controls reachable by thumb.
-- [ ] **Desktop:** centered column, readable width.
+- [x] **Normal:** renders the step, progress bar, Back (except on step 1) and primary action.
+- [x] **Loading:** skeleton while `GET /v1/me` loads; the primary button shows pending state while saving; no layout jump.
+- [x] **Empty:** N/A for form steps; a missing username on step 1 is the normal empty-field state with the suggestion filled in.
+- [x] **Error:** save failure shows an inline problem message with retry (on step 7 an explicit "Try again"); availability-check failure shows a neutral message and does not block typing; a 409 `USERNAME_TAKEN` shows the taken message on the field.
+- [x] **Light theme:** legible, theme tokens only.
+- [x] **Dark theme:** legible, theme tokens only.
+- [x] **Mobile:** no horizontal scroll, controls reachable by thumb.
+- [x] **Desktop:** centered column, readable width.
 
 ### UI states: Step 2 (profile photo)
 
-- [ ] **Normal:** upload, circle crop preview and initials fallback.
-- [ ] **Loading:** progress state while compressing and uploading.
-- [ ] **Empty:** no photo selected shows the initials avatar and "Skip".
-- [ ] **Error:** wrong file type, a file still over 2 MB after compression, or a failed upload shows a message and keeps the previous photo.
-- [ ] **Light theme:** legible, theme tokens only.
-- [ ] **Dark theme:** legible, theme tokens only.
-- [ ] **Mobile:** crop works with touch, no horizontal scroll.
-- [ ] **Desktop:** crop works with mouse and keyboard.
+- [x] **Normal:** upload, circle crop preview and initials fallback.
+- [x] **Loading:** progress state while compressing and uploading.
+- [x] **Empty:** no photo selected shows the initials avatar and "Skip".
+- [x] **Error:** wrong file type, a file still over 2 MB after compression, or a failed upload shows a message and keeps the previous photo.
+- [x] **Light theme:** legible, theme tokens only.
+- [x] **Dark theme:** legible, theme tokens only.
+- [x] **Mobile:** crop works with touch, no horizontal scroll.
+- [x] **Desktop:** crop works with mouse and keyboard.
 
 Accessibility (all steps): every input has a label, focus moves to the step heading on step change, the progress bar has an accessible name and value, the crop control is keyboard operable, avatar preview has alt text, animations respect reduced motion.
 
