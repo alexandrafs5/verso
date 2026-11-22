@@ -27,7 +27,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [x] **M1.3** Verso components: BookCover, GeneratedCover, ProgressBar, RatingDisplay, RatingInput, StatusDropdown, AddToLibraryButton, TagChip, LockToggle, EmptyState, ErrorState. Component tests for RatingInput and ProgressBar.
 - [x] **M1.4** `Rating` and `GeneratedCover` in `packages/shared` with unit tests. §6
 - [x] **M1.5** i18n: next-intl with `packages/i18n` (en, es), locale detection, plural and date formatting.
-- [ ] **M1.6** Authenticated app shell: top bar (desktop) and bottom tab bar (< 768px), avatar menu, notification bell placeholder, waking-server banner.
+- [x] **M1.6** Authenticated app shell: top bar (desktop) and bottom tab bar (< 768px), avatar menu, notification bell placeholder, waking-server banner.
 
 **Done when:** a demo page shows every component in light/dark, EN/ES, desktop/mobile.
 

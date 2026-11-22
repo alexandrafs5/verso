@@ -1,6 +1,6 @@
 # SPEC 05 — Authenticated app shell (M1.6)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 02, SPEC 03
 > **Date:** 2026-11-21
 > **Objective:** Build the `AppShell` component (desktop top bar, mobile top bar plus bottom tab bar, avatar menu, bell placeholder, waking-server banner) and a dev demo page that shows it, without auth or real routes.
@@ -71,21 +71,21 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] At 1280 px the top bar shows wordmark, Home, Library, Stats, search button, bell and avatar; no bottom tab bar.
-- [ ] At 375 px the top bar shows only wordmark, search and bell; the bottom tab bar shows Home, Library, Search, Stats, Profile.
-- [ ] The active nav item is underlined in brass on desktop and wine with a brass dot in the tab bar, and has `aria-current="page"`.
-- [ ] Wordmark links to `/home`.
-- [ ] Avatar menu opens with keyboard (Enter/Space), closes with Esc, and lists Profile, Settings, Sign out; Admin appears only when `role` is `ADMIN`.
-- [ ] Sign out item calls `onSignOut`.
-- [ ] Bell and search buttons have accessible names; icon-only buttons are the only unlabeled-visually controls.
-- [ ] `WakingBanner` renders the message when `useWakingState()` is `waking` and renders nothing when `idle`; it has `role="status"`.
-- [ ] Tab bar has `padding-bottom: env(safe-area-inset-bottom)`; page content is not hidden behind it.
-- [ ] Every label comes from `packages/i18n`; no hardcoded user-facing strings outside the demo page.
-- [ ] No raw hex colors; tokens only.
-- [ ] All controls are keyboard reachable with a visible 2 px brass focus ring; animation respects `prefers-reduced-motion`.
-- [ ] `/dev/shell` renders in development and returns 404 in a production build.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] The M1.6 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] At 1280 px the top bar shows wordmark, Home, Library, Stats, search button, bell and avatar; no bottom tab bar.
+- [x] At 375 px the top bar shows only wordmark, search and bell; the bottom tab bar shows Home, Library, Search, Stats, Profile.
+- [x] The active nav item is underlined in brass on desktop and wine with a brass dot in the tab bar, and has `aria-current="page"`.
+- [x] Wordmark links to `/home`.
+- [x] Avatar menu opens with keyboard (Enter/Space), closes with Esc, and lists Profile, Settings, Sign out; Admin appears only when `role` is `ADMIN`.
+- [x] Sign out item calls `onSignOut`.
+- [x] Bell and search buttons have accessible names; icon-only buttons are the only unlabeled-visually controls.
+- [x] `WakingBanner` renders the message when `useWakingState()` is `waking` and renders nothing when `idle`; it has `role="status"`.
+- [x] Tab bar has `padding-bottom: env(safe-area-inset-bottom)`; page content is not hidden behind it.
+- [x] Every label comes from `packages/i18n`; no hardcoded user-facing strings outside the demo page.
+- [x] No raw hex colors; tokens only.
+- [x] All controls are keyboard reachable with a visible 2 px brass focus ring; animation respects `prefers-reduced-motion`.
+- [x] `/dev/shell` renders in development and returns 404 in a production build.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] The M1.6 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 ### UI states: AppShell
 
