@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ratingStyleSchema } from './rating.js';
+import { ratingStyleSchema } from './rating';
 
 export const PROGRESS_STYLES = ['PAGES', 'PERCENT'] as const;
 export const VISIBILITIES = ['PUBLIC', 'PRIVATE'] as const;
