@@ -6,9 +6,10 @@ export type ValidationKey =
   | 'passwordTooShort'
   | 'passwordTooLong'
   | 'nameRequired'
-  | 'nameTooLong';
+  | 'nameTooLong'
+  | 'passwordMismatch';
 
-type Field = 'name' | 'email' | 'password';
+type Field = 'name' | 'email' | 'password' | 'confirmPassword';
 
 /**
  * Picks the message for a failed field from the Zod issue code (react-hook-form's `error.type`)
@@ -29,5 +30,7 @@ export function validationKey(
     case 'password':
       if (value === '') return 'passwordRequired';
       return issueCode === 'too_big' ? 'passwordTooLong' : 'passwordTooShort';
+    case 'confirmPassword':
+      return value === '' ? 'passwordRequired' : 'passwordMismatch';
   }
 }

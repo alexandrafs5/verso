@@ -24,7 +24,13 @@ import { withWaking } from './with-waking';
 
 type Failure = Exclude<AuthErrorKind, 'unverified'> | 'google';
 
-export function SignInForm({ oauthFailed = false }: { oauthFailed?: boolean }) {
+export function SignInForm({
+  oauthFailed = false,
+  resetSuccess = false,
+}: {
+  oauthFailed?: boolean;
+  resetSuccess?: boolean;
+}) {
   const t = useTranslations('auth');
   const router = useRouter();
   useWakeUpPing();
@@ -78,6 +84,7 @@ export function SignInForm({ oauthFailed = false }: { oauthFailed?: boolean }) {
       <h1>{t('signIn.title')}</h1>
       <p className="mt-2 mb-8 text-muted">{t('signIn.subtitle')}</p>
 
+      {resetSuccess ? <AuthAlert tone="info">{t('signIn.resetSuccess')}</AuthAlert> : null}
       {failure ? <AuthAlert tone="error">{t(`errors.${failure}`)}</AuthAlert> : null}
 
       <div className="flex flex-col gap-5">

@@ -21,7 +21,7 @@ vi.mock('@/lib/auth-client', () => ({
 
 const t = messages.en.auth;
 
-function setup(props: { oauthFailed?: boolean } = {}) {
+function setup(props: { oauthFailed?: boolean; resetSuccess?: boolean } = {}) {
   const ui = userEvent.setup();
   render(
     <NextIntlClientProvider locale="en" messages={messages.en}>
@@ -182,6 +182,16 @@ describe('SignInForm', () => {
   it('shows the Google message when returning from a failed OAuth round trip', () => {
     setup({ oauthFailed: true });
     expect(screen.getByRole('alert')).toHaveTextContent(t.errors.google);
+  });
+
+  it('shows the password-changed notice after a reset, and not otherwise', () => {
+    setup({ resetSuccess: true });
+    expect(screen.getByRole('status')).toHaveTextContent(t.signIn.resetSuccess);
+  });
+
+  it('shows no reset notice by default', () => {
+    setup();
+    expect(screen.queryByText(t.signIn.resetSuccess)).not.toBeInTheDocument();
   });
 
   it('links to forgot-password and create account', () => {
