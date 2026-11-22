@@ -24,18 +24,20 @@ type AuthFieldProps = {
 
 export function AuthField({ id, label, error, labelAction, children }: AuthFieldProps) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={id} className="text-sm font-medium">
-          {label}
-        </label>
-        {labelAction}
-      </div>
-      {children}
+    // DOM order is label, control, error, action, so Tab goes input first and the action
+    // (for example "Forgot password?") after it. The grid puts the action back on the label row.
+    <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5">
+      <label htmlFor={id} className="col-start-1 row-start-1 self-baseline text-sm font-medium">
+        {label}
+      </label>
+      <div className="col-span-2 row-start-2">{children}</div>
       {error ? (
-        <p id={`${id}-error`} className="m-0 text-sm text-danger">
+        <p id={`${id}-error`} className="col-span-2 row-start-3 m-0 text-sm text-danger">
           {error}
         </p>
+      ) : null}
+      {labelAction ? (
+        <div className="col-start-2 row-start-1 self-baseline">{labelAction}</div>
       ) : null}
     </div>
   );

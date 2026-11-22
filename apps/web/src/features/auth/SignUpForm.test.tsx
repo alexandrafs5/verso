@@ -172,6 +172,23 @@ describe('SignUpForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(t.errors.google);
   });
 
+  it('tabs in reading order: name, email, password, show, submit, Google, sign in', async () => {
+    const s = setup();
+    const order = [
+      s.name,
+      s.email,
+      s.password,
+      screen.getByRole('button', { name: t.showPassword }),
+      s.submit,
+      screen.getByRole('button', { name: t.google }),
+      screen.getByRole('link', { name: t.signUp.signInLink }),
+    ];
+    for (const element of order) {
+      await s.ui.tab();
+      expect(element).toHaveFocus();
+    }
+  });
+
   it('links to sign in', () => {
     setup();
     expect(screen.getByRole('link', { name: t.signUp.signInLink })).toHaveAttribute(

@@ -2,20 +2,13 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
-import { AUTH_QUOTES, pickQuote, type AuthQuote as Quote } from './quotes';
+import type { AuthQuote as Quote } from './quotes';
 
-// The server and the hydration pass render the first quote. After hydration the client
-// switches to a random one, chosen once per page load, so there is no hydration mismatch.
-let clientQuote: Quote | null = null;
-const subscribe = () => () => {};
-const getClientQuote = () => (clientQuote ??= pickQuote());
-const getServerQuote = () => AUTH_QUOTES[0] as Quote;
-
-export function AuthQuote({ className }: { className?: string }) {
+// The quote is chosen on the server (see the auth layout), so the server HTML and the client
+// render the same one: no hydration mismatch and no visible swap after load.
+export function AuthQuote({ quote, className }: { quote: Quote; className?: string }) {
   const t = useTranslations();
-  const quote = useSyncExternalStore(subscribe, getClientQuote, getServerQuote);
 
   return (
     <aside

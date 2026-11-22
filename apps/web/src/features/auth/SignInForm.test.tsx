@@ -186,6 +186,23 @@ describe('SignInForm', () => {
     );
   });
 
+  it('tabs in reading order: email, password, show, forgot, submit, Google, create account', async () => {
+    const { ui, email, password, submit } = setup();
+    const order = [
+      email,
+      password,
+      screen.getByRole('button', { name: t.showPassword }),
+      screen.getByRole('link', { name: t.signIn.forgot }),
+      submit,
+      screen.getByRole('button', { name: t.google }),
+      screen.getByRole('link', { name: t.signIn.createLink }),
+    ];
+    for (const element of order) {
+      await ui.tab();
+      expect(element).toHaveFocus();
+    }
+  });
+
   it('sends one wake-up ping on mount', () => {
     setup();
     expect(fetch).toHaveBeenCalledTimes(1);
