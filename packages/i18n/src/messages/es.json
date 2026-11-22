@@ -51,6 +51,8 @@
     "quoteLabel": "Cita",
     "orDivider": "o",
     "google": "Continuar con Google",
+    "show": "Mostrar",
+    "hide": "Ocultar",
     "showPassword": "Mostrar contraseña",
     "hidePassword": "Ocultar contraseña",
     "fields": {

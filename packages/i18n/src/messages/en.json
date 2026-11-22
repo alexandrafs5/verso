@@ -51,6 +51,8 @@
     "quoteLabel": "Quote",
     "orDivider": "or",
     "google": "Continue with Google",
+    "show": "Show",
+    "hide": "Hide",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
     "fields": {
