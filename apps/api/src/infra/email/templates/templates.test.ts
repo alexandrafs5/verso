@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { EmailLocale } from '../email.provider.js';
+import { accountExistsEmail } from './account-exists.js';
 import { passwordResetEmail } from './password-reset.js';
 import { verificationEmail } from './verification.js';
 
 const url = 'http://localhost:4000/api/auth/verify-email?token=abc&callbackURL=%2F';
-const templates = { verificationEmail, passwordResetEmail };
+const templates = { verificationEmail, passwordResetEmail, accountExistsEmail };
 const locales: EmailLocale[] = ['en', 'es'];
 
 describe.each(Object.entries(templates))('%s', (_name, render) => {

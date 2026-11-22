@@ -30,9 +30,11 @@
     "vitest": "^5.1.1"
   },
   "dependencies": {
+    "@hookform/resolvers": "^7.0.8",
     "@tanstack/react-query": "^5.108.2",
     "@verso/i18n": "workspace:*",
     "@verso/shared": "workspace:*",
+    "better-auth": "1.7.27",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "next": "^16.4.6",
@@ -41,6 +43,7 @@
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-hook-form": "^7.92.0",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.1",
     "zod": "^4.6.7"

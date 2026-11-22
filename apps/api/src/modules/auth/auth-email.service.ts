@@ -4,6 +4,7 @@ import {
   type EmailLocale,
   type EmailProvider,
 } from '../../infra/email/email.provider.js';
+import { accountExistsEmail } from '../../infra/email/templates/account-exists.js';
 import { passwordResetEmail } from '../../infra/email/templates/password-reset.js';
 import { verificationEmail } from '../../infra/email/templates/verification.js';
 
@@ -57,6 +58,14 @@ export class AuthEmailService {
     const locale = resolveEmailLocale(request?.headers.get('accept-language'), user.locale);
     this.dispatch('password reset', user.email, url, {
       ...passwordResetEmail(locale, { name: user.name, url }),
+    });
+  }
+
+  /** `signInUrl` is the web sign-in page, not a Better Auth link: it holds no token. */
+  sendAccountExists(user: AuthEmailRecipient, signInUrl: string, request?: Request): void {
+    const locale = resolveEmailLocale(request?.headers.get('accept-language'), user.locale);
+    this.dispatch('account exists', user.email, signInUrl, {
+      ...accountExistsEmail(locale, { name: user.name, url: signInUrl }),
     });
   }
 

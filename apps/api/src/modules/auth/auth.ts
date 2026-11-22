@@ -7,6 +7,7 @@ import type { AuthEmailService } from './auth-email.service.js';
 
 export function createAuth(prisma: PrismaService, env: AuthEnv, authEmail: AuthEmailService) {
   const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+  const signInUrl = new URL('/sign-in', env.WEB_ORIGIN).toString();
 
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
@@ -24,6 +25,12 @@ export function createAuth(prisma: PrismaService, env: AuthEnv, authEmail: AuthE
       // The hooks do not await the send: awaiting slows the response and leaks account existence.
       sendResetPassword: ({ user, url }, request) => {
         authEmail.sendPasswordReset(user, url, request);
+        return Promise.resolve();
+      },
+      // With verification required, a duplicate sign-up gets the same response as a new one
+      // (no account enumeration). This email tells the real owner that the account exists.
+      onExistingUserSignUp: ({ user }, request) => {
+        authEmail.sendAccountExists(user, signInUrl, request);
         return Promise.resolve();
       },
     },

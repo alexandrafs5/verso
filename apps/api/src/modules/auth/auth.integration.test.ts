@@ -428,6 +428,49 @@ describe('Better Auth + guards (integration)', () => {
       expect(await emailsTo(email, 2)).toHaveLength(2);
     });
 
+    it('answers a duplicate sign-up like a new one and emails the owner once, linking to sign-in', async () => {
+      const email = uniqueEmail();
+      const first = await signUp(email);
+      await emailsTo(email, 1);
+      mailbox.clear();
+
+      const second = await signUp(email);
+      expect(second.status).toBe(first.status);
+      expect(Object.keys(second.body as object).sort()).toEqual(
+        Object.keys(first.body as object).sort(),
+      );
+      expect(await prisma.user.count({ where: { email } })).toBe(1);
+
+      const messages = await emailsTo(email);
+      expect(messages).toHaveLength(1);
+      expect(messages[0]?.subject).toBe('You already have an account');
+      expect(messages[0]?.html).toContain('lang="en"');
+      // Sign-in page on the web origin, no token anywhere.
+      const link = linkIn(messages[0]?.text as string);
+      expect(link).toBe(`${ORIGIN}/sign-in`);
+      expect(messages[0]?.text).not.toContain('token');
+    });
+
+    it('sends the account-exists email in Spanish with Accept-Language: es', async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      await emailsTo(email, 1);
+      mailbox.clear();
+
+      await signUp(email, PASSWORD, {}, { 'Accept-Language': 'es-ES,es;q=0.9' });
+      const [message] = await emailsTo(email);
+      expect(message?.subject).toBe('Ya tienes una cuenta');
+      expect(message?.html).toContain('lang="es"');
+    });
+
+    it('does not send an account-exists email for a first sign-up', async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      const messages = await emailsTo(email);
+      expect(messages).toHaveLength(1);
+      expect(messages[0]?.subject).toBe('Verify your email address');
+    });
+
     it('lets the user sign in after opening the verification link', async () => {
       const email = uniqueEmail();
       await signUp(email);

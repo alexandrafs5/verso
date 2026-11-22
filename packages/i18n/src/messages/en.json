@@ -46,6 +46,75 @@
     "userMenu": "Account menu",
     "wakingUp": "Waking up the server. This can take up to a minute."
   },
+  "auth": {
+    "newPassage": "A new passage on every visit",
+    "quoteLabel": "Quote",
+    "orDivider": "or",
+    "google": "Continue with Google",
+    "show": "Show",
+    "hide": "Hide",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "fields": {
+      "name": "Name",
+      "email": "Email",
+      "password": "Password"
+    },
+    "strength": {
+      "label": "Password strength",
+      "hint": "Use at least 8 characters. A mix of letters, numbers and symbols is stronger.",
+      "weak": "Weak",
+      "fair": "Fair",
+      "strong": "Strong"
+    },
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Welcome back to your library.",
+      "forgot": "Forgot password?",
+      "submit": "Sign in",
+      "submitting": "Signing in",
+      "noAccount": "New to Verso?",
+      "createLink": "Create account",
+      "resetSuccess": "Your password was changed. Sign in with the new one.",
+      "unverifiedTitle": "Verify your email",
+      "unverifiedBody": "We sent a new verification link to {email}. Open it, then sign in."
+    },
+    "signUp": {
+      "title": "Create account",
+      "subtitle": "Start your reading library.",
+      "submit": "Create account",
+      "submitting": "Creating account",
+      "hasAccount": "Already have an account?",
+      "signInLink": "Sign in",
+      "checkInboxTitle": "Check your inbox",
+      "checkInboxBody": "We sent a verification link to {email}. Open it to activate your account.",
+      "backToSignIn": "Back to sign in"
+    },
+    "validation": {
+      "emailRequired": "Enter your email.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Enter your password.",
+      "passwordTooShort": "Use at least 8 characters.",
+      "passwordTooLong": "Use 128 characters or fewer.",
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "Use 80 characters or fewer."
+    },
+    "errors": {
+      "invalidCredentials": "Email or password is incorrect.",
+      "emailInUse": "An account with this email already exists.",
+      "rateLimited": "Too many attempts. Try again in a minute.",
+      "network": "We could not reach the server. Check your connection and try again.",
+      "generic": "Something went wrong. Try again.",
+      "google": "Google sign-in did not work. Try again or use your email."
+    }
+  },
+  "home": {
+    "title": "Home",
+    "errorTitle": "We could not load your account",
+    "checkingSession": "Loading your account",
+    "emptyTitle": "Your library will appear here",
+    "emptyBody": "Home is being built. Your books and progress will show up on this page soon."
+  },
   "plurals": {
     "books": "{count, plural, =0 {No books} one {# book} other {# books}}",
     "pages": "{count, plural, one {# page} other {# pages}}",
