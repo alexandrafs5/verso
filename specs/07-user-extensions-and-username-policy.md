@@ -1,6 +1,6 @@
 # SPEC 07 — User extensions and UsernamePolicy (M2.2)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 06
 > **Date:** 2026-11-22
 > **Objective:** Extend the `User` table with username, bio, settings, reminder and onboarding fields, and add a pure, unit-tested `UsernamePolicy` domain class.
@@ -83,19 +83,19 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] `pnpm db:migrate` on an empty database adds all columns above and the six enums; existing SPEC 06 data is untouched.
-- [ ] A newly signed-up user has `username = null`, `profileVisibility = PUBLIC`, `defaultAnnotationVisibility = PRIVATE`, `ratingStyle = STARS_HALF`, `progressStyle = PAGES`, `locale = en`, `theme = SYSTEM`, `timeZone = "UTC"`, `reminderEnabled = false`, `onboardingCompletedAt = null`.
-- [ ] Sign-up with `username`, `profileVisibility` or any other new field in the body is rejected with 400 `FIELD_NOT_ALLOWED` and creates no user.
-- [ ] Two users cannot share a username that differs only by case (database unique violation).
-- [ ] `UsernamePolicy.validate` accepts `ab_1` style names of 3 and 20 characters and rejects 2 and 21 with `TOO_SHORT` and `TOO_LONG`.
-- [ ] `UsernamePolicy.validate` rejects spaces, hyphens, dots, accents and emoji with `INVALID_CHARACTERS`.
-- [ ] `UsernamePolicy.validate` rejects every reserved word with `RESERVED`, including `ADMIN` (case-insensitive).
-- [ ] `UsernamePolicy.validate("  Maria_01 ")` returns `{ ok: true, username: "maria_01" }`.
-- [ ] `username-policy.ts` imports nothing from `@nestjs/*` or Prisma.
-- [ ] Unit tests cover every `UsernameInvalidReason` and the boundary lengths 3 and 20.
-- [ ] `AuthUser` exposes the new fields and the SPEC 06 guard tests still pass.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] The M2.2 checkbox in `ROADMAP.md` is ticked in the same PR.
+- [x] `pnpm db:migrate` on an empty database adds all columns above and the six enums; existing SPEC 06 data is untouched.
+- [x] A newly signed-up user has `username = null`, `profileVisibility = PUBLIC`, `defaultAnnotationVisibility = PRIVATE`, `ratingStyle = STARS_HALF`, `progressStyle = PAGES`, `locale = en`, `theme = SYSTEM`, `timeZone = "UTC"`, `reminderEnabled = false`, `onboardingCompletedAt = null`.
+- [x] Sign-up with `username`, `profileVisibility` or any other new field in the body is rejected with 400 `FIELD_NOT_ALLOWED` and creates no user.
+- [x] Two users cannot share a username that differs only by case (database unique violation).
+- [x] `UsernamePolicy.validate` accepts `ab_1` style names of 3 and 20 characters and rejects 2 and 21 with `TOO_SHORT` and `TOO_LONG`.
+- [x] `UsernamePolicy.validate` rejects spaces, hyphens, dots, accents and emoji with `INVALID_CHARACTERS`.
+- [x] `UsernamePolicy.validate` rejects every reserved word with `RESERVED`, including `ADMIN` (case-insensitive).
+- [x] `UsernamePolicy.validate("  Maria_01 ")` returns `{ ok: true, username: "maria_01" }`.
+- [x] `username-policy.ts` imports nothing from `@nestjs/*` or Prisma.
+- [x] Unit tests cover every `UsernameInvalidReason` and the boundary lengths 3 and 20.
+- [x] `AuthUser` exposes the new fields and the SPEC 06 guard tests still pass.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] The M2.2 checkbox in `ROADMAP.md` is ticked in the same PR.
 
 UI states: N/A, this spec touches no screen or component.
 
