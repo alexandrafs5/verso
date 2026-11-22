@@ -12,17 +12,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { signIn } from '@/lib/auth-client';
 import { AuthAlert, AuthField, OrDivider, fieldA11y, linkClass } from './AuthFormParts';
+import { VERIFY_EMAIL_CALLBACK } from './auth-routes';
 import { GoogleButton } from './GoogleButton';
 import { mapAuthError, type AuthErrorKind } from './map-auth-error';
 import { PasswordField } from './PasswordField';
+import { setPendingEmail } from './pending-email';
 import { SIGNED_IN_HOME, useRedirectIfSignedIn } from './use-redirect-if-signed-in';
+import { useRestoreFocus } from './use-restore-focus';
 import { useWakeUpPing } from './use-wake-up-ping';
 import { validationKey } from './validation-messages';
 import { withWaking } from './with-waking';
 
 type Failure = Exclude<AuthErrorKind, 'unverified'> | 'google';
 
-export function SignInForm({ oauthFailed = false }: { oauthFailed?: boolean }) {
+export function SignInForm({
+  oauthFailed = false,
+  resetSuccess = false,
+}: {
+  oauthFailed?: boolean;
+  resetSuccess?: boolean;
+}) {
   const t = useTranslations('auth');
   const router = useRouter();
   useWakeUpPing();
@@ -38,14 +47,16 @@ export function SignInForm({ oauthFailed = false }: { oauthFailed?: boolean }) {
     defaultValues: { email: '', password: '' },
   });
 
+  useRestoreFocus(isSubmitting);
+
   const [failure, setFailure] = useState<Failure | null>(oauthFailed ? 'google' : null);
-  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   function applyError(error: unknown, email: string) {
     const kind = mapAuthError(error);
     if (kind === 'unverified') {
       // The API re-sends the verification email on this response (SPEC 08).
-      setUnverifiedEmail(email);
+      setPendingEmail(email);
+      router.replace('/verify-email');
     } else {
       setFailure(kind);
     }
@@ -53,10 +64,10 @@ export function SignInForm({ oauthFailed = false }: { oauthFailed?: boolean }) {
 
   const onSubmit = handleSubmit(async ({ email, password }) => {
     setFailure(null);
-    setUnverifiedEmail(null);
     try {
+      // The callback only matters for the 403 case: the re-sent verification link lands here.
       const { error } = await withWaking(() =>
-        signIn.email({ email, password, callbackURL: SIGNED_IN_HOME }),
+        signIn.email({ email, password, callbackURL: VERIFY_EMAIL_CALLBACK }),
       );
       if (error) {
         applyError(error, email);
@@ -76,12 +87,8 @@ export function SignInForm({ oauthFailed = false }: { oauthFailed?: boolean }) {
       <h1>{t('signIn.title')}</h1>
       <p className="mt-2 mb-8 text-muted">{t('signIn.subtitle')}</p>
 
+      {resetSuccess ? <AuthAlert tone="info">{t('signIn.resetSuccess')}</AuthAlert> : null}
       {failure ? <AuthAlert tone="error">{t(`errors.${failure}`)}</AuthAlert> : null}
-      {unverifiedEmail ? (
-        <AuthAlert tone="info" title={t('signIn.unverifiedTitle')}>
-          {t('signIn.unverifiedBody', { email: unverifiedEmail })}
-        </AuthAlert>
-      ) : null}
 
       <div className="flex flex-col gap-5">
         <form noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
@@ -104,7 +111,10 @@ export function SignInForm({ oauthFailed = false }: { oauthFailed?: boolean }) {
             label={t('fields.password')}
             error={passwordKey && t(`validation.${passwordKey}`)}
             labelAction={
-              <Link href="/forgot-password" className={`-my-3 inline-block py-3 text-sm ${linkClass}`}>
+              <Link
+                href="/forgot-password"
+                className={`-my-3 inline-block py-3 text-sm ${linkClass}`}
+              >
                 {t('signIn.forgot')}
               </Link>
             }

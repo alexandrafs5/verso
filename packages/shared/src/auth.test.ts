@@ -1,5 +1,42 @@
 import { describe, expect, it } from 'vitest';
-import { signInSchema, signUpSchema } from './auth.js';
+import { emailOnlySchema, resetPasswordSchema, signInSchema, signUpSchema } from './auth.js';
+
+describe('emailOnlySchema', () => {
+  it('normalizes the email to trimmed lowercase', () => {
+    expect(emailOnlySchema.parse({ email: '  Ana@Example.COM ' }).email).toBe('ana@example.com');
+  });
+
+  it('rejects an invalid or empty email', () => {
+    expect(emailOnlySchema.safeParse({ email: 'nope' }).success).toBe(false);
+    expect(emailOnlySchema.safeParse({ email: '' }).success).toBe(false);
+  });
+});
+
+describe('resetPasswordSchema', () => {
+  const valid = { password: 'longenough', confirmPassword: 'longenough' };
+
+  it('accepts matching passwords of valid length', () => {
+    expect(resetPasswordSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it('rejects a password shorter than 8 characters', () => {
+    const r = resetPasswordSchema.safeParse({ password: '1234567', confirmPassword: '1234567' });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejects a password longer than 128 characters', () => {
+    const long = 'a'.repeat(129);
+    expect(resetPasswordSchema.safeParse({ password: long, confirmPassword: long }).success).toBe(
+      false,
+    );
+  });
+
+  it('reports a mismatch on confirmPassword', () => {
+    const r = resetPasswordSchema.safeParse({ ...valid, confirmPassword: 'different1' });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0]?.path).toEqual(['confirmPassword']);
+  });
+});
 
 describe('signInSchema', () => {
   it('normalizes the email to trimmed lowercase', () => {

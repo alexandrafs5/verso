@@ -75,9 +75,7 @@
       "submitting": "Iniciando sesión",
       "noAccount": "¿Eres nuevo en Verso?",
       "createLink": "Crear cuenta",
-      "resetSuccess": "Tu contraseña se cambió. Inicia sesión con la nueva.",
-      "unverifiedTitle": "Verifica tu correo",
-      "unverifiedBody": "Enviamos un nuevo enlace de verificación a {email}. Ábrelo y después inicia sesión."
+      "resetSuccess": "Tu contraseña se cambió. Inicia sesión con la nueva."
     },
     "signUp": {
       "title": "Crear cuenta",
@@ -85,12 +83,45 @@
       "submit": "Crear cuenta",
       "submitting": "Creando cuenta",
       "hasAccount": "¿Ya tienes una cuenta?",
-      "signInLink": "Iniciar sesión",
-      "checkInboxTitle": "Revisa tu bandeja de entrada",
-      "checkInboxBody": "Enviamos un enlace de verificación a {email}. Ábrelo para activar tu cuenta.",
+      "signInLink": "Iniciar sesión"
+    },
+    "verifyEmail": {
+      "pendingTitle": "Revisa tu bandeja de entrada",
+      "pendingBody": "Enviamos un enlace de verificación a {email}. Ábrelo para activar tu cuenta.",
+      "pendingBodyNoEmail": "Escribe tu correo y te enviaremos un nuevo enlace de verificación.",
+      "successTitle": "Correo verificado",
+      "successBody": "Tu correo está confirmado. Inicia sesión para empezar tu biblioteca.",
+      "successAction": "Iniciar sesión",
+      "expiredTitle": "Este enlace ya no es válido",
+      "expiredBody": "El enlace de verificación caducó o ya se usó. Envía uno nuevo.",
+      "resend": "Reenviar correo",
+      "resending": "Enviando",
+      "resendIn": "Reenviar en {seconds} s",
+      "resent": "Correo de verificación enviado.",
       "backToSignIn": "Volver a iniciar sesión"
     },
+    "forgotPassword": {
+      "title": "¿Olvidaste tu contraseña?",
+      "subtitle": "Escribe tu correo y te enviaremos un enlace para restablecerla.",
+      "submit": "Enviar enlace",
+      "submitting": "Enviando",
+      "sentTitle": "Revisa tu bandeja de entrada",
+      "sentBody": "Si existe una cuenta, enviamos un enlace para restablecer tu contraseña.",
+      "backToSignIn": "Volver a iniciar sesión"
+    },
+    "resetPassword": {
+      "title": "Elige una contraseña nueva",
+      "subtitle": "Elige una contraseña que no hayas usado antes.",
+      "newPassword": "Contraseña nueva",
+      "confirmPassword": "Confirmar contraseña",
+      "submit": "Cambiar contraseña",
+      "submitting": "Cambiando contraseña",
+      "expiredTitle": "Este enlace ya no es válido",
+      "expiredBody": "El enlace para restablecer caducó o ya se usó. Solicita uno nuevo.",
+      "requestNew": "Solicitar un nuevo enlace"
+    },
     "validation": {
+      "passwordMismatch": "Las contraseñas no coinciden.",
       "emailRequired": "Escribe tu correo electrónico.",
       "emailInvalid": "Escribe un correo electrónico válido.",
       "passwordRequired": "Escribe tu contraseña.",

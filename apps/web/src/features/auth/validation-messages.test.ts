@@ -17,6 +17,11 @@ describe('validationKey', () => {
     expect(validationKey('password', 'too_big', 'x'.repeat(129))).toBe('passwordTooLong');
   });
 
+  it('maps confirm password issues', () => {
+    expect(validationKey('confirmPassword', 'custom', '')).toBe('passwordRequired');
+    expect(validationKey('confirmPassword', 'custom', 'other')).toBe('passwordMismatch');
+  });
+
   it('maps name issues', () => {
     expect(validationKey('name', 'too_small', '')).toBe('nameRequired');
     expect(validationKey('name', 'too_big', 'x'.repeat(81))).toBe('nameTooLong');

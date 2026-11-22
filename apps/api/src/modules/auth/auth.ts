@@ -22,6 +22,8 @@ export function createAuth(prisma: PrismaService, env: AuthEnv, authEmail: AuthE
       minPasswordLength: 8,
       // Google users arrive verified; password users must verify before signing in.
       requireEmailVerification: true,
+      // A reset often follows a suspected compromise: end every other session (SPEC 10).
+      revokeSessionsOnPasswordReset: true,
       // The hooks do not await the send: awaiting slows the response and leaks account existence.
       sendResetPassword: ({ user, url }, request) => {
         authEmail.sendPasswordReset(user, url, request);

@@ -36,7 +36,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [x] **M2.1** Better Auth in the API (Prisma adapter, email + password, Google), mounted at `/api/auth`; `SessionGuard`, `AdminGuard`, `@CurrentUser()`. §7 §10
 - [x] **M2.2** User extensions (username, settings fields, role); `UsernamePolicy` with tests.
 - [x] **M2.3** `EmailProvider`: SMTP (Mailpit) locally, Brevo in production; verification and reset emails in EN/ES. §9
-- [ ] **M2.4** Screens P2: sign in, create account (split layout with rotating public-domain quote), verify email, forgot and reset password.
+- [x] **M2.4** Screens P2: sign in, create account (split layout with rotating public-domain quote), verify email, forgot and reset password.
 - [ ] **M2.5** P3 onboarding (7 steps; step 7 "Import from Goodreads" links to S15, which ships in M11 — until then the step shows only Skip) + `GET/PATCH /v1/me`, `/v1/me/settings`, username availability, avatar upload (Supabase signed URL, WebP compression).
 - [ ] **M2.6** Rate limiting on auth routes; integration tests for sign-up, sign-in, guards.
 

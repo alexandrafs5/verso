@@ -75,9 +75,7 @@
       "submitting": "Signing in",
       "noAccount": "New to Verso?",
       "createLink": "Create account",
-      "resetSuccess": "Your password was changed. Sign in with the new one.",
-      "unverifiedTitle": "Verify your email",
-      "unverifiedBody": "We sent a new verification link to {email}. Open it, then sign in."
+      "resetSuccess": "Your password was changed. Sign in with the new one."
     },
     "signUp": {
       "title": "Create account",
@@ -85,12 +83,45 @@
       "submit": "Create account",
       "submitting": "Creating account",
       "hasAccount": "Already have an account?",
-      "signInLink": "Sign in",
-      "checkInboxTitle": "Check your inbox",
-      "checkInboxBody": "We sent a verification link to {email}. Open it to activate your account.",
+      "signInLink": "Sign in"
+    },
+    "verifyEmail": {
+      "pendingTitle": "Check your inbox",
+      "pendingBody": "We sent a verification link to {email}. Open it to activate your account.",
+      "pendingBodyNoEmail": "Enter your email and we will send a new verification link.",
+      "successTitle": "Email verified",
+      "successBody": "Your email is confirmed. Sign in to start your library.",
+      "successAction": "Sign in",
+      "expiredTitle": "This link is no longer valid",
+      "expiredBody": "The verification link expired or was already used. Send a new one.",
+      "resend": "Resend email",
+      "resending": "Sending",
+      "resendIn": "Resend in {seconds}s",
+      "resent": "Verification email sent.",
       "backToSignIn": "Back to sign in"
     },
+    "forgotPassword": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email and we will send you a link to reset it.",
+      "submit": "Send reset link",
+      "submitting": "Sending",
+      "sentTitle": "Check your inbox",
+      "sentBody": "If an account exists, we sent a link to reset your password.",
+      "backToSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "subtitle": "Choose a password you have not used before.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "submit": "Change password",
+      "submitting": "Changing password",
+      "expiredTitle": "This link is no longer valid",
+      "expiredBody": "The reset link expired or was already used. Request a new one.",
+      "requestNew": "Request a new link"
+    },
     "validation": {
+      "passwordMismatch": "Passwords do not match.",
       "emailRequired": "Enter your email.",
       "emailInvalid": "Enter a valid email address.",
       "passwordRequired": "Enter your password.",
