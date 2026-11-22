@@ -95,3 +95,76 @@ export function LockOpenIcon(props: SVGProps<SVGSVGElement>) {
     </Icon>
   );
 }
+
+export function HomeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 11l8-6.5 8 6.5" />
+      <path d="M6 10v9.5h12V10" />
+      <path d="M10 19.5v-5h4v5" />
+    </Icon>
+  );
+}
+
+export function LibraryIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M5 4.5v15M10 4.5v15" />
+      <path d="M14.2 5.6l3.4-1 3 14.2-3.4 1-3-14.2z" />
+    </Icon>
+  );
+}
+
+export function SearchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M16 16l4.5 4.5" />
+    </Icon>
+  );
+}
+
+export function StatsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M5 20V12M12 20V5M19 20v-9" />
+    </Icon>
+  );
+}
+
+export function UserIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5 20c.8-3.6 3.5-5.5 7-5.5s6.2 1.9 7 5.5" />
+    </Icon>
+  );
+}
+
+export function BellIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15l1.5-2z" />
+      <path d="M10 20.5a2 2 0 0 0 4 0" />
+    </Icon>
+  );
+}
+
+export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+      <circle cx="15" cy="7" r="2" />
+      <circle cx="9" cy="17" r="2" />
+    </Icon>
+  );
+}
+
+export function SignOutIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M10 4.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 19.5h4" />
+      <path d="M14.5 8l4 4-4 4M18.5 12H9.5" />
+    </Icon>
+  );
+}

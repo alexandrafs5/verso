@@ -30,6 +30,22 @@
     "add": "Add to library",
     "chooseStatus": "Choose a status"
   },
+  "shell": {
+    "wordmark": "Verso",
+    "mainNav": "Main navigation",
+    "tabBar": "Primary navigation",
+    "home": "Home",
+    "library": "Library",
+    "search": "Search",
+    "stats": "Stats",
+    "profile": "Profile",
+    "settings": "Settings",
+    "admin": "Admin",
+    "signOut": "Sign out",
+    "notifications": "Notifications",
+    "userMenu": "Account menu",
+    "wakingUp": "Waking up the server. This can take up to a minute."
+  },
   "plurals": {
     "books": "{count, plural, =0 {No books} one {# book} other {# books}}",
     "pages": "{count, plural, one {# page} other {# pages}}",

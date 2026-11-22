@@ -30,6 +30,22 @@
     "add": "Añadir a la biblioteca",
     "chooseStatus": "Elige un estado"
   },
+  "shell": {
+    "wordmark": "Verso",
+    "mainNav": "Navegación principal",
+    "tabBar": "Navegación principal",
+    "home": "Inicio",
+    "library": "Biblioteca",
+    "search": "Buscar",
+    "stats": "Estadísticas",
+    "profile": "Perfil",
+    "settings": "Ajustes",
+    "admin": "Administración",
+    "signOut": "Cerrar sesión",
+    "notifications": "Notificaciones",
+    "userMenu": "Menú de cuenta",
+    "wakingUp": "Despertando el servidor. Puede tardar hasta un minuto."
+  },
   "plurals": {
     "books": "{count, plural, =0 {Ningún libro} one {# libro} other {# libros}}",
     "pages": "{count, plural, one {# página} other {# páginas}}",
