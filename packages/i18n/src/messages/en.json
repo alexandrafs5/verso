@@ -110,6 +110,7 @@
   },
   "home": {
     "title": "Home",
+    "errorTitle": "We could not load your account",
     "checkingSession": "Loading your account",
     "emptyTitle": "Your library will appear here",
     "emptyBody": "Home is being built. Your books and progress will show up on this page soon."

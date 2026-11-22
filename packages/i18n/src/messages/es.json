@@ -110,6 +110,7 @@
   },
   "home": {
     "title": "Inicio",
+    "errorTitle": "No pudimos cargar tu cuenta",
     "checkingSession": "Cargando tu cuenta",
     "emptyTitle": "Tu biblioteca aparecerá aquí",
     "emptyBody": "Estamos construyendo Inicio. Tus libros y tu progreso aparecerán pronto en esta página."
