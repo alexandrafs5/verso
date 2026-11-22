@@ -177,7 +177,7 @@
       },
       "progress": {
         "title": "¿Cómo llevas tu progreso?",
-        "description": "Elige qué anotas mientras lees. Podrás cambiarlo después en Ajustes."
+        "description": "Es tu preferencia por defecto. Puedes cambiarla en Ajustes o al registrar progreso, y cada libro recuerda la última que usaste. Los libros sin número de páginas usan porcentaje."
       },
       "privacy": {
         "title": "¿Quién puede ver tu perfil?",

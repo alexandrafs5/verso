@@ -177,7 +177,7 @@
       },
       "progress": {
         "title": "How do you track your progress?",
-        "description": "Pick what you note down while reading. You can change it later in Settings."
+        "description": "It is your default. You can change it in Settings or when you log progress, and each book remembers the last one you used. Books without a page count use percentage."
       },
       "privacy": {
         "title": "Who can see your profile?",
