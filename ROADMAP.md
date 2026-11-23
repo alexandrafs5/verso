@@ -38,12 +38,13 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [x] **M2.3** `EmailProvider`: SMTP (Mailpit) locally, Brevo in production; verification and reset emails in EN/ES. §9
 - [x] **M2.4** Screens P2: sign in, create account (split layout with rotating public-domain quote), verify email, forgot and reset password.
 - [x] **M2.5** P3 onboarding (7 steps; step 7 "Import from Goodreads" links to S15, which ships in M11 — until then the step shows only Skip) + `GET/PATCH /v1/me`, `/v1/me/settings`, username availability, avatar upload (Supabase signed URL, WebP compression).
-- [ ] **M2.6** Rate limiting on auth routes; integration tests for sign-up, sign-in, guards.
+- [x] **M2.6** Rate limiting on auth routes; integration tests for sign-up, sign-in, guards.
 
 **Done when:** a new user can register (email or Google), verify, finish onboarding and land on an empty Home.
 
 ### M3. Catalog
 
+- [ ] **M3.0** `@nestjs/throttler` on `/v1`: search 60/min/user, writes 120/min/user, plus `/v1/me` username availability and avatar upload URL limits (deferred from M2.6). §10
 - [ ] **M3.1** `CatalogProvider` + `OpenLibraryProvider` (search, work, editions, ISBN, author) with `ExternalCache`, User-Agent, timeouts. Fixture-based tests. §7
 - [ ] **M3.2** Catalog tables and migration (Work, Edition, Author, WorkAuthor, Genre, WorkGenre, Series). §5.3
 - [ ] **M3.3** `GET /v1/search/books`, `/v1/works/{ref}`, `/editions`, `/v1/authors/{ref}`, `/v1/series/{id}`, `/v1/isbn/{isbn}`.
@@ -124,7 +125,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [ ] **M12.2** Settings: all sections complete (S13), delete account.
 - [ ] **M12.3** Accessibility pass (keyboard, contrast, screen reader labels) and responsive pass on every screen.
 - [ ] **M12.4** Playwright e2e journeys (§12) in CI.
-- [ ] **M12.5** Deploy: Neon, Supabase bucket, Brevo sender, Google OAuth, Render (Dockerfile, migrate on start), Vercel; production smoke test.
+- [ ] **M12.5** Deploy: Neon, Supabase bucket, Brevo sender, Google OAuth, Render (Dockerfile, migrate on start), Vercel; production smoke test, including 11 rapid sign-ins from one machine returning 429 (checks Render `x-forwarded-for` handling, SPEC 12).
 - [ ] **M12.6** README for recruiters: what it is, screenshots, architecture diagram, how to run, decisions (link ADRs).
 
 **F1 done when:** deployed, used daily by you, CI green, README published.

@@ -552,7 +552,7 @@ pg-boss settings: polling interval 10 s (keeps Neon compute low), retry limit 3,
 - **Sessions:** Better Auth database sessions in an `HttpOnly; Secure; SameSite=Lax` cookie on the web origin; Better Auth's origin checks for CSRF on state-changing auth routes; our API also checks `Origin` against `WEB_ORIGIN` for non-GET requests.
 - **Passwords:** Better Auth hashing (scrypt); minimum 8 characters; email verification required before social features; reset links expire in 1 hour.
 - **Authorization:** every service method that reads another user's data goes through `ProfileAccessPolicy` / `VisibilityResolver`; ownership checks on every mutation (`userBook.userId === currentUser.id`). Integration tests cover each access rule.
-- **Rate limiting:** `@nestjs/throttler` (in-memory, single instance): auth routes 10/min/IP, search 60/min/user, writes 120/min/user.
+- **Rate limiting:** auth routes (`/api/auth/*`) use Better Auth's built-in rate limiter (in-memory, single instance): 10 per 60 s per IP per path, `get-session` exempt, switch and max through `AUTH_RATE_LIMIT_ENABLED` / `AUTH_RATE_LIMIT_MAX`. `/v1` limits (search 60/min/user, writes 120/min/user) use `@nestjs/throttler` and land with the first endpoint that needs them.
 - **Input:** Zod validation on every body, query and param; CSV size and row limits (5 MB, 5,000 rows).
 - **Uploads:** signed upload URLs with path scoped to the user (`avatars/{userId}/…`, `covers/{userId}/…`), images only, max 2 MB; the web compresses to WebP before upload.
 - **Headers:** `helmet` on the API; Next.js security headers (CSP allowing Open Library covers and the Supabase storage host).
@@ -594,6 +594,7 @@ E2E journeys: sign up → onboarding → add book → log progress → finish �
 | `DATABASE_URL` | api | Neon pooled connection (Prisma queries) |
 | `DIRECT_DATABASE_URL` | api | Neon direct connection (migrations, pg-boss) |
 | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | api | `BETTER_AUTH_URL` = web origin (cookies and redirects go through the proxy) |
+| `AUTH_RATE_LIMIT_ENABLED`, `AUTH_RATE_LIMIT_MAX` | api | Auth rate limiter switch (default `true`) and max per 60 s per IP per path (default `10`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | api | Google Cloud OAuth (free); redirect URI `https://<web>/api/auth/callback/google` |
 | `WEB_ORIGIN` | api | Allowed origin |
 | `BREVO_API_KEY`, `EMAIL_FROM` | api | Verified single sender |
