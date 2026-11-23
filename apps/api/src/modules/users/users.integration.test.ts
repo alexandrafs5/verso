@@ -17,6 +17,8 @@ import { GoalPolicy } from './domain/goal-policy.js';
 process.env['BETTER_AUTH_SECRET'] ??= 'test-secret-test-secret-test-secret';
 process.env['BETTER_AUTH_URL'] ??= 'http://localhost:3000';
 process.env['WEB_ORIGIN'] ??= 'http://localhost:3000';
+// Many sign-ups from one IP: the limit has its own file (auth-rate-limit.integration.test.ts).
+process.env['AUTH_RATE_LIMIT_ENABLED'] = 'false';
 
 const ORIGIN = 'http://localhost:3000';
 const EMAIL_DOMAIN = '@users-test.local';
