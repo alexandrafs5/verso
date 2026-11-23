@@ -167,6 +167,13 @@ describe('Better Auth + guards (integration)', () => {
       expect(await prisma.user.count({ where: { email } })).toBe(0);
     });
 
+    it('rejects an invalid email and creates no user', async () => {
+      const res = await signUp('not-an-email');
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.status).toBeLessThan(500);
+      expect(await prisma.user.count({ where: { email: 'not-an-email' } })).toBe(0);
+    });
+
     it('ignores role in the body: role "ADMIN" produces a USER', async () => {
       const email = uniqueEmail();
       await signUp(email, PASSWORD, { role: 'ADMIN' });
@@ -193,6 +200,17 @@ describe('Better Auth + guards (integration)', () => {
       const res = await signIn(email, 'wrong password!');
       expect(res.status).toBe(401);
       expect(res.headers['set-cookie']).toBeUndefined();
+    });
+
+    it('answers a wrong password and an unknown email with the same status and body', async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      await verifyEmail(email);
+      const wrongPassword = await signIn(email, 'wrong password!');
+      const unknownEmail = await signIn(uniqueEmail(), 'wrong password!');
+      expect(unknownEmail.status).toBe(wrongPassword.status);
+      expect(unknownEmail.body).toEqual(wrongPassword.body);
+      expect(unknownEmail.headers['set-cookie']).toBeUndefined();
     });
 
     it('get-session returns the user with the cookie and no session without it', async () => {
@@ -233,6 +251,26 @@ describe('Better Auth + guards (integration)', () => {
       const res = await request(server).get('/api/test/me').set('Cookie', cookie);
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ id: user.id, email, role: 'USER' });
+    });
+
+    it('returns 401 problem+json for an invalid cookie', async () => {
+      const res = await request(server)
+        .get('/api/test/me')
+        .set('Cookie', 'better-auth.session_token=not-a-real-token.signature');
+      expect(res.status).toBe(401);
+      expect(res.headers['content-type']).toMatch(/^application\/problem\+json/);
+      expect(problemSchema.parse(res.body).code).toBe(ErrorCode.UNAUTHENTICATED);
+    });
+
+    it('@CurrentUser() never exposes the password hash', async () => {
+      const email = uniqueEmail();
+      const cookie = await signUpAndSignIn(email);
+      const account = await prisma.account.findFirstOrThrow({ where: { user: { email } } });
+      expect(account.password).toBeTruthy();
+      const res = await request(server).get('/api/test/profile').set('Cookie', cookie);
+      expect(res.status).toBe(200);
+      expect(res.body).not.toHaveProperty('password');
+      expect(JSON.stringify(res.body)).not.toContain(account.password as string);
     });
 
     it('returns 401 for an expired session', async () => {
