@@ -89,7 +89,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('maps results to summaries with ol refs and a null library status', async () => {
       fresh();
       provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
-      const res = await service.searchBooks({ q: 'Pedro', limit: 20 });
+      const res = await service.searchBooks({ q: 'Pedro' });
       expect(res.items).toEqual([
         {
           ref: 'ol:OL1W',
@@ -105,30 +105,30 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
     it('sends the genre as a subject clause and strips quotes', async () => {
       fresh();
-      await service.searchBooks({ q: 'Pedro Páramo', genre: 'Fic"tion', limit: 20 });
+      await service.searchBooks({ q: 'Pedro Páramo', genre: 'Fic"tion' });
       expect(provider.searches).toEqual([{ query: 'Pedro Páramo subject:"Fiction"', page: 1 }]);
     });
 
     it('sets nextCursor to the next page and follows it', async () => {
       fresh();
       provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
-      const first = await service.searchBooks({ q: 'Pedro', limit: 20 });
+      const first = await service.searchBooks({ q: 'Pedro' });
       expect(first.nextCursor).toBe(encodeCursor(2));
 
-      await service.searchBooks({ q: 'Pedro', cursor: first.nextCursor ?? '', limit: 20 });
+      await service.searchBooks({ q: 'Pedro', cursor: first.nextCursor ?? '' });
       expect(provider.searches.map((s) => s.page)).toEqual([1, 2]);
     });
 
     it('returns a null nextCursor on an empty page', async () => {
       fresh();
-      const res = await service.searchBooks({ q: 'nothing', limit: 20 });
+      const res = await service.searchBooks({ q: 'nothing' });
       expect(res).toEqual({ items: [], nextCursor: null });
     });
 
     it('rejects a malformed cursor without calling the provider', async () => {
       fresh();
       await failsWith(
-        service.searchBooks({ q: 'a', cursor: 'garbage', limit: 20 }),
+        service.searchBooks({ q: 'a', cursor: 'garbage' }),
         400,
         ErrorCode.INVALID_CURSOR,
       );
@@ -138,11 +138,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('maps an outage to 503 CATALOG_UNAVAILABLE', async () => {
       fresh();
       provider.unavailable = true;
-      await failsWith(
-        service.searchBooks({ q: 'a', limit: 20 }),
-        503,
-        ErrorCode.CATALOG_UNAVAILABLE,
-      );
+      await failsWith(service.searchBooks({ q: 'a' }), 503, ErrorCode.CATALOG_UNAVAILABLE);
     });
   });
 

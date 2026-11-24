@@ -5,7 +5,6 @@ export const WORK_SOURCES = ['OPEN_LIBRARY', 'MANUAL'] as const;
 
 export const SEARCH_QUERY_MAX = 200;
 export const GENRE_MAX = 80;
-export const SEARCH_LIMIT_MAX = 20;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const OL_WORK_REF_RE = /^ol:OL\d+W$/;
@@ -38,7 +37,6 @@ export const searchBooksQuerySchema = z.object({
   q: z.string().trim().min(1).max(SEARCH_QUERY_MAX),
   genre: z.string().trim().min(1).max(GENRE_MAX).optional(),
   cursor: z.string().min(1).max(200).optional(),
-  limit: z.coerce.number().int().min(1).max(SEARCH_LIMIT_MAX).default(SEARCH_LIMIT_MAX),
 });
 
 export const editionsQuerySchema = z.object({

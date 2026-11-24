@@ -49,12 +49,8 @@ describe('refs', () => {
 });
 
 describe('searchBooksQuerySchema', () => {
-  it('trims q and defaults limit to 20', () => {
-    expect(searchBooksQuerySchema.parse({ q: '  Pedro  ' })).toEqual({ q: 'Pedro', limit: 20 });
-  });
-
-  it('coerces limit from a string', () => {
-    expect(searchBooksQuerySchema.parse({ q: 'a', limit: '5' }).limit).toBe(5);
+  it('trims q', () => {
+    expect(searchBooksQuerySchema.parse({ q: '  Pedro  ' })).toEqual({ q: 'Pedro' });
   });
 
   it('rejects empty, blank and too long q', () => {
@@ -64,10 +60,8 @@ describe('searchBooksQuerySchema', () => {
     expect(searchBooksQuerySchema.safeParse({ q: 'a'.repeat(200) }).success).toBe(true);
   });
 
-  it('rejects genre over 80 characters and limits out of range', () => {
+  it('rejects genre over 80 characters', () => {
     expect(searchBooksQuerySchema.safeParse({ q: 'a', genre: 'g'.repeat(81) }).success).toBe(false);
-    expect(searchBooksQuerySchema.safeParse({ q: 'a', limit: 0 }).success).toBe(false);
-    expect(searchBooksQuerySchema.safeParse({ q: 'a', limit: 21 }).success).toBe(false);
   });
 });
 
