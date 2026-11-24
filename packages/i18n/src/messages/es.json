@@ -47,6 +47,42 @@
     "userMenu": "Menú de cuenta",
     "wakingUp": "Despertando el servidor. Puede tardar hasta un minuto."
   },
+  "search": {
+    "label": "Buscar libros",
+    "placeholder": "Buscar libros",
+    "submit": "Buscar",
+    "shortcutHint": "Pulsa Ctrl+K o ⌘K para buscar",
+    "results": "Resultados de búsqueda",
+    "recent": {
+      "heading": "Búsquedas recientes",
+      "remove": "Quitar {query} de las búsquedas recientes",
+      "clearAll": "Borrar todo"
+    },
+    "seeAll": "Ver todos los resultados",
+    "searching": "Buscando",
+    "noMatch": "Ningún libro coincide con ‘{query}’",
+    "noMatchHint": "Revisa la ortografía o prueba con otro título o autor.",
+    "quickError": "La búsqueda no está disponible ahora mismo.",
+    "retry": "Reintentar",
+    "page": {
+      "heading": "Libros",
+      "promptHeading": "Busca un libro",
+      "promptBody": "Escribe un título, un autor o un ISBN.",
+      "editions": "{count, plural, one {# edición} other {# ediciones}}",
+      "coverAlt": "Portada de {title}",
+      "authorsBy": "de {authors}",
+      "genreChip": "Género: {genre}",
+      "removeGenre": "Quitar el filtro de género {genre}",
+      "manualAdd": "¿No encuentras tu libro? Añádelo a mano",
+      "loadMore": "Cargar más",
+      "loadingMore": "Cargando más",
+      "resultsLoaded": "{count, plural, one {# resultado cargado} other {# resultados cargados}}",
+      "errorHeading": "No pudimos cargar los resultados",
+      "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
+      "rateLimited": "Demasiadas búsquedas. Espera un momento e inténtalo de nuevo.",
+      "loadMoreError": "No pudimos cargar más resultados."
+    }
+  },
   "auth": {
     "newPassage": "Un pasaje nuevo en cada visita",
     "quoteLabel": "Cita",

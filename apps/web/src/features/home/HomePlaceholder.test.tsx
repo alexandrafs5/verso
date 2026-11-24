@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
@@ -21,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: mocks.replace }),
+  useRouter: () => ({ replace: mocks.replace, push: vi.fn() }),
   usePathname: () => '/home',
 }));
 vi.mock('@/lib/auth-client', () => ({
@@ -43,7 +44,9 @@ function setup() {
   const ui = userEvent.setup();
   render(
     <NextIntlClientProvider locale="en" messages={messages.en}>
-      <HomePlaceholder />
+      <QueryClientProvider client={new QueryClient()}>
+        <HomePlaceholder />
+      </QueryClientProvider>
     </NextIntlClientProvider>,
   );
   return { ui };

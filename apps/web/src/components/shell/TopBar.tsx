@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { BellIcon, SearchIcon } from '@/components/ui/icons';
+import { TopBarSearch } from '@/features/search/TopBarSearch';
 import { cn } from '@/lib/utils';
 import { AvatarMenu } from './AvatarMenu';
 import { focusRing, isActive, topNavItems } from './nav';
@@ -59,9 +60,11 @@ export function TopBar({ user, onSignOut }: TopBarProps) {
           </ul>
         </nav>
         <div className="ml-auto flex items-center gap-1">
-          <Link href="/search" aria-label={t('search')} className={iconButton}>
+          {/* Below 768px the icon opens the search page; from 768px the field has a dropdown. */}
+          <Link href="/search" aria-label={t('search')} className={cn(iconButton, 'md:hidden')}>
             <SearchIcon width={20} height={20} />
           </Link>
+          <TopBarSearch className="hidden md:block" />
           <button type="button" aria-label={t('notifications')} className={iconButton}>
             <BellIcon width={20} height={20} />
           </button>

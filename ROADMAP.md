@@ -48,8 +48,9 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [x] **M3.1** `CatalogProvider` + `OpenLibraryProvider` (search, work, editions, ISBN, author) with `ExternalCache`, User-Agent, timeouts. Fixture-based tests. §7
 - [x] **M3.2** Catalog tables and migration (Work, Edition, Author, WorkAuthor, Genre, WorkGenre, Series). §5.3 (`ExternalCache` already exists, created in M3.1.)
 - [x] **M3.3** `GET /v1/search/books`, `/v1/works/{ref}`, `/editions`, `/v1/authors/{ref}`, `/v1/series/{id}`, `/v1/isbn/{isbn}`.
-- [ ] **M3.4** Top-bar search with quick results dropdown, ⌘K and recent searches (stored in localStorage); S2 search results page (Books tab), including genre-filtered results from S3 genre chips.
-- [ ] **M3.5** S3 work page, S4 edition selector modal, S5 author page, S6 series page.
+- [x] **M3.4** Top-bar search with quick results dropdown, ⌘K and recent searches (stored in localStorage); S2 search results page (Books tab), including genre-filtered results through `?genre=`.
+- [ ] **M3.3b** Search relevance and duplicate collapse: results ranked by popularity (`sort=editions`), near-duplicate works merged by normalized title and main author, long tail of 1-edition entries folded behind "Show more matches". Fixture tests with the "pedro paramo" query. Needs a spec amendment to SPEC 13 and SPEC 15. Do before M3.5. §7
+- [ ] **M3.5** S3 work page, S4 edition selector modal, S5 author page, S6 series page. Includes the S3 genre chips (chip-to-subject mapping and `Genre` seed), which link to `/search?genre=` from M3.4.
 
 **Done when:** you can search "Pedro Páramo", see one result, open the work, browse editions and the author.
 

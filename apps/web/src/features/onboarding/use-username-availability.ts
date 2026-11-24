@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { UsernameAvailability } from '@verso/shared';
 import { queryKeys } from '@/lib/query-keys';
 import { AVAILABILITY_STALE_MS, fetchAvailability } from './availability';
-import { useDebouncedValue } from './use-debounced-value';
+import { useDebouncedValue } from '@/lib/use-debounced-value';
 
 export const AVAILABILITY_DEBOUNCE_MS = 400;
 
