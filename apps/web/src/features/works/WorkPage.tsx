@@ -2,7 +2,7 @@
 
 import { pickCoverTone } from '@verso/shared';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { BookCover } from '@/components/verso';
 import { EmptyState, ErrorState } from '@/components/verso';
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { EditionLine } from './EditionLine';
 import { EditionSelectorDialog } from './EditionSelectorDialog';
+import { pickDefaultEdition } from './edition-utils';
 import { useWork } from './use-work';
 import { useWorkEditions } from './use-work-editions';
 import { WorkInfo } from './WorkInfo';
@@ -37,6 +38,7 @@ function WorkSkeleton() {
 
 function WorkView({ workRef }: { workRef: string }) {
   const t = useTranslations('work');
+  const locale = useLocale();
   const router = useRouter();
   const work = useWork(workRef);
   const editions = useWorkEditions(workRef);
@@ -72,9 +74,10 @@ function WorkView({ workRef }: { workRef: string }) {
   }
 
   const data = work.data;
-  // The first edition returned is the default selection (SPEC 18).
+  // Default: the first edition in the UI language, else the first one (SPEC 18).
   const editionList = editions.data ?? [];
-  const edition = editionList.find((item) => item.ref === selectedRef) ?? editionList[0] ?? null;
+  const edition =
+    editionList.find((item) => item.ref === selectedRef) ?? pickDefaultEdition(editionList, locale);
   const authors = data.authors.map((author) => author.name).join(', ');
 
   return (

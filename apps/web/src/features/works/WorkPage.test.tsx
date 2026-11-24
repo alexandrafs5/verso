@@ -80,6 +80,24 @@ describe('WorkPage', () => {
     );
   });
 
+  it('defaults to the edition in the UI language, not the first one listed', async () => {
+    routes({
+      editions: json([
+        edition({ ref: 'ol:OL9M', language: 'ca', publisher: 'Debutxaca', pageCount: 824 }),
+        edition({ ref: 'ol:OL8M', language: 'en', publisher: 'Bantam', pageCount: 694 }),
+      ]),
+    });
+    renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+    expect(await screen.findByText('Edition: English · Bantam · 1955 · 694 pages')).toBeVisible();
+    expect(screen.queryByText(/Catalan/)).not.toBeInTheDocument();
+  });
+
+  it('falls back to the first edition when none is in the UI language', async () => {
+    routes({ editions: json([edition({ language: 'ca', publisher: 'Debutxaca' })]) });
+    renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+    expect(await screen.findByText(/Edition: Catalan · Debutxaca/)).toBeVisible();
+  });
+
   it('omits null parts of the edition line', async () => {
     routes({
       editions: json([edition({ language: null, publisher: null, pageCount: null })]),

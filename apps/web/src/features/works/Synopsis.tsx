@@ -20,6 +20,8 @@ export function Synopsis({ text, readMoreLabel, readLessLabel, className }: Syno
   const ref = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
+  // Paragraph breaks join into one flow while clamped: a blank line would eat a clamped row.
+  const collapsed = text.replace(/\s*\n+\s*/g, ' ');
 
   useEffect(() => {
     // Measure only while clamped: an expanded paragraph never overflows.
@@ -39,9 +41,9 @@ export function Synopsis({ text, readMoreLabel, readLessLabel, className }: Syno
       <p
         ref={ref}
         id={id}
-        className={cn('break-words whitespace-pre-line', !expanded && 'line-clamp-5')}
+        className={cn('break-words', expanded ? 'whitespace-pre-line' : 'line-clamp-5')}
       >
-        {text}
+        {expanded ? text : collapsed}
       </p>
       {overflowing || expanded ? (
         <button

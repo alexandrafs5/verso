@@ -21,6 +21,17 @@ describe('Synopsis', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('joins paragraph breaks while clamped and restores them when expanded', async () => {
+    mockHeights(300, 100);
+    const text = 'First paragraph.' + String.fromCharCode(10, 10) + 'Second paragraph.';
+    render(<Synopsis {...props} text={text} />);
+    const paragraph = screen.getByText('First paragraph. Second paragraph.');
+    expect(paragraph).toHaveClass('line-clamp-5');
+    await userEvent.click(screen.getByRole('button', { name: 'Read more' }));
+    expect(paragraph.textContent).toBe(text);
+    expect(paragraph).toHaveClass('whitespace-pre-line');
+  });
+
   it('shows Read more when the text overflows, then toggles to Read less', async () => {
     mockHeights(300, 100);
     render(<Synopsis {...props} />);

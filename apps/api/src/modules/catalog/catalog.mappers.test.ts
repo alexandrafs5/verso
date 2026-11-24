@@ -65,6 +65,24 @@ describe('provider mappers', () => {
     expect(detail.source).toBe('OPEN_LIBRARY');
   });
 
+  it('turns a Markdown description into plain text', () => {
+    const work: ExternalWork = {
+      olWorkKey: 'OL1W',
+      title: 'T',
+      subtitle: null,
+      description:
+        '***A Game of Thrones*** is by **George R. R. Martin**.\r\n\r\n----------\r\nContained in: x',
+      firstPublishYear: null,
+      coverUrl: null,
+      authorKeys: [],
+      subjects: [],
+    };
+    expect(externalWorkToDetail(work, []).description).toBe(
+      'A Game of Thrones is by George R. R. Martin.',
+    );
+    expect(externalWorkToDetail({ ...work, description: null }, []).description).toBeNull();
+  });
+
   it('maps an external edition to an ol: ref', () => {
     const edition: ExternalEdition = {
       olEditionKey: 'OL5M',

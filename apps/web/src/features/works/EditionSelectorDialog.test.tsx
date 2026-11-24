@@ -71,7 +71,9 @@ describe('EditionSelectorDialog', () => {
     const dialog = screen.getByRole('dialog', { name: 'Choose an edition' });
     const rows = within(dialog).getAllByRole('listitem');
     expect(rows).toHaveLength(3);
-    expect(within(rows[0] as HTMLElement).getByText('Selected')).toBeVisible();
+    // The UI is English, so the English edition is the default, not the first one listed.
+    expect(within(rows[0] as HTMLElement).queryByText('Selected')).not.toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getByText('Selected')).toBeVisible();
     expect(within(rows[0] as HTMLElement).getByText('Spanish · Cátedra · 1955')).toBeVisible();
     expect(
       within(rows[0] as HTMLElement).getByText('128 pages · Paperback · ISBN 9788437604947'),

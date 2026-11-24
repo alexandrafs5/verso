@@ -7,6 +7,7 @@ import type {
 import type { Edition } from '../../generated/prisma/client.js';
 import type { WorkRow, WorkSummaryRow } from './catalog.repository.js';
 import { olRef } from './domain/catalog-ref.js';
+import { plainDescription } from './domain/description-text.js';
 
 export const MAX_GENRES = 8;
 export const MAX_AUTHORS = 5;
@@ -65,7 +66,8 @@ export function externalWorkToDetail(work: ExternalWork, authors: AuthorLink[]):
     ref: olRef(work.olWorkKey),
     title: work.title,
     subtitle: work.subtitle,
-    description: work.description,
+    // Open Library descriptions carry Markdown; the cache stores them raw, so clean on the way out.
+    description: plainDescription(work.description),
     firstPublishYear: work.firstPublishYear,
     coverUrl: work.coverUrl,
     authors,
