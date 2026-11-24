@@ -149,7 +149,7 @@ Conventions:
 
 1. Add the four enums and the seven models to `apps/api/prisma/schema.prisma`, with the back-relations on `User`. Verify: `pnpm --filter api prisma validate`.
 2. Run `pnpm db:migrate` with the name `catalog_tables`. Read the generated SQL. Verify: it creates only the new enums, tables, indexes and foreign keys.
-3. Add `apps/api/test/catalog-schema.integration.spec.ts` (match the folder and naming of existing integration tests). Cover the acceptance criteria below. Verify: `pnpm --filter api test`.
+3. Add `apps/api/src/infra/catalog/catalog-schema.integration.test.ts`. Cover the acceptance criteria below. Verify: `pnpm --filter api test`.
 4. Tick M3.2 in `ROADMAP.md`. Run `pnpm lint && pnpm typecheck && pnpm test`.
 
 ## Acceptance criteria
