@@ -1,6 +1,6 @@
 # SPEC 16 — Search UI: top-bar quick results, recent searches and results page (M3.4)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 03, SPEC 05, SPEC 15
 > **Date:** 2026-11-24
 > **Objective:** Add a top-bar search field with a quick-results dropdown, ⌘K and recent searches, plus the S2 search results page for books with an optional genre filter, reading only `GET /v1/search/books`.
@@ -89,75 +89,75 @@ Manual verification in steps 4 to 6 needs the real stack and network: `docker co
 
 **Quick results**
 
-- [ ] Focusing an empty top-bar field (from 768px) shows recent searches, or nothing when there are none.
-- [ ] Typing 1 character sends no request. Typing 2 or more sends one request after 250 ms of no typing.
-- [ ] The dropdown lists at most 5 works with cover, title and authors, and a footer item "See all results".
-- [ ] Enter with no active option goes to `/search?q=<text>` and stores the text in recents.
-- [ ] Arrow Down and Arrow Up move the active option, Enter on a work goes to `/works/<encoded ref>`, Escape closes the dropdown and keeps the text.
-- [ ] Clicking outside closes the dropdown.
-- [ ] Ctrl+K (Windows, Linux) and ⌘K (macOS) focus the field and open the dropdown. The shortcut is ignored below 768px.
-- [ ] Ctrl+K pressed inside another text input or textarea focuses the search field. The browser's own handler is blocked only when the search field is not already focused.
-- [ ] The `listbox` contains only `option` elements. Buttons, status text and the error line are outside it, and `aria-controls` points at the listbox.
-- [ ] The field exposes the shortcut with `aria-keyshortcuts` and a `title`.
-- [ ] The field has an accessible name, and the combobox attributes in the Data model section are present and update with the active option.
+- [x] Focusing an empty top-bar field (from 768px) shows recent searches, or nothing when there are none.
+- [x] Typing 1 character sends no request. Typing 2 or more sends one request after 250 ms of no typing.
+- [x] The dropdown lists at most 5 works with cover, title and authors, and a footer item "See all results".
+- [x] Enter with no active option goes to `/search?q=<text>` and stores the text in recents.
+- [x] Arrow Down and Arrow Up move the active option, Enter on a work goes to `/works/<encoded ref>`, Escape closes the dropdown and keeps the text.
+- [x] Clicking outside closes the dropdown.
+- [x] Ctrl+K (Windows, Linux) and ⌘K (macOS) focus the field and open the dropdown. The shortcut is ignored below 768px.
+- [x] Ctrl+K pressed inside another text input or textarea focuses the search field. The browser's own handler is blocked only when the search field is not already focused.
+- [x] The `listbox` contains only `option` elements. Buttons, status text and the error line are outside it, and `aria-controls` points at the listbox.
+- [x] The field exposes the shortcut with `aria-keyshortcuts` and a `title`.
+- [x] The field has an accessible name, and the combobox attributes in the Data model section are present and update with the active option.
 
 **Recent searches**
 
-- [ ] A submitted search is stored once, newest first. Repeating it with other casing moves it to the top without a duplicate.
-- [ ] Only the 8 newest entries are kept.
-- [ ] Removing one entry and "Clear all" update the list and localStorage.
-- [ ] Corrupt data under `verso:recent-searches:v1` is ignored without an error.
-- [ ] With localStorage blocked, search still works and recents last until reload.
+- [x] A submitted search is stored once, newest first. Repeating it with other casing moves it to the top without a duplicate.
+- [x] Only the 8 newest entries are kept.
+- [x] Removing one entry and "Clear all" update the list and localStorage.
+- [x] Corrupt data under `verso:recent-searches:v1` is ignored without an error.
+- [x] With localStorage blocked, search still works and recents last until reload.
 
 **Results page**
 
-- [ ] `/search?q=Pedro Páramo` renders one row per work with title, authors, first publication year and "N editions". Rows without `editionCount` omit that text.
-- [ ] A row links to `/works/<encoded ref>`.
-- [ ] "Load more" appears only when `nextCursor` is set, fetches the next page and appends rows, and disappears when `nextCursor` is `null`.
-- [ ] `/search?q=dune&genre=Fiction` sends `genre=Fiction` and shows a "Fiction" chip. Removing the chip reloads results for `q` only and drops `genre` from the URL.
-- [ ] Submitting the page's own field updates `q` in the URL and keeps `genre`.
-- [ ] `/search` with no `q` shows a prompt state, sends no request, and the field is focused.
-- [ ] `q` over 200 characters or `genre` over 80 characters shows the empty prompt state and sends no request. A blank `genre` counts as no genre.
-- [ ] The page shows "No books match ‘{query}’" with the manual add link when the result is empty.
-- [ ] A 503 `CATALOG_UNAVAILABLE` or a 429 shows an error message with a Retry action and keeps the typed query.
-- [ ] Rows have no status badge and no "Want to read" button.
-- [ ] No tabs, no counts and no Users UI exist.
+- [x] `/search?q=Pedro Páramo` renders one row per work with title, authors, first publication year and "N editions". Rows without `editionCount` omit that text.
+- [x] A row links to `/works/<encoded ref>`.
+- [x] "Load more" appears only when `nextCursor` is set, fetches the next page and appends rows, and disappears when `nextCursor` is `null`.
+- [x] `/search?q=dune&genre=Fiction` sends `genre=Fiction` and shows a "Fiction" chip. Removing the chip reloads results for `q` only and drops `genre` from the URL.
+- [x] Submitting the page's own field updates `q` in the URL and keeps `genre`.
+- [x] `/search` with no `q` shows a prompt state, sends no request, and the field is focused.
+- [x] `q` over 200 characters or `genre` over 80 characters shows the empty prompt state and sends no request. A blank `genre` counts as no genre.
+- [x] The page shows "No books match ‘{query}’" with the manual add link when the result is empty.
+- [x] A 503 `CATALOG_UNAVAILABLE` or a 429 shows an error message with a Retry action and keeps the typed query.
+- [x] Rows have no status badge and no "Want to read" button.
+- [x] No tabs, no counts and no Users UI exist.
 
 **Shell**
 
-- [ ] Below 768px the top-bar search icon links to `/search` and opens no dropdown.
-- [ ] From 768px the top bar shows the field instead of the icon (test on classes). Manual check: the navigation items keep their position when the breakpoint is crossed.
+- [x] Below 768px the top-bar search icon links to `/search` and opens no dropdown.
+- [x] From 768px the top bar shows the field instead of the icon (test on classes). Manual check: the navigation items keep their position when the breakpoint is crossed.
 
 **General**
 
-- [ ] Every string comes from `packages/i18n` and exists in EN and ES (key-parity test passes).
-- [ ] No raw hex colors and no emojis. The search and close icons are the only icon-only controls and have an `aria-label`.
-- [ ] Every control is reachable with the keyboard (tests). Manual check: the focus ring is visible, and reduced motion stops the skeleton animation.
-- [ ] No test hits the network. Tests use mocked `api` responses.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] M3.4 is ticked in `ROADMAP.md` in the same PR.
+- [x] Every string comes from `packages/i18n` and exists in EN and ES (key-parity test passes).
+- [x] No raw hex colors and no emojis. The search and close icons are the only icon-only controls and have an `aria-label`.
+- [x] Every control is reachable with the keyboard (tests). Manual check: the focus ring is visible, and reduced motion stops the skeleton animation.
+- [x] No test hits the network. Tests use mocked `api` responses.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] M3.4 is ticked in `ROADMAP.md` in the same PR.
 
 ### UI states: Top-bar quick results
 
-- [ ] **Normal:** up to 5 works plus the "See all results" item.
-- [ ] **Loading:** 3 skeleton rows inside the dropdown. Previous results stay until new ones arrive, with no layout jump.
-- [ ] **Empty:** field empty shows recent searches. A query with no match shows "No books match ‘{query}’" and the footer item.
-- [ ] **Error:** one line with the message and a Retry action. Enter still opens S2.
-- [ ] **Light theme:** legible and token-based.
-- [ ] **Dark theme:** legible and token-based.
-- [ ] **Mobile:** N/A, the dropdown does not exist below 768px (icon links to `/search`).
-- [ ] **Desktop:** manual check at 768px and at 1280px: the top bar has no horizontal overflow and the dropdown stays inside the viewport.
+- [x] **Normal:** up to 5 works plus the "See all results" item.
+- [x] **Loading:** 3 skeleton rows inside the dropdown. Previous results stay until new ones arrive, with no layout jump.
+- [x] **Empty:** field empty shows recent searches. A query with no match shows "No books match ‘{query}’" and the footer item.
+- [x] **Error:** one line with the message and a Retry action. Enter still opens S2.
+- [x] **Light theme:** legible and token-based.
+- [x] **Dark theme:** legible and token-based.
+- [x] **Mobile:** N/A, the dropdown does not exist below 768px (icon links to `/search`).
+- [x] **Desktop:** manual check at 768px and at 1280px: the top bar has no horizontal overflow and the dropdown stays inside the viewport.
 
 ### UI states: S2 Search results
 
-- [ ] **Normal:** rows, optional genre chip, Load more and the manual add link.
-- [ ] **Loading:** 6 skeleton rows on first load, and a pending state on the Load more button.
-- [ ] **Empty:** no `q` shows a prompt, no match shows the "No books match" message with the manual add link.
-- [ ] **Error:** message with Retry, using `ErrorState`. A failed Load more keeps the loaded rows and shows the error under them.
-- [ ] **Light theme:** legible and token-based.
-- [ ] **Dark theme:** legible and token-based.
-- [ ] **Mobile:** no horizontal scroll, touch targets at least 44px, rows stack cover left and text right.
-- [ ] **Desktop:** manual check at 768px and at 1280px: the page has no horizontal overflow, and content is at most 1200px wide.
+- [x] **Normal:** rows, optional genre chip, Load more and the manual add link.
+- [x] **Loading:** 6 skeleton rows on first load, and a pending state on the Load more button.
+- [x] **Empty:** no `q` shows a prompt, no match shows the "No books match" message with the manual add link.
+- [x] **Error:** message with Retry, using `ErrorState`. A failed Load more keeps the loaded rows and shows the error under them.
+- [x] **Light theme:** legible and token-based.
+- [x] **Dark theme:** legible and token-based.
+- [x] **Mobile:** no horizontal scroll, touch targets at least 44px, rows stack cover left and text right.
+- [x] **Desktop:** manual check at 768px and at 1280px: the page has no horizontal overflow, and content is at most 1200px wide.
 
 ## Decisions
 
