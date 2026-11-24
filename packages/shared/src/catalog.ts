@@ -33,11 +33,16 @@ export const seriesIdSchema = z.string().refine((v) => UUID_RE.test(v), {
 export const editionFormatSchema = z.enum(EDITION_FORMATS);
 export const workSourceSchema = z.enum(WORK_SOURCES);
 
-export const searchBooksQuerySchema = z.object({
-  q: z.string().trim().min(1).max(SEARCH_QUERY_MAX),
-  genre: z.string().trim().min(1).max(GENRE_MAX).optional(),
-  cursor: z.string().min(1).max(200).optional(),
-});
+/** `q` is optional when `genre` is set (genre-only search, SPEC 18). At least one is required. */
+export const searchBooksQuerySchema = z
+  .object({
+    q: z.string().trim().min(1).max(SEARCH_QUERY_MAX).optional(),
+    genre: z.string().trim().min(1).max(GENRE_MAX).optional(),
+    cursor: z.string().min(1).max(200).optional(),
+  })
+  .refine((v) => v.q !== undefined || v.genre !== undefined, {
+    message: 'q or genre is required',
+  });
 
 export const editionsQuerySchema = z.object({
   language: z

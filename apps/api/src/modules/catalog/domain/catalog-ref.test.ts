@@ -70,6 +70,16 @@ describe('buildSearchQuery', () => {
   it('ignores a genre that is empty after stripping', () => {
     expect(buildSearchQuery('a', '""')).toBe('a');
   });
+
+  it('returns the subject clause alone without q', () => {
+    expect(buildSearchQuery(undefined, 'Fiction')).toBe('subject:"Fiction"');
+    expect(buildSearchQuery(undefined, 'Sci"fi"')).toBe('subject:"Scifi"');
+  });
+
+  it('returns an empty string when nothing is left to search', () => {
+    expect(buildSearchQuery(undefined)).toBe('');
+    expect(buildSearchQuery(undefined, '""')).toBe('');
+  });
 });
 
 describe('helpers', () => {

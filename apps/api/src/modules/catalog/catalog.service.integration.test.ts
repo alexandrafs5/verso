@@ -113,6 +113,20 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       ]);
     });
 
+    it('sends only the subject clause for a genre-only search', async () => {
+      fresh();
+      await service.searchBooks({ genre: 'Fiction' });
+      expect(provider.searches).toEqual([{ query: 'subject:"Fiction"', page: 1 }]);
+    });
+
+    it('rejects a genre that is only quotes when there is no q', async () => {
+      fresh();
+      await expect(service.searchBooks({ genre: '""' })).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+      expect(provider.searches).toEqual([]);
+    });
+
     it('sets nextCursor to the next page and follows it', async () => {
       fresh();
       provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));

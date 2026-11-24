@@ -76,9 +76,11 @@ export class CatalogService {
         throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_CURSOR);
       page = decoded;
     }
-    const results = await mapCatalogErrors(() =>
-      this.provider.searchWorks(buildSearchQuery(query.q, query.genre), page),
-    );
+    const providerQuery = buildSearchQuery(query.q, query.genre);
+    // A genre that is only quotes, with no q, leaves nothing to search for.
+    if (providerQuery === '')
+      throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR);
+    const results = await mapCatalogErrors(() => this.provider.searchWorks(providerQuery, page));
     // Merging happens per provider page, so the cursor and the end-of-results signal (an empty
     // provider page, SPEC 13) are unchanged. The visible guard applies on the first page only.
     const { items, moreMatches } = collapseSearchResults(results, {

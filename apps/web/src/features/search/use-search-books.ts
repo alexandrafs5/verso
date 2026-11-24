@@ -34,7 +34,8 @@ export function parseSearchParams({ q, genre, minLength }: Params): SearchBooksQ
 }
 
 export function buildSearchPath(query: SearchBooksQuery, cursor?: string): string {
-  const params = new URLSearchParams({ q: query.q });
+  const params = new URLSearchParams();
+  if (query.q) params.set('q', query.q);
   if (query.genre) params.set('genre', query.genre);
   if (cursor) params.set('cursor', cursor);
   return `/api/v1/search/books?${params.toString()}`;

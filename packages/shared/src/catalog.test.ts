@@ -63,6 +63,14 @@ describe('searchBooksQuerySchema', () => {
   it('rejects genre over 80 characters', () => {
     expect(searchBooksQuerySchema.safeParse({ q: 'a', genre: 'g'.repeat(81) }).success).toBe(false);
   });
+
+  it('accepts q only, genre only and both, and rejects neither', () => {
+    expect(searchBooksQuerySchema.safeParse({ q: 'dune' }).success).toBe(true);
+    expect(searchBooksQuerySchema.parse({ genre: ' Fiction ' })).toEqual({ genre: 'Fiction' });
+    expect(searchBooksQuerySchema.safeParse({ q: 'dune', genre: 'Fiction' }).success).toBe(true);
+    expect(searchBooksQuerySchema.safeParse({}).success).toBe(false);
+    expect(searchBooksQuerySchema.safeParse({ cursor: 'abc' }).success).toBe(false);
+  });
 });
 
 describe('editionsQuerySchema', () => {

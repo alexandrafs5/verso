@@ -190,7 +190,12 @@ describe('Catalog endpoints (HTTP, real Postgres, fake provider)', () => {
     expect(body.moreMatches).toEqual([]);
     expect(body.nextCursor).not.toBeNull();
 
+    expect((await get('/search/books?genre=Fiction', cookie)).status).toBe(200);
+    expect((await get('/search/books?q=dune&genre=Fiction', cookie)).status).toBe(200);
+
     expectProblem(await get('/search/books', cookie), 400, 'VALIDATION_ERROR');
+    expectProblem(await get('/search/books?cursor=abc', cookie), 400, 'VALIDATION_ERROR');
+    expectProblem(await get('/search/books?genre=%22%22', cookie), 400, 'VALIDATION_ERROR');
     expectProblem(await get(`/search/books?q=${'a'.repeat(201)}`, cookie), 400, 'VALIDATION_ERROR');
     expectProblem(await get('/search/books?q=a&cursor=garbage', cookie), 400, 'INVALID_CURSOR');
   });

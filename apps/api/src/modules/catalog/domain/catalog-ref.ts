@@ -41,10 +41,16 @@ export function decodeCursor(cursor: string): number | null {
   }
 }
 
-/** Search query for the provider. `"` is stripped from the genre. */
-export function buildSearchQuery(q: string, genre?: string): string {
+/**
+ * Search query for the provider. `"` is stripped from the genre. With no `q` the query is the
+ * subject clause alone (genre-only search, SPEC 18). Returns '' when nothing is left to search.
+ */
+export function buildSearchQuery(q: string | undefined, genre?: string): string {
+  const text = q?.trim() ?? '';
   const cleanGenre = genre?.replace(/"/g, '').trim();
-  return cleanGenre ? `${q} subject:"${cleanGenre}"` : q;
+  if (!cleanGenre) return text;
+  const clause = `subject:"${cleanGenre}"`;
+  return text ? `${text} ${clause}` : clause;
 }
 
 export const authorWorksQuery = (olAuthorKey: string): string => `author_key:${olAuthorKey}`;
