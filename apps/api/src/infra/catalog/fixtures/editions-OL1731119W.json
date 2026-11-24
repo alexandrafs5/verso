@@ -1,0 +1,193 @@
+{
+  "size": 135,
+  "entries": [
+    {
+      "key": "/books/OL62697460M",
+      "works": [
+        {
+          "key": "/works/OL1731119W"
+        }
+      ],
+      "title": "Pedro Páramo",
+      "publishers": [
+        "Grove Press"
+      ],
+      "publish_date": "November 14, 2023",
+      "isbn_10": [
+        "0802163483"
+      ],
+      "isbn_13": [
+        "9780802163486"
+      ],
+      "languages": [
+        {
+          "key": "/languages/eng"
+        }
+      ],
+      "number_of_pages": 139,
+      "physical_format": "Kindle",
+      "covers": [
+        15269114
+      ]
+    },
+    {
+      "key": "/books/OL47268921M",
+      "works": [
+        {
+          "key": "/works/OL1731119W"
+        }
+      ],
+      "title": "Pedro Páramo",
+      "publishers": [
+        "TURNER PUBLICACIONES S.L."
+      ],
+      "publish_date": "Feb 01, 1984",
+      "isbn_10": [
+        "8475060927"
+      ],
+      "isbn_13": [
+        "9788475060927"
+      ],
+      "languages": [
+        {
+          "key": "/languages/spa"
+        }
+      ],
+      "number_of_pages": 151,
+      "physical_format": "hardcover",
+      "covers": [
+        -1
+      ]
+    },
+    {
+      "key": "/books/OL56266923M",
+      "works": [
+        {
+          "key": "/works/OL1731119W"
+        }
+      ],
+      "title": "Pedro Páramo",
+      "subtitle": "Juan Rulfo",
+      "publishers": [
+        "CreateSpace Independent Publishing Platform",
+        "Editorial América"
+      ],
+      "publish_date": "2015",
+      "isbn_13": [
+        "9781514385968"
+      ],
+      "languages": [
+        {
+          "key": "/languages/spa"
+        }
+      ],
+      "number_of_pages": 102
+    },
+    {
+      "key": "/books/OL53059019M",
+      "works": [
+        {
+          "key": "/works/OL1731119W"
+        }
+      ],
+      "title": "Pedro Paramo (Spanish Edition)",
+      "publishers": [
+        "CreateSpace Independent Publishing Platform"
+      ],
+      "publish_date": "2018-01-10",
+      "isbn_10": [
+        "1983675601"
+      ],
+      "isbn_13": [
+        "9781983675607"
+      ],
+      "number_of_pages": 98
+    },
+    {
+      "key": "/books/OL35608794M",
+      "works": [
+        {
+          "key": "/works/OL1731119W"
+        }
+      ],
+      "title": "Pedro Paramo",
+      "publishers": [
+        "Dogan Kitap"
+      ],
+      "publish_date": "Nov 04, 2012",
+      "isbn_10": [
+        "6050905096"
+      ],
+      "isbn_13": [
+        "9786050905090"
+      ],
+      "physical_format": "paperback",
+      "covers": [
+        12315635
+      ]
+    },
+    {
+      "key": "/books/OL50259580M",
+      "works": [
+        {
+          "key": "/works/OL1731119W"
+        }
+      ],
+      "title": "Pedro Paramo",
+      "publishers": [
+        "[s.n.]"
+      ],
+      "publish_date": "1977",
+      "languages": [
+        {
+          "key": "/languages/heb"
+        }
+      ],
+      "number_of_pages": 135
+    },
+    {
+      "key": "/books/OL58980464M",
+      "works": [
+        {
+          "key": "/works/OL1731119W"
+        }
+      ],
+      "title": "pedro paramo",
+      "publishers": [
+        "fundo de cultura economica"
+      ],
+      "publish_date": "1973",
+      "languages": [
+        {
+          "key": "/languages/eng"
+        }
+      ],
+      "number_of_pages": 130
+    },
+    {
+      "key": "/books/OL46564967M",
+      "works": [
+        {
+          "key": "/works/OL1731119W"
+        }
+      ],
+      "title": "Pedro Páramo",
+      "publishers": [
+        "Serpent's Tail Limited"
+      ],
+      "publish_date": "2023",
+      "isbn_13": [
+        "9781800812871"
+      ],
+      "languages": [
+        {
+          "key": "/languages/eng"
+        }
+      ],
+      "physical_format": "Paperback",
+      "covers": [
+        15172448
+      ]
+    }
+  ]
+}

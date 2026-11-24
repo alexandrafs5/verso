@@ -263,7 +263,7 @@ Conventions: primary keys are UUID v7 strings (`id`); timestamps are `timestampt
 | `WorkAuthor` | `workId`, `authorId`, `position` |
 | `Genre`, `WorkGenre` | `slug` (unique), `name`; join table |
 | `Series` | `name`, `olSeriesKey` (nullable) |
-| `ExternalCache` | `key` (unique, e.g. `ol:search:<hash>`), `payload` (jsonb), `expiresAt` |
+| `ExternalCache` | `key` (unique, e.g. `ol:search:<hash>`), `payload` (jsonb), `expiresAt`, `createdAt` |
 
 **Library and reading:**
 
@@ -424,7 +424,10 @@ Implementations: `OpenLibraryProvider`, `PgBossJobQueue`, `BrevoEmailProvider` (
 - Search: `search.json` (fields limited to what we display), one result per work.
 - Work: `/works/{key}.json`; editions: `/works/{key}/editions.json`; ISBN: `/isbn/{isbn}.json`; authors: `/authors/{key}.json`.
 - Covers: use **cover-ID URLs** (`covers.openlibrary.org/b/id/{id}-M.jpg`), not ISBN-based cover lookups, which are rate-limited.
-- All calls send `User-Agent: Verso/1.0 (contact email)`, time out at 8 s, and are cached in `ExternalCache` (search 1 day, works/editions/authors 30 days).
+- All calls send `User-Agent: Verso/1.0 (<OPEN_LIBRARY_CONTACT>)`, time out at 8 s, and are cached in `ExternalCache` (search 1 day, works/editions/ISBN/authors 30 days). `OPEN_LIBRARY_CONTACT` is required in production.
+- The cache is fail-open: a cache read or write error is logged and the call goes to Open Library. Cached payloads are the mapped Verso types and are validated on read; an invalid one is a miss. Misses (ISBN not found) and errors are not cached.
+- Errors are typed: `CatalogNotFoundError` (404 or malformed key) and `CatalogUnavailableError` (timeout, network, 429, 5xx, unexpected shape). The ISBN lookup returns `null` instead of throwing on 404. M3.3 maps both to problem+json codes.
+- Search results skip docs whose key is not a work (`OL…W`), so a page can have fewer than 20 results and still not be the last. An empty page means there are no more results.
 - Work references in the API are either a local UUID or `ol:OL123W`. Pages can render an Open Library work that isn't in our database yet; it is persisted (work + chosen edition + authors) only when a user adds it.
 
 ---
@@ -602,7 +605,7 @@ E2E journeys: sign up → onboarding → add book → log progress → finish �
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_BUCKET` | api | Server only, never in the web bundle |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | api (+ public key in web) | Generated once with `web-push generate-vapid-keys` |
 | `CRON_SECRET` | api + GitHub secret | Tick authentication |
-| `OPEN_LIBRARY_CONTACT` | api | Used in the User-Agent |
+| `OPEN_LIBRARY_CONTACT` | api | Contact in the Open Library User-Agent. Required in production; defaults to a placeholder elsewhere |
 | `API_URL` | web | Render URL, used by rewrites and the wake-up ping |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | web | Push subscription |
 
