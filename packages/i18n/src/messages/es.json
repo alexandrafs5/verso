@@ -159,6 +159,7 @@
   "series": {
     "worksHeading": "Libros de esta serie",
     "worksEmpty": "No encontramos libros en esta serie",
+    "worksEmptyHint": "Esta serie todavía no tiene libros.",
     "coverAlt": "Portada de {title}",
     "notFoundHeading": "Serie no encontrada",
     "notFoundBody": "Esta serie no existe o ya no está disponible.",

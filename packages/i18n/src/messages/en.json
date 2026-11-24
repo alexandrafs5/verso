@@ -159,6 +159,7 @@
   "series": {
     "worksHeading": "Books in this series",
     "worksEmpty": "No books found in this series",
+    "worksEmptyHint": "This series has no books yet.",
     "coverAlt": "Cover of {title}",
     "notFoundHeading": "Series not found",
     "notFoundBody": "This series does not exist or is no longer available.",
