@@ -133,6 +133,7 @@ export function TopBarSearch({ className }: { className?: string }) {
         aria-expanded={showPanel}
         aria-controls={showPanel ? listId : undefined}
         aria-autocomplete="list"
+        aria-haspopup="listbox"
         aria-keyshortcuts="Control+K Meta+K"
         title={t('shortcutHint')}
         aria-activedescendant={showPanel && active >= 0 ? optionId(active) : undefined}

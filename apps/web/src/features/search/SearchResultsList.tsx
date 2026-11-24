@@ -15,7 +15,10 @@ export function ManualAddLink() {
   const t = useTranslations('search.page');
   return (
     <p className="mt-6 text-sm">
-      <Link href={MANUAL_ADD_HREF} className="text-accent-text underline-offset-4 hover:underline">
+      <Link
+        href={MANUAL_ADD_HREF}
+        className="inline-flex min-h-11 items-center text-accent-text underline-offset-4 hover:underline md:min-h-0"
+      >
         {t('manualAdd')}
       </Link>
     </p>
@@ -65,7 +68,10 @@ export function SearchResultsList({ q, genre }: { q: string; genre?: string }) {
 
   if (items.length === 0) {
     return (
-      <div role="status">
+      <div>
+        <p role="status" className="sr-only">
+          {ts('noMatch', { query: q })}
+        </p>
         <EmptyState heading={ts('noMatch', { query: q })} description={ts('noMatchHint')} />
         <div className="text-center">
           <ManualAddLink />

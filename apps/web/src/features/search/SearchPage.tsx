@@ -36,7 +36,9 @@ export function SearchPage() {
 
   const [text, setText] = useState(rawQ);
   // Keep the field in step with the URL (back button, quick-results Enter).
-  useEffect(() => setText(rawQ), [rawQ]);
+  useEffect(() => {
+    setText(rawQ);
+  }, [rawQ]);
   useEffect(() => {
     if (!q) inputRef.current?.focus();
   }, [q]);

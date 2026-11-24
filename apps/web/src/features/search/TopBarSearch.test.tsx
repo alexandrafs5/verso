@@ -210,4 +210,26 @@ describe('TopBarSearch', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Search is not available');
     expect(screen.queryByRole('option', { name: /Book 1/ })).not.toBeInTheDocument();
   });
+
+  it('aborts the in-flight request when the query changes', async () => {
+    const signals: AbortSignal[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.signal) signals.push(init.signal);
+        // The first request never settles on its own: only an abort ends it.
+        if (String(input).includes('q=dune&') || String(input).endsWith('q=dune')) {
+          return new Promise<Response>(() => {});
+        }
+        return Promise.resolve(sevenWorks());
+      }),
+    );
+    renderWithProviders(<TopBarSearch />);
+    const field = screen.getByRole('combobox');
+    await userEvent.type(field, 'dune');
+    await waitFor(() => expect(signals).toHaveLength(1));
+    await userEvent.type(field, 'x');
+    await waitFor(() => expect(signals).toHaveLength(2));
+    expect(signals[0]?.aborted).toBe(true);
+  });
 });

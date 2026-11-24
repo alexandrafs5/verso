@@ -65,7 +65,7 @@ export function QuickResults({
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={onRetry}
-            className="text-accent-text hover:underline"
+            className="rounded-(--radius-chip) px-2 py-1 text-accent-text hover:underline"
           >
             {t('retry')}
           </button>

@@ -112,7 +112,8 @@ describe('SearchPage', () => {
     nav.search = 'q=zzzz';
     stubFetch(() => json({ items: [], nextCursor: null }));
     renderWithProviders(<SearchPage />);
-    expect(await screen.findByText('No books match ‘zzzz’')).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent('No books match ‘zzzz’');
+    expect(screen.getByRole('heading', { name: 'No books match ‘zzzz’' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /add it manually/i })).toBeInTheDocument();
   });
 
