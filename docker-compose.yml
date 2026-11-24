@@ -8,11 +8,11 @@ services:
       POSTGRES_PASSWORD: verso
       POSTGRES_DB: verso
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - verso-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U verso -d verso"]
+      test: ['CMD-SHELL', 'pg_isready -U verso -d verso']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -22,11 +22,11 @@ services:
     container_name: verso-mailpit
     restart: unless-stopped
     ports:
-      - "1025:1025" # SMTP
-      - "8025:8025" # Web UI
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
     environment:
-      MP_SMTP_AUTH_ACCEPT_ANY: "1"
-      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      MP_SMTP_AUTH_ACCEPT_ANY: '1'
+      MP_SMTP_AUTH_ALLOW_INSECURE: '1'
 
 volumes:
   verso-pgdata:

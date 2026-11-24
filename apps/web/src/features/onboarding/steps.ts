@@ -3,7 +3,15 @@ import type { Me } from '@verso/shared';
 export const TOTAL_STEPS = 7;
 
 /** Keys of the `onboarding.steps` copy, in step order (DESIGN P3). */
-export const STEP_KEYS = ['name', 'photo', 'rating', 'progress', 'privacy', 'goal', 'import'] as const;
+export const STEP_KEYS = [
+  'name',
+  'photo',
+  'rating',
+  'progress',
+  'privacy',
+  'goal',
+  'import',
+] as const;
 export type StepKey = (typeof STEP_KEYS)[number];
 
 /** Photo, yearly goal and Goodreads import can be skipped. */
