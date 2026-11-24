@@ -421,7 +421,7 @@ Implementations: `OpenLibraryProvider`, `PgBossJobQueue`, `BrevoEmailProvider` (
 
 ### Open Library integration
 
-- Search: `search.json` (fields limited to what we display), one result per work.
+- Search: `search.json` (fields limited to what we display), in Open Library relevance order (SPEC 17 tried `sort=editions` and dropped it: it floods the top with loosely matching popular books). One result per work: near-duplicates of a page (same normalized title and first author) are merged, and merged groups with 1 edition are returned in `moreMatches` instead of `items` (SPEC 17). Merging is per provider page and nothing is persisted.
 - Work: `/works/{key}.json`; editions: `/works/{key}/editions.json`; ISBN: `/isbn/{isbn}.json`; authors: `/authors/{key}.json`.
 - Covers: use **cover-ID URLs** (`covers.openlibrary.org/b/id/{id}-M.jpg`), not ISBN-based cover lookups, which are rate-limited.
 - All calls send `User-Agent: Verso/1.0 (<OPEN_LIBRARY_CONTACT>)`, time out at 8 s, and are cached in `ExternalCache` (search 1 day, works/editions/ISBN/authors 30 days). `OPEN_LIBRARY_CONTACT` is required in production.
@@ -467,7 +467,7 @@ Conventions:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; `genre` filters by subject (S3 genre chips) |
+| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips) |
 | GET | `/v1/search/users?q=` | Users (private ones show a lock) |
 | GET | `/v1/works/{ref}` | Work page data |
 | GET | `/v1/works/{ref}/editions?language=` | Edition selector |

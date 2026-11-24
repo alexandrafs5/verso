@@ -4,6 +4,7 @@
 > **Depends on:** SPEC 03, SPEC 05, SPEC 15
 > **Date:** 2026-11-24
 > **Objective:** Add a top-bar search field with a quick-results dropdown, ⌘K and recent searches, plus the S2 search results page for books with an optional genre filter, reading only `GET /v1/search/books`.
+> **Amended by SPEC 17:** S2 shows the response `moreMatches` behind one "Show more matches" button after the rows. The quick-results dropdown still lists `items` only.
 
 ## Why this spec exists
 

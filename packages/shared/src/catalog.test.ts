@@ -84,15 +84,24 @@ describe('response shapes', () => {
       editionCount: 12,
       libraryStatus: null,
     };
-    expect(searchBooksResponseSchema.safeParse({ items: [item], nextCursor: null }).success).toBe(
-      true,
-    );
+    expect(
+      searchBooksResponseSchema.safeParse({ items: [item], moreMatches: [], nextCursor: null })
+        .success,
+    ).toBe(true);
     expect(
       searchBooksResponseSchema.safeParse({
         items: [{ ...item, libraryStatus: 'READING' }],
+        moreMatches: [],
         nextCursor: null,
       }).success,
     ).toBe(false);
+    expect(
+      searchBooksResponseSchema.safeParse({ items: [item], moreMatches: [item], nextCursor: null })
+        .success,
+    ).toBe(true);
+    expect(searchBooksResponseSchema.safeParse({ items: [item], nextCursor: null }).success).toBe(
+      false,
+    );
   });
 
   it('caps genres at 8', () => {

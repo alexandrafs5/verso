@@ -4,6 +4,7 @@
 > **Depends on:** SPEC 06, SPEC 13, SPEC 14
 > **Date:** 2026-11-24
 > **Objective:** Serve search, work, editions, author, series and ISBN lookup under `/api/v1` from the `CatalogProvider` and the catalog tables, with a Zod contract in `packages/shared`.
+> **Amended by SPEC 17:** `GET /v1/search/books` merges near-duplicate works per page (Open Library relevance order) and returns the 1-edition tail in `moreMatches` next to `items`. The cursor is unchanged.
 
 ## Why this spec exists
 

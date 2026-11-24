@@ -52,7 +52,7 @@ export function SearchPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl px-4 py-8">
       <form role="search" aria-label={t('label')} onSubmit={onSubmit} className="flex gap-2">
         <div className="relative flex-1">
           <SearchIcon

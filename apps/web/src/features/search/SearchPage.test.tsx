@@ -52,6 +52,7 @@ describe('SearchPage', () => {
     stubFetch(() =>
       json({
         items: [work('ol:OL1W', 'Pedro Páramo'), work('ol:OL2W', 'Other', { editionCount: null })],
+        moreMatches: [],
         nextCursor: null,
       }),
     );
@@ -73,8 +74,8 @@ describe('SearchPage', () => {
     nav.search = 'q=dune';
     const fetchMock = stubFetch((url) =>
       url.includes('cursor=c2')
-        ? json({ items: [work('ol:OL2W', 'Second')], nextCursor: null })
-        : json({ items: [work('ol:OL1W', 'First')], nextCursor: 'c2' }),
+        ? json({ items: [work('ol:OL2W', 'Second')], moreMatches: [], nextCursor: null })
+        : json({ items: [work('ol:OL1W', 'First')], moreMatches: [], nextCursor: 'c2' }),
     );
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /First/ });
@@ -87,7 +88,9 @@ describe('SearchPage', () => {
 
   it('sends the genre, shows the chip and drops only genre when removed', async () => {
     nav.search = 'q=dune&genre=Fiction';
-    const fetchMock = stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    const fetchMock = stubFetch(() =>
+      json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }),
+    );
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /Dune/ });
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('genre=Fiction');
@@ -98,7 +101,7 @@ describe('SearchPage', () => {
 
   it('keeps the genre and stores the text in recents on submit', async () => {
     nav.search = 'q=dune&genre=Fiction';
-    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }));
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /Dune/ });
     const field = screen.getByRole('searchbox');
@@ -110,7 +113,7 @@ describe('SearchPage', () => {
 
   it('shows the empty state with the manual add link when nothing matches', async () => {
     nav.search = 'q=zzzz';
-    stubFetch(() => json({ items: [], nextCursor: null }));
+    stubFetch(() => json({ items: [], moreMatches: [], nextCursor: null }));
     renderWithProviders(<SearchPage />);
     expect(await screen.findByRole('status')).toHaveTextContent('No books match ‘zzzz’');
     expect(screen.getByRole('heading', { name: 'No books match ‘zzzz’' })).toBeInTheDocument();
@@ -131,7 +134,7 @@ describe('SearchPage', () => {
     stubFetch(() =>
       fail
         ? problem(500, 'INTERNAL')
-        : json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }),
+        : json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }),
     );
     renderWithProviders(<SearchPage />);
     expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t load the results');
@@ -153,7 +156,7 @@ describe('SearchPage', () => {
     stubFetch((url) =>
       url.includes('cursor=')
         ? problem(500, 'INTERNAL')
-        : json({ items: [work('ol:OL1W', 'First')], nextCursor: 'c2' }),
+        : json({ items: [work('ol:OL1W', 'First')], moreMatches: [], nextCursor: 'c2' }),
     );
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /First/ });
@@ -173,16 +176,87 @@ describe('SearchPage', () => {
 
   it('treats a blank genre as no genre', async () => {
     nav.search = 'q=dune&genre=%20%20';
-    const fetchMock = stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    const fetchMock = stubFetch(() =>
+      json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }),
+    );
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /Dune/ });
     expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('genre=');
     expect(screen.queryByText(/^Genre:/)).not.toBeInTheDocument();
   });
 
+  it('shows the fold button with the folded count and expands it', async () => {
+    nav.search = 'q=pedro';
+    stubFetch(() =>
+      json({
+        items: [work('ol:OL1W', 'Pedro Páramo')],
+        moreMatches: [
+          work('ol:OL7W', 'Study one', { editionCount: 1 }),
+          work('ol:OL8W', 'Study two', { editionCount: 1 }),
+        ],
+        nextCursor: null,
+      }),
+    );
+    renderWithProviders(<SearchPage />);
+    await screen.findByRole('link', { name: /Pedro Páramo/ });
+    expect(screen.queryByRole('link', { name: /Study one/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Show more matches (2)' }));
+    expect(screen.getByRole('link', { name: /Study one/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: /Study two/ })).toBeVisible();
+  });
+
+  it('has no fold button when nothing is folded', async () => {
+    nav.search = 'q=dune';
+    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }));
+    renderWithProviders(<SearchPage />);
+    await screen.findByRole('link', { name: /Dune/ });
+    expect(screen.queryByRole('button', { name: /more matches/i })).not.toBeInTheDocument();
+  });
+
+  it('collects folded works from every loaded page into one button', async () => {
+    nav.search = 'q=pedro';
+    stubFetch((url) =>
+      url.includes('cursor=')
+        ? json({
+            items: [],
+            moreMatches: [work('ol:OL9W', 'Study three', { editionCount: 1 })],
+            nextCursor: null,
+          })
+        : json({
+            items: [work('ol:OL1W', 'Pedro Páramo')],
+            moreMatches: [work('ol:OL7W', 'Study one', { editionCount: 1 })],
+            nextCursor: 'c2',
+          }),
+    );
+    renderWithProviders(<SearchPage />);
+    await screen.findByRole('link', { name: /Pedro Páramo/ });
+    expect(screen.getByRole('button', { name: 'Show more matches (1)' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Load more' }));
+    expect(
+      await screen.findByRole('button', { name: 'Show more matches (2)' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /more matches/i })).toHaveLength(1);
+  });
+
+  it('shows the fold button even when the loaded pages have no main rows', async () => {
+    nav.search = 'q=pedro';
+    stubFetch(() =>
+      json({
+        items: [],
+        moreMatches: [work('ol:OL7W', 'Study one', { editionCount: 1 })],
+        nextCursor: null,
+      }),
+    );
+    renderWithProviders(<SearchPage />);
+    expect(
+      await screen.findByRole('button', { name: 'Show more matches (1)' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/No books match/)).not.toBeInTheDocument();
+  });
+
   it('announces how many results loaded', async () => {
     nav.search = 'q=dune';
-    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }));
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /Dune/ });
     expect(screen.getByRole('status')).toHaveTextContent('1 result loaded');

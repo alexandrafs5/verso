@@ -3,8 +3,10 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import {
   type SearchBooksQuery,
+  type SearchBooksResponse,
   searchBooksQuerySchema,
   searchBooksResponseSchema,
+  type WorkSummary,
 } from '@verso/shared';
 import { api } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
@@ -36,6 +38,17 @@ export function buildSearchPath(query: SearchBooksQuery, cursor?: string): strin
   if (query.genre) params.set('genre', query.genre);
   if (cursor) params.set('cursor', cursor);
   return `/api/v1/search/books?${params.toString()}`;
+}
+
+/** Main rows and the folded tail of every loaded page, in page order (SPEC 17). */
+export function flattenSearchPages(pages: SearchBooksResponse[] | undefined): {
+  items: WorkSummary[];
+  moreMatches: WorkSummary[];
+} {
+  return {
+    items: pages?.flatMap((page) => page.items) ?? [],
+    moreMatches: pages?.flatMap((page) => page.moreMatches) ?? [],
+  };
 }
 
 export function useSearchBooks(params: Params) {

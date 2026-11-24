@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, ErrorState } from '@/components/verso';
 import { ApiError } from '@/lib/api-client';
+import { MoreMatches } from './MoreMatches';
 import { SearchResultRow } from './SearchResultRow';
-import { useSearchBooks } from './use-search-books';
+import { flattenSearchPages, useSearchBooks } from './use-search-books';
 
 export const MANUAL_ADD_HREF = '/books/new';
 
@@ -64,9 +65,9 @@ export function SearchResultsList({ q, genre }: { q: string; genre?: string }) {
     );
   }
 
-  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const { items, moreMatches } = flattenSearchPages(query.data?.pages);
 
-  if (items.length === 0) {
+  if (items.length === 0 && moreMatches.length === 0) {
     return (
       <div>
         <p role="status" className="sr-only">
@@ -89,6 +90,7 @@ export function SearchResultsList({ q, genre }: { q: string; genre?: string }) {
           <SearchResultRow key={work.ref} work={work} />
         ))}
       </ul>
+      <MoreMatches key={`${q}|${genre ?? ''}`} works={moreMatches} />
       <div role="status" className="sr-only">
         {query.isFetchingNextPage ? t('loadingMore') : t('resultsLoaded', { count: items.length })}
       </div>

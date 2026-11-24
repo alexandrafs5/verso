@@ -187,6 +187,7 @@ describe('Catalog endpoints (HTTP, real Postgres, fake provider)', () => {
     expect(ok.status).toBe(200);
     const body = searchBooksResponseSchema.parse(ok.body);
     expect(body.items[0]).toMatchObject({ ref: 'ol:OL1W', libraryStatus: null });
+    expect(body.moreMatches).toEqual([]);
     expect(body.nextCursor).not.toBeNull();
 
     expectProblem(await get('/search/books', cookie), 400, 'VALIDATION_ERROR');

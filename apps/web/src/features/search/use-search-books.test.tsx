@@ -2,7 +2,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildSearchPath, parseSearchParams, useSearchBooks } from './use-search-books';
+import {
+  buildSearchPath,
+  flattenSearchPages,
+  parseSearchParams,
+  useSearchBooks,
+} from './use-search-books';
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -21,13 +26,40 @@ function page(refs: string[], nextCursor: string | null) {
         editionCount: 3,
         libraryStatus: null,
       })),
+      moreMatches: [],
       nextCursor,
     }),
     { status: 200, headers: { 'content-type': 'application/json' } },
   );
 }
 
+const summary = (ref: string) => ({
+  ref,
+  title: `Title ${ref}`,
+  authors: [],
+  firstPublishYear: null,
+  coverUrl: null,
+  editionCount: 1,
+  libraryStatus: null,
+});
+
 afterEach(() => vi.unstubAllGlobals());
+
+describe('flattenSearchPages', () => {
+  it('returns two empty lists without data', () => {
+    expect(flattenSearchPages(undefined)).toEqual({ items: [], moreMatches: [] });
+    expect(flattenSearchPages([])).toEqual({ items: [], moreMatches: [] });
+  });
+
+  it('joins items and moreMatches across pages in page order', () => {
+    const { items, moreMatches } = flattenSearchPages([
+      { items: [summary('a'), summary('b')], moreMatches: [summary('x')], nextCursor: 'c2' },
+      { items: [], moreMatches: [summary('y'), summary('z')], nextCursor: null },
+    ]);
+    expect(items.map((w) => w.ref)).toEqual(['a', 'b']);
+    expect(moreMatches.map((w) => w.ref)).toEqual(['x', 'y', 'z']);
+  });
+});
 
 describe('parseSearchParams', () => {
   it('trims and accepts a valid query', () => {

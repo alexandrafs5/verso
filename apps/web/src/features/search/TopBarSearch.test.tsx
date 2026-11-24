@@ -26,7 +26,8 @@ function stubFetch(handler: (url: string) => Response) {
   return fetchMock;
 }
 
-const sevenWorks = () => json({ items: [1, 2, 3, 4, 5, 6, 7].map(work), nextCursor: 'next' });
+const sevenWorks = () =>
+  json({ items: [1, 2, 3, 4, 5, 6, 7].map(work), moreMatches: [], nextCursor: 'next' });
 
 beforeEach(() => {
   nav.push.mockReset();
@@ -69,6 +70,15 @@ describe('TopBarSearch', () => {
     await screen.findByRole('option', { name: /Book 1/ });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('q=dun');
+  });
+
+  it('ignores moreMatches and shows no fold control', async () => {
+    stubFetch(() => json({ items: [work(1)], moreMatches: [work(2), work(3)], nextCursor: null }));
+    renderWithProviders(<TopBarSearch />);
+    await userEvent.type(screen.getByRole('combobox'), 'dun');
+    await screen.findByRole('option', { name: /Book 1/ });
+    expect(screen.queryByRole('option', { name: /Book 2/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /more matches/i })).not.toBeInTheDocument();
   });
 
   it('lists at most 5 works plus the see-all item', async () => {
@@ -142,7 +152,7 @@ describe('TopBarSearch', () => {
   });
 
   it('shows the no-match message for an empty result', async () => {
-    stubFetch(() => json({ items: [], nextCursor: null }));
+    stubFetch(() => json({ items: [], moreMatches: [], nextCursor: null }));
     renderWithProviders(<TopBarSearch />);
     await userEvent.type(screen.getByRole('combobox'), 'zzzz');
     expect(await screen.findByText('No books match ‘zzzz’')).toBeInTheDocument();
