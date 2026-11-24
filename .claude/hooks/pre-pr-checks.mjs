@@ -17,7 +17,13 @@ const cwd = input.cwd ?? process.cwd();
 const steps = ['pnpm lint', 'pnpm typecheck', 'pnpm test'];
 
 for (const step of steps) {
-  const result = spawnSync(step, { cwd, shell: true, encoding: 'utf8' });
+  // Test output is large (request logs); the 1 MiB default makes spawnSync kill the child.
+  const result = spawnSync(step, {
+    cwd,
+    shell: true,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
   if (result.status !== 0) {
     const tail = `${result.stdout ?? ''}\n${result.stderr ?? ''}`
       .trim()
