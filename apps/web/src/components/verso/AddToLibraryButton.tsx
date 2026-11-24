@@ -50,11 +50,7 @@ export function AddToLibraryButton({
 
   return (
     <div className={className ? `inline-flex ${className}` : 'inline-flex'} aria-busy={pending}>
-      <Button
-        className="rounded-r-none"
-        disabled={pending}
-        onClick={() => onAdd('WANT_TO_READ')}
-      >
+      <Button className="rounded-r-none" disabled={pending} onClick={() => onAdd('WANT_TO_READ')}>
         <PlusIcon />
         {labels.add}
       </Button>

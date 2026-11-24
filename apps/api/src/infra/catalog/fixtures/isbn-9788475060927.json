@@ -6,16 +6,10 @@
     }
   ],
   "title": "Pedro Páramo",
-  "publishers": [
-    "TURNER PUBLICACIONES S.L."
-  ],
+  "publishers": ["TURNER PUBLICACIONES S.L."],
   "publish_date": "Feb 01, 1984",
-  "isbn_10": [
-    "8475060927"
-  ],
-  "isbn_13": [
-    "9788475060927"
-  ],
+  "isbn_10": ["8475060927"],
+  "isbn_13": ["9788475060927"],
   "languages": [
     {
       "key": "/languages/spa"
@@ -23,7 +17,5 @@
   ],
   "number_of_pages": 151,
   "physical_format": "hardcover",
-  "covers": [
-    -1
-  ]
+  "covers": [-1]
 }

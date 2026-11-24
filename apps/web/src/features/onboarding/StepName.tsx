@@ -120,11 +120,7 @@ export function StepName({ me, onNext }: StepNameProps) {
     Boolean(usernameError || serverReason) || availability.kind === 'unavailable';
 
   return (
-    <OnboardingShell
-      step={1}
-      pending={isSubmitting}
-      error={failed ? t('saveFailed') : null}
-    >
+    <OnboardingShell step={1} pending={isSubmitting} error={failed ? t('saveFailed') : null}>
       <form id={STEP_FORM_ID} noValidate onSubmit={onSubmit} className="flex flex-col gap-6">
         <AuthField
           id={NAME_ID}

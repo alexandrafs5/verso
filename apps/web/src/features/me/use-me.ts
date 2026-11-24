@@ -1,12 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  type Me,
-  type UpdateMeInput,
-  type UpdateSettingsInput,
-  meSchema,
-} from '@verso/shared';
+import { type Me, type UpdateMeInput, type UpdateSettingsInput, meSchema } from '@verso/shared';
 import { api } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -31,9 +26,7 @@ export const useUpdateMe = () =>
   useMeMutation((input: UpdateMeInput) => api.patch('/api/v1/me', meSchema, input));
 
 export const useUpdateSettings = () =>
-  useMeMutation((input: UpdateSettingsInput) =>
-    api.patch('/api/v1/me/settings', meSchema, input),
-  );
+  useMeMutation((input: UpdateSettingsInput) => api.patch('/api/v1/me/settings', meSchema, input));
 
 export const useCompleteOnboarding = () =>
   useMeMutation<void>(() => api.post('/api/v1/me/onboarding/complete', meSchema));
