@@ -160,4 +160,30 @@ describe('SearchPage', () => {
     expect(await screen.findByText('We couldn’t load more results.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /First/ })).toBeInTheDocument();
   });
+
+  it('shows the prompt and sends no request for a genre over 80 characters', () => {
+    nav.search = `q=dune&genre=${'g'.repeat(81)}`;
+    const fetchMock = stubFetch(() => json({}));
+    renderWithProviders(<SearchPage />);
+    expect(screen.getByText('Search for a book')).toBeInTheDocument();
+    expect(screen.queryByText(/^Genre:/)).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('treats a blank genre as no genre', async () => {
+    nav.search = 'q=dune&genre=%20%20';
+    const fetchMock = stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    renderWithProviders(<SearchPage />);
+    await screen.findByRole('link', { name: /Dune/ });
+    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('genre=');
+    expect(screen.queryByText(/^Genre:/)).not.toBeInTheDocument();
+  });
+
+  it('announces how many results loaded', async () => {
+    nav.search = 'q=dune';
+    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    renderWithProviders(<SearchPage />);
+    await screen.findByRole('link', { name: /Dune/ });
+    expect(screen.getByRole('status')).toHaveTextContent('1 result loaded');
+  });
 });

@@ -12,6 +12,7 @@ export type QuickOption =
 export type QuickStatus = 'loading' | 'error' | 'empty' | 'ready';
 
 type Props = {
+  listId: string;
   query: string;
   status: QuickStatus;
   works: WorkSummary[];
@@ -27,6 +28,7 @@ type Props = {
 const rowBase = 'flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left';
 
 export function QuickResults({
+  listId,
   query,
   status,
   works,
@@ -74,52 +76,54 @@ export function QuickResults({
         <p className="px-3 py-3 text-sm text-muted">{t('noMatch', { query })}</p>
       ) : null}
 
-      {works.map((work, index) => {
-        const authors = work.authors.map((a) => a.name).join(', ');
-        return (
-          <div
-            key={work.ref}
-            id={optionId(index)}
-            role="option"
-            aria-selected={index === activeIndex}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => onActivate({ kind: 'work', work })}
-            className={cn(rowBase, index === activeIndex ? 'bg-surface' : 'hover:bg-surface')}
-          >
-            <BookCover
-              size="sm"
-              title={work.title}
-              author={authors || undefined}
-              coverUrl={work.coverUrl}
-              coverAlt={tp('coverAlt', { title: work.title })}
-              tone={pickCoverTone(work.title)}
-              className="w-8"
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-serif text-base text-foreground">
-                {work.title}
+      <div id={listId} role="listbox" aria-label={t('results')}>
+        {works.map((work, index) => {
+          const authors = work.authors.map((a) => a.name).join(', ');
+          return (
+            <div
+              key={work.ref}
+              id={optionId(index)}
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => onActivate({ kind: 'work', work })}
+              className={cn(rowBase, index === activeIndex ? 'bg-surface' : 'hover:bg-surface')}
+            >
+              <BookCover
+                size="sm"
+                title={work.title}
+                author={authors || undefined}
+                coverUrl={work.coverUrl}
+                coverAlt={tp('coverAlt', { title: work.title })}
+                tone={pickCoverTone(work.title)}
+                className="w-8"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-serif text-base text-foreground">
+                  {work.title}
+                </span>
+                {authors ? (
+                  <span className="block truncate text-xs text-muted">{authors}</span>
+                ) : null}
               </span>
-              {authors ? (
-                <span className="block truncate text-xs text-muted">{authors}</span>
-              ) : null}
-            </span>
-          </div>
-        );
-      })}
+            </div>
+          );
+        })}
 
-      <div
-        id={optionId(footerIndex)}
-        role="option"
-        aria-selected={footerIndex === activeIndex}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => onActivate({ kind: 'all' })}
-        className={cn(
-          rowBase,
-          'border-t border-border text-sm text-accent-text',
-          footerIndex === activeIndex ? 'bg-surface' : 'hover:bg-surface',
-        )}
-      >
-        {t('seeAll')}
+        <div
+          id={optionId(footerIndex)}
+          role="option"
+          aria-selected={footerIndex === activeIndex}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => onActivate({ kind: 'all' })}
+          className={cn(
+            rowBase,
+            'border-t border-border text-sm text-accent-text',
+            footerIndex === activeIndex ? 'bg-surface' : 'hover:bg-surface',
+          )}
+        >
+          {t('seeAll')}
+        </div>
       </div>
     </div>
   );

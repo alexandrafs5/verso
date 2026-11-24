@@ -65,7 +65,7 @@ export function SearchResultsList({ q, genre }: { q: string; genre?: string }) {
 
   if (items.length === 0) {
     return (
-      <div>
+      <div role="status">
         <EmptyState heading={ts('noMatch', { query: q })} description={ts('noMatchHint')} />
         <div className="text-center">
           <ManualAddLink />
@@ -84,7 +84,7 @@ export function SearchResultsList({ q, genre }: { q: string; genre?: string }) {
         ))}
       </ul>
       <div role="status" className="sr-only">
-        {query.isFetchingNextPage ? t('loadingMore') : ''}
+        {query.isFetchingNextPage ? t('loadingMore') : t('resultsLoaded', { count: items.length })}
       </div>
       {loadMoreFailed ? (
         <p role="alert" className="mt-4 text-sm text-danger">

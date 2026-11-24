@@ -49,7 +49,7 @@ export function TopBarSearch({ className }: { className?: string }) {
 
   let status: QuickStatus = 'ready';
   if (searching) {
-    if (query.isError && !query.data) status = 'error';
+    if (query.isError && (!query.data || query.isPlaceholderData)) status = 'error';
     else if (!query.data) status = 'loading';
     else if (works.length === 0 && !query.isFetching && debounced === trimmed) status = 'empty';
   }
@@ -133,6 +133,8 @@ export function TopBarSearch({ className }: { className?: string }) {
         aria-expanded={showPanel}
         aria-controls={showPanel ? listId : undefined}
         aria-autocomplete="list"
+        aria-keyshortcuts="Control+K Meta+K"
+        title={t('shortcutHint')}
         aria-activedescendant={showPanel && active >= 0 ? optionId(active) : undefined}
         autoComplete="off"
         maxLength={SEARCH_QUERY_MAX}
@@ -152,14 +154,10 @@ export function TopBarSearch({ className }: { className?: string }) {
         )}
       />
       {showPanel ? (
-        <div
-          id={listId}
-          role="listbox"
-          aria-label={t('results')}
-          className="absolute top-full right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-(--radius-card) border border-border bg-raised shadow-popover"
-        >
+        <div className="absolute top-full right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-(--radius-card) border border-border bg-raised shadow-popover">
           {searching ? (
             <QuickResults
+              listId={listId}
               query={trimmed}
               status={status}
               works={works}
@@ -172,6 +170,7 @@ export function TopBarSearch({ className }: { className?: string }) {
             />
           ) : (
             <RecentSearches
+              listId={listId}
               items={recents.items}
               activeIndex={active}
               optionId={optionId}

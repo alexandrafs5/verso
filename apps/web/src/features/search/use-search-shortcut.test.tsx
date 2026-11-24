@@ -77,4 +77,22 @@ describe('search shortcut', () => {
     fireEvent.keyDown(window, { key: 'j', ctrlKey: true });
     expect(screen.getByRole('combobox')).not.toHaveFocus();
   });
+
+  it('still focuses the field when pressed inside another text input', () => {
+    setDesktop(true);
+    renderWithProviders(
+      <div>
+        <TopBarSearch />
+        <textarea aria-label="notes" />
+      </div>,
+    );
+    const notes = screen.getByRole('textbox', { name: 'notes' });
+    notes.focus();
+    act(() => {
+      notes.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+    expect(screen.getByRole('combobox')).toHaveFocus();
+  });
 });

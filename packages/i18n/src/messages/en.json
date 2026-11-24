@@ -76,6 +76,7 @@
       "manualAdd": "Can’t find your book? Add it manually",
       "loadMore": "Load more",
       "loadingMore": "Loading more",
+      "resultsLoaded": "{count, plural, one {# result loaded} other {# results loaded}}",
       "errorHeading": "We couldn’t load the results",
       "errorBody": "Check your connection and try again.",
       "rateLimited": "Too many searches. Wait a moment and try again.",

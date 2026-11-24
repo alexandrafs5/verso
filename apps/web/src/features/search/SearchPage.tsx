@@ -28,8 +28,11 @@ export function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const rawQ = params.get('q') ?? '';
-  const q = validQuery(rawQ, SEARCH_QUERY_MAX);
-  const genre = validQuery(params.get('genre'), GENRE_MAX) ?? undefined;
+  // A non-blank genre over the limit makes the whole input invalid: no request, prompt shown.
+  const rawGenre = params.get('genre')?.trim() ?? '';
+  const genreInvalid = rawGenre.length > GENRE_MAX;
+  const genre = rawGenre !== '' && !genreInvalid ? rawGenre : undefined;
+  const q = genreInvalid ? null : validQuery(rawQ, SEARCH_QUERY_MAX);
 
   const [text, setText] = useState(rawQ);
   // Keep the field in step with the URL (back button, quick-results Enter).
@@ -74,14 +77,14 @@ export function SearchPage() {
 
       {genre ? (
         <div className="mt-3">
-          <span className="inline-flex items-center gap-1 rounded-(--radius-chip) border border-border bg-surface py-1 pr-1 pl-3 text-sm">
+          <span className="inline-flex items-center gap-1 rounded-(--radius-chip) border border-border bg-surface py-0.5 pr-0.5 pl-3 text-sm">
             {t('page.genreChip', { genre })}
             <button
               type="button"
               aria-label={t('page.removeGenre', { genre })}
               onClick={() => router.push(q ? searchHref(q) : '/search')}
               className={cn(
-                'inline-flex size-8 items-center justify-center rounded-(--radius-chip) text-muted hover:text-foreground',
+                'inline-flex size-11 items-center justify-center md:size-8 rounded-(--radius-chip) text-muted hover:text-foreground',
                 focusRing,
               )}
             >
@@ -91,7 +94,7 @@ export function SearchPage() {
         </div>
       ) : null}
 
-      <div className="mt-4" aria-live="polite">
+      <div className="mt-4">
         {q ? (
           <SearchResultsList q={q} genre={genre} />
         ) : (

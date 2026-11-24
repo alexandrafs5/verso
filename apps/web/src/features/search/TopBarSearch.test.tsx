@@ -173,4 +173,41 @@ describe('TopBarSearch', () => {
     expect(nav.push).toHaveBeenCalledWith('/search?q=book');
     expect(window.localStorage.getItem(RECENT_SEARCHES_KEY)).toBe('["book"]');
   });
+
+  it('keeps only options inside the listbox and exposes the shortcut', async () => {
+    window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(['dune']));
+    renderWithProviders(<TopBarSearch />);
+    const field = screen.getByRole('combobox');
+    expect(field).toHaveAttribute('aria-keyshortcuts', 'Control+K Meta+K');
+    expect(field).toHaveAttribute('title', 'Press Ctrl+K or ⌘K to search');
+    await userEvent.click(field);
+    const listbox = await screen.findByRole('listbox');
+    expect(field).toHaveAttribute('aria-controls', listbox.id);
+    expect(listbox.querySelectorAll('button')).toHaveLength(0);
+    expect(listbox.children).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Remove dune from recent searches' })).toBeVisible();
+  });
+
+  it('keeps buttons and status outside the listbox in search mode', async () => {
+    let fail = true;
+    stubFetch(() => (fail ? problem(500, 'INTERNAL') : sevenWorks()));
+    renderWithProviders(<TopBarSearch />);
+    await userEvent.type(screen.getByRole('combobox'), 'dune');
+    const alert = await screen.findByRole('alert');
+    const listbox = screen.getByRole('listbox');
+    expect(listbox).not.toContainElement(alert);
+    expect(listbox.querySelectorAll('button')).toHaveLength(0);
+    fail = false;
+  });
+
+  it('shows the error, not stale results, when a new query fails', async () => {
+    stubFetch((url) => (url.includes('q=dunex') ? problem(500, 'INTERNAL') : sevenWorks()));
+    renderWithProviders(<TopBarSearch />);
+    const field = screen.getByRole('combobox');
+    await userEvent.type(field, 'dune');
+    await screen.findByRole('option', { name: /Book 1/ });
+    await userEvent.type(field, 'x');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Search is not available');
+    expect(screen.queryByRole('option', { name: /Book 1/ })).not.toBeInTheDocument();
+  });
 });
