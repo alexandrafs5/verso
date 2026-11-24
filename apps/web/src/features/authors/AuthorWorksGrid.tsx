@@ -2,17 +2,19 @@
 
 import { pickCoverTone, type WorkSummary } from '@verso/shared';
 import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { focusRing } from '@/components/shell/nav';
 import { BookCover, EmptyState } from '@/components/verso';
 import { workHref } from '@/features/catalog/hrefs';
 import { cn } from '@/lib/utils';
-import { sortAuthorWorks } from './author-utils';
 
-/** The author's works as a cover grid, oldest first. No library status badges before M4. */
+/**
+ * The author's works as a cover grid, in the order the API gives (release year, SPEC 18). The API
+ * orders them because Open Library's first publication year is often wrong. No library status
+ * badges before M4.
+ */
 export function AuthorWorksGrid({ works }: { works: WorkSummary[] }) {
   const t = useTranslations('author');
-  const locale = useLocale();
 
   if (works.length === 0) {
     return <EmptyState heading={t('worksEmpty')} description={t('worksEmptyHint')} />;
@@ -20,7 +22,7 @@ export function AuthorWorksGrid({ works }: { works: WorkSummary[] }) {
 
   return (
     <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-      {sortAuthorWorks(works, locale).map((work) => (
+      {works.map((work) => (
         <li key={work.ref}>
           <Link
             href={workHref(work.ref)}

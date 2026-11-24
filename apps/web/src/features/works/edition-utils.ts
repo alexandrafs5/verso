@@ -17,10 +17,15 @@ export function pickDefaultEdition(
   );
 }
 
-/** Language name in the UI locale (`es` -> "Spanish"). Falls back to the raw code. */
+/**
+ * Language name in the UI locale, starting with a capital (`ca` in Spanish is "Catalán", not
+ * "catalán", which is how `Intl.DisplayNames` writes it). Falls back to the raw code.
+ */
 export function languageName(code: string, locale: string): string {
   try {
-    return new Intl.DisplayNames([locale], { type: 'language' }).of(code) ?? code;
+    const name = new Intl.DisplayNames([locale], { type: 'language' }).of(code) ?? code;
+    const [first = '', ...rest] = [...name];
+    return first.toLocaleUpperCase(locale) + rest.join('');
   } catch {
     return code;
   }

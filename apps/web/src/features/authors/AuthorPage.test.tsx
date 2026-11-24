@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { json, mockApi, problem, renderWithProviders } from '../onboarding/test-utils';
-import { authorInitials, sortAuthorWorks } from './author-utils';
+import { authorInitials } from './author-utils';
 import { AuthorPage } from './AuthorPage';
 
 const nav = vi.hoisted(() => ({ push: vi.fn() }));
@@ -43,13 +43,6 @@ function open(response: Response) {
 beforeEach(() => nav.push.mockReset());
 afterEach(() => vi.unstubAllGlobals());
 
-describe('sortAuthorWorks', () => {
-  it('sorts by year ascending, unknown years last, ties by title', () => {
-    const sorted = sortAuthorWorks(author().works, 'en').map((w) => w.title);
-    expect(sorted).toEqual(['El llano en llamas', 'Another 1955', 'Pedro Páramo', 'Undated']);
-  });
-});
-
 describe('authorInitials', () => {
   it('takes the first letter of the first and the last word', () => {
     expect(authorInitials('Juan Rulfo')).toBe('JR');
@@ -60,7 +53,7 @@ describe('authorInitials', () => {
 });
 
 describe('AuthorPage', () => {
-  it('shows the name, life years, biography and the works oldest first', async () => {
+  it('shows the name, life years, biography and the works in the order the API gives', async () => {
     open(json(author()));
     expect(await screen.findByRole('heading', { level: 1, name: 'Juan Rulfo' })).toBeVisible();
     expect(screen.getByText('1917–1986')).toBeVisible();
@@ -68,10 +61,10 @@ describe('AuthorPage', () => {
 
     const links = within(screen.getByRole('list')).getAllByRole('link');
     expect(links.map((link) => link.textContent)).toEqual([
-      expect.stringContaining('El llano en llamas'),
-      expect.stringContaining('Another 1955'),
-      expect.stringContaining('Pedro Páramo'),
       expect.stringContaining('Undated'),
+      expect.stringContaining('El llano en llamas'),
+      expect.stringContaining('Pedro Páramo'),
+      expect.stringContaining('Another 1955'),
     ]);
     expect(links[2]).toHaveAttribute('href', '/works/ol%3AOL1W');
   });

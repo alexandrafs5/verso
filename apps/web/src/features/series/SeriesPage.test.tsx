@@ -2,7 +2,6 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { json, mockApi, problem, renderWithProviders } from '../onboarding/test-utils';
-import { sortSeriesWorks } from './series-utils';
 import { SeriesPage } from './SeriesPage';
 
 const nav = vi.hoisted(() => ({ push: vi.fn() }));
@@ -27,10 +26,10 @@ const series = (works: unknown[] = []) => ({
   works: works.length
     ? works
     : [
-        entry('ol:OL3W', 'Third', 3, 2003),
-        entry('ol:OL0W', 'Unnumbered', null, null),
         entry('ol:OL1W', 'First', 1, 2001),
         entry('ol:OL2W', 'Second', 2, 2002),
+        entry('ol:OL3W', 'Third', 3, 2003),
+        entry('ol:OL0W', 'Unnumbered', null, null),
       ],
 });
 
@@ -41,42 +40,6 @@ function open(response: Response) {
 
 beforeEach(() => nav.push.mockReset());
 afterEach(() => vi.unstubAllGlobals());
-
-describe('sortSeriesWorks', () => {
-  const w = (title: string, position: number | null, firstPublishYear: number | null) => ({
-    title,
-    position,
-    firstPublishYear,
-  });
-
-  it('sorts by position, unknown positions last, ties by title', () => {
-    const sorted = sortSeriesWorks(
-      [w('Z', null, null), w('B', 2, null), w('A', 2, null), w('C', 1.5, null), w('Y', null, null)],
-      'en',
-    ).map((work) => work.title);
-    expect(sorted).toEqual(['C', 'A', 'B', 'Y', 'Z']);
-  });
-
-  it('sorts works with no position by first publication year, unknown years last', () => {
-    const sorted = sortSeriesWorks(
-      [
-        w('Later', null, 2005),
-        w('Undated', null, null),
-        w('First', null, 1996),
-        w('B', null, 2005),
-      ],
-      'en',
-    ).map((work) => work.title);
-    expect(sorted).toEqual(['First', 'B', 'Later', 'Undated']);
-  });
-
-  it('puts a numbered work before an unnumbered one, whatever the years', () => {
-    const sorted = sortSeriesWorks([w('Old', null, 1900), w('Numbered', 3, 2020)], 'en').map(
-      (work) => work.title,
-    );
-    expect(sorted).toEqual(['Numbered', 'Old']);
-  });
-});
 
 describe('SeriesPage', () => {
   it('shows the series name and the works in order with number, title and year', async () => {
@@ -96,7 +59,7 @@ describe('SeriesPage', () => {
     expect(link).toHaveAttribute('href', '/works/ol%3AOL1W');
   });
 
-  it('lists a series derived from Open Library: no numbers, publication order', async () => {
+  it('lists a series derived from Open Library in the order the API gives, with no numbers', async () => {
     const id = 'ol:A Song of Ice and Fire';
     mockApi({
       [`GET /api/v1/series/${encodeURIComponent(id)}`]: () =>
@@ -104,8 +67,8 @@ describe('SeriesPage', () => {
           id,
           name: 'A Song of Ice and Fire',
           works: [
-            entry('ol:OL2W', 'A Clash of Kings', null, 1998),
             entry('ol:OL1W', 'A Game of Thrones', null, 1996),
+            entry('ol:OL2W', 'A Clash of Kings', null, 1998),
             entry('ol:OL5W', 'A Dance With Dragons', null, 2008),
           ],
         }),

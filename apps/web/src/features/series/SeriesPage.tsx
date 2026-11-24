@@ -3,7 +3,7 @@
 import { pickCoverTone, type SeriesDetail } from '@verso/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { focusRing } from '@/components/shell/nav';
 import { BookCover, EmptyState, ErrorState } from '@/components/verso';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,7 +11,6 @@ import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { workHref } from '@/features/catalog/hrefs';
 import { cn } from '@/lib/utils';
-import { sortSeriesWorks } from './series-utils';
 import { useSeries } from './use-series';
 
 const PAGE = 'mx-auto max-w-[1200px] px-4 py-8';
@@ -41,7 +40,6 @@ function SeriesSkeleton() {
 
 function SeriesWorks({ works }: { works: SeriesDetail['works'] }) {
   const t = useTranslations('series');
-  const locale = useLocale();
 
   if (works.length === 0) {
     return <EmptyState heading={t('worksEmpty')} description={t('worksEmptyHint')} />;
@@ -49,7 +47,7 @@ function SeriesWorks({ works }: { works: SeriesDetail['works'] }) {
 
   return (
     <ol className="divide-y divide-border">
-      {sortSeriesWorks(works, locale).map((work) => (
+      {works.map((work) => (
         <li key={work.ref}>
           <Link
             href={workHref(work.ref)}
