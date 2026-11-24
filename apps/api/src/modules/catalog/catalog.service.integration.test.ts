@@ -4,7 +4,7 @@ import { ErrorCode } from '@verso/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { ApiException } from '../../common/api-exception.js';
-import type { SearchOptions, WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
+import type { WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
 import { mapSearchDoc } from '../../infra/catalog/open-library-mappers.js';
 import { loadFixture } from '../../infra/catalog/test-fixtures.js';
 import { InMemoryCatalogProvider } from '../../infra/catalog/in-memory-catalog.provider.js';
@@ -18,19 +18,15 @@ const TAG = `cs${Date.now().toString(36)}`;
 
 /** Records the queries and pages the service sends. */
 class RecordingProvider extends InMemoryCatalogProvider {
-  readonly searches: { query: string; page: number; opts: SearchOptions | undefined }[] = [];
+  readonly searches: { query: string; page: number }[] = [];
   /** Exact query to canned results, for queries the in-memory matcher cannot answer. */
   readonly canned = new Map<string, WorkSearchResult[]>();
 
-  override searchWorks(
-    query: string,
-    page: number,
-    opts?: SearchOptions,
-  ): Promise<WorkSearchResult[]> {
-    this.searches.push({ query, page, opts });
+  override searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
+    this.searches.push({ query, page });
     const canned = this.canned.get(query);
     if (canned) return Promise.resolve(canned);
-    return super.searchWorks(query, page, opts);
+    return super.searchWorks(query, page);
   }
 }
 
@@ -113,7 +109,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       fresh();
       await service.searchBooks({ q: 'Pedro Páramo', genre: 'Fic"tion' });
       expect(provider.searches).toEqual([
-        { query: 'Pedro Páramo subject:"Fiction"', page: 1, opts: { sort: 'editions' } },
+        { query: 'Pedro Páramo subject:"Fiction"', page: 1 },
       ]);
     });
 
@@ -127,15 +123,12 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       expect(provider.searches.map((s) => s.page)).toEqual([1, 2]);
     });
 
-    it('asks for popularity order on every search page', async () => {
+    it('keeps the Open Library relevance order and never asks for a sort', async () => {
       fresh();
       provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
-      const first = await service.searchBooks({ q: 'Pedro' });
-      await service.searchBooks({ q: 'Pedro', cursor: first.nextCursor ?? '' });
-      expect(provider.searches.map((s) => s.opts)).toEqual([
-        { sort: 'editions' },
-        { sort: 'editions' },
-      ]);
+      provider.addSearchResult(searchResult('OL2W', 'Pedro Páramo II'));
+      const res = await service.searchBooks({ q: 'Pedro' });
+      expect(res.items.map((i) => i.ref)).toEqual(['ol:OL1W', 'ol:OL2W']);
     });
 
     describe('collapse and fold', () => {
@@ -470,7 +463,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         deathYear: 1986,
       });
       expect(author.works.map((w) => w.title)).toEqual(['Early', 'Late', 'Unknown']);
-      expect(provider.searches).toEqual([{ query: 'author_key:OL1A', page: 1, opts: undefined }]);
+      expect(provider.searches).toEqual([{ query: 'author_key:OL1A', page: 1 }]);
     });
 
     it('serves a local author with a key through the provider and returns the local id', async () => {

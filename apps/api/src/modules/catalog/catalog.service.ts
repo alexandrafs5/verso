@@ -77,7 +77,7 @@ export class CatalogService {
       page = decoded;
     }
     const results = await mapCatalogErrors(() =>
-      this.provider.searchWorks(buildSearchQuery(query.q, query.genre), page, { sort: 'editions' }),
+      this.provider.searchWorks(buildSearchQuery(query.q, query.genre), page),
     );
     // Merging happens per provider page, so the cursor and the end-of-results signal (an empty
     // provider page, SPEC 13) are unchanged. The visible guard applies on the first page only.

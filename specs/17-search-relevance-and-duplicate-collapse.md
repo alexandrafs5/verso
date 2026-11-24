@@ -3,18 +3,18 @@
 > **Status:** Approved
 > **Depends on:** SPEC 13, SPEC 15, SPEC 16
 > **Date:** 2026-11-24
-> **Objective:** Rank `GET /v1/search/books` by popularity, merge near-duplicate works inside each result page, and fold the 1-edition long tail into a `moreMatches` list that S2 shows behind a "Show more matches" button.
+> **Objective:** Merge near-duplicate works inside each result page of `GET /v1/search/books` and fold the 1-edition long tail into a `moreMatches` list that S2 shows behind a "Show more matches" button.
 
 ## Why this spec exists
 
 The "Pedro Páramo" fixture (`search-pedro-paramo.json`) shows the problem. Open Library returns the main novel (135 editions), a combined volume of the same author (25), several spellings of the same title, and many 1-edition entries such as study guides and photo books. The user sees them as equal rows. M3.3b fixes this before M3.5, so the work page links from search lead to the right work. SPEC 13, SPEC 15 and SPEC 16 are `Implemented`. This spec supersedes the parts named in Scope and adds pointer notes to them in the same PR, as SPEC 16 did for SPEC 15.
 
+**Correction after manual testing (2026-11-24).** The first version also sent `sort=editions` to Open Library to rank by popularity. Live checks showed it sorts every loosely matching doc by edition count, so unrelated popular books ("Ready Reference Treatise", 116 editions, for "pedro paramo") rose above the real match, and the 1-edition tail never appeared. The sort was removed. Results keep the Open Library relevance order, and only merging and folding remain.
+
 ## Scope
 
 **In:**
 
-- `CatalogProvider.searchWorks(query, page, opts?)` takes an optional `{ sort?: 'editions' }`. `OpenLibraryProvider` sends `sort=editions` to `search.json` when set, and the cache key includes the sort, so pages cached in relevance order are never served as popularity order. `InMemoryCatalogProvider` accepts and records the option.
-- `CatalogService.searchBooks` always asks for `sort: 'editions'`. The author-works query (`author_key:`) does not, and keeps its year ordering.
 - A pure domain function `collapseSearchResults` in `apps/api/src/modules/catalog/domain/search-collapse.ts` (no Nest or Prisma imports) that merges near-duplicates and splits the fold.
 - `SearchBooksResponse` gets a required `moreMatches: WorkSummary[]` in `packages/shared/src/catalog.ts` (additive change, schema first).
 - Web: S2 renders `moreMatches` behind one "Show more matches (N)" button at the end of the list. The quick-results dropdown ignores `moreMatches`.
@@ -24,7 +24,6 @@ The "Pedro Páramo" fixture (`search-pedro-paramo.json`) shows the problem. Open
 
 **Out of scope (for future specs):**
 
-- A public `sort` query parameter. Search is always popularity-ranked.
 - Merging or folding across provider pages, any server state or a cursor that carries seen keys.
 - Fuzzy matching (edit distance, transliteration beyond accent stripping) and language-aware ranking.
 - Folding in the quick-results dropdown.
@@ -40,13 +39,12 @@ No database changes. The API contract and one domain type change.
 ```ts
 // packages/shared/src/catalog.ts
 type SearchBooksResponse = {
-  items: WorkSummary[];       // main results, popularity order
+  items: WorkSummary[];       // main results, Open Library relevance order
   moreMatches: WorkSummary[]; // folded 1-edition tail of this page, same order
   nextCursor: string | null;
 };
 
 // apps/api/src/infra/catalog/catalog-provider.ts
-searchWorks(query: string, page: number, opts?: { sort?: 'editions' }): Promise<WorkSearchResult[]>;
 
 // apps/api/src/modules/catalog/domain/search-collapse.ts
 function collapseSearchResults(
@@ -57,7 +55,7 @@ function collapseSearchResults(
 
 Conventions:
 
-- **Provider order.** With `sort=editions`, Open Library returns docs by edition count, descending. The domain function keeps that order and does not sort again.
+- **Provider order.** Open Library returns docs in relevance order. The domain function keeps that order and does not sort again. The search never sends a sort.
 - **Normalized title.** NFD with combining marks removed, lowercase. Cut at the first `:` or ` / `. Remove any `(...)` group. Replace every non-letter, non-digit with a space and collapse spaces. Then remove a trailing `de <author name>` or `<author name>` (also after a comma) when the removed text, normalized the same way, equals the name of one of the result's authors.
 - **Group key.** `normalized title` + `|` + the first author's `olAuthorKey`, or an empty string when the result has no author.
 - **Representative.** The member with the most editions. Ties go to the first in provider order. The group sits at the position of its first member in provider order. It keeps the representative's `olWorkKey` (so `ref`), title, authors and `firstPublishYear`. `editionCount` is the sum over the group. `coverUrl` is the representative's, or the first non-null cover in the group.
@@ -69,20 +67,15 @@ Conventions:
 ## Implementation plan
 
 1. Add `moreMatches` to `searchBooksResponseSchema` in `packages/shared/src/catalog.ts` with a schema test. Update the web and API code that builds or mocks `SearchBooksResponse` so they compile (`moreMatches: []`). Verify: `pnpm typecheck && pnpm --filter shared test`.
-2. Add the `opts` parameter to `CatalogProvider`, `InMemoryCatalogProvider` and `OpenLibraryProvider`. `OpenLibraryProvider` adds `sort=editions` to the request and `|sort=editions` to the hashed cache key only when the option is set. Tests: request URL contains the sort, key differs with and without it, fake records the option. Verify: `pnpm --filter api test`.
-3. Add `domain/search-collapse.ts` with unit tests: accents and case, `:` and `/` subtitle, trailing `, <author>` and `de <author>`, parenthetical series text, different first author key stays apart, no-author results, representative and count sum, cover fallback, fold threshold, `editionCount` 0, visible guard on and off. Verify: `pnpm --filter api test`.
-4. Use it in `CatalogService.searchBooks`: pass `sort: 'editions'`, call `collapseSearchResults` with `guardVisible: query.cursor === undefined`, map both lists with `searchResultToSummary`. Update the service and HTTP integration tests, including the fixture test on `search-pedro-paramo.json` and a page-2 case. Verify: `pnpm --filter api test`.
-5. Web data layer: `use-search-books.ts` keeps pages as returned. Add a helper that flattens `items` and `moreMatches` across loaded pages. Update the hook tests. Verify: `pnpm --filter web test`.
-6. Web UI: in `SearchResultsList.tsx`, add the fold button after the main rows and the "Load more" button. Add i18n keys EN and ES. The quick-results code keeps reading `items` only. Component tests for expand, collapse, reset on new query, count text and the quick-results case. Verify: `pnpm --filter web test`.
-7. Docs: pointer notes in SPEC 13, 15 and 16, DESIGN S2, ARCHITECTURE §7 and §8, tick M3.3b in `ROADMAP.md`. Run `pnpm lint && pnpm typecheck && pnpm test`. Integration tests need Postgres: `docker compose up -d`.
+2. Add `domain/search-collapse.ts` with unit tests: accents and case, `:` and `/` subtitle, trailing `, <author>` and `de <author>`, parenthetical series text, different first author key stays apart, no-author results, representative and count sum, cover fallback, fold threshold, `editionCount` 0, visible guard on and off. Verify: `pnpm --filter api test`.
+3. Use it in `CatalogService.searchBooks`: call `collapseSearchResults` with `guardVisible: query.cursor === undefined`, map both lists with `searchResultToSummary`. Update the service and HTTP integration tests, including the fixture test on `search-pedro-paramo.json` and a page-2 case. Verify: `pnpm --filter api test`.
+4. Web data layer: `use-search-books.ts` keeps pages as returned. Add a helper that flattens `items` and `moreMatches` across loaded pages. Update the hook tests. Verify: `pnpm --filter web test`.
+5. Web UI: in `SearchResultsList.tsx`, add the fold button after the main rows and the "Load more" button. Add i18n keys EN and ES. The quick-results code keeps reading `items` only. Component tests for expand, collapse, reset on new query, count text and the quick-results case. Verify: `pnpm --filter web test`.
+6. Docs: pointer notes in SPEC 13, 15 and 16, DESIGN S2, ARCHITECTURE §7 and §8, tick M3.3b in `ROADMAP.md`. Run `pnpm lint && pnpm typecheck && pnpm test`. Integration tests need Postgres: `docker compose up -d`.
 
 ## Acceptance criteria
 
-**Provider**
 
-- [ ] `OpenLibraryProvider.searchWorks(q, 1, { sort: 'editions' })` requests `search.json` with `sort=editions`. Without the option the request has no `sort`.
-- [ ] The cache key for the same query and page differs with and without the sort option.
-- [ ] `CatalogService.searchBooks` passes `{ sort: 'editions' }`. The author-works query does not.
 
 **Collapse**
 
@@ -143,18 +136,17 @@ Layout, contrast, focus ring and reduced motion cannot be measured in jsdom. The
 - **Yes:** quick results use `items` and no fold. A small popover has no room for a fold, and the best 5 deduplicated works are the useful part.
 - **Yes:** new SPEC 17, plus pointer notes in SPEC 13, 15 and 16. Implemented specs keep their history.
 - **No:** rewriting SPEC 13 and 15 in place. ROADMAP says "amend" and the notes meet that, without losing what those specs recorded.
-- **Yes:** `sort=editions` fixed on the server. No new query parameter to validate, document or test.
-- **No:** public `sort=relevance|editions`. Nothing in F1 uses it.
 - **Yes:** group by normalized title and the first author key, representative with the most editions, counts summed.
 - **No:** title-only grouping. It would merge unrelated books with the same title.
 - **No:** keeping only the maximum count. The row would show less than the real total of the merged editions.
 - **Yes:** fold at `editionCount <= 1` after merging, as in ROADMAP. A relative threshold needs tuning and is harder to test.
-- **Yes (mine, unconfirmed):** the visible guard applies only on the first page. Open Library sorts by editions, so if page 1 has no group above 1 edition, every later page is 1-edition too, and showing page 1 in full is right. Later pages always fold.
-- **Yes (mine, unconfirmed):** the group sits at its first member's position and the list is not re-sorted after summing. With `sort=editions` the first member is the largest, so the order stays stable and testable.
+- **Yes (mine, unconfirmed):** the visible guard applies only on the first page. The first screen must never show only a fold button. Later pages always fold, because the user already has results above.
+- **Yes (mine, unconfirmed):** the group sits at its first member's position and the list is not re-sorted after summing. The relevance order of Open Library stays intact.
 - **Yes (mine, unconfirmed):** the group keeps the representative's `firstPublishYear`. A `min` over members would show a year the shown work may not have.
-- **Yes (mine, unconfirmed):** the cache key includes the sort. Without it, up to a day of stale relevance-ordered pages would be served as popularity-ordered.
 - **Yes (mine, unconfirmed):** one fold button at the end of the list for all loaded pages, with local expanded state that resets on a new `q` or `genre`.
-- **Yes (mine, unconfirmed):** the author-works query keeps no sort option, so its first 20 works and year ordering do not change.
+
+- **No:** `sort=editions` on the search request. Tried first, then dropped after manual testing (see Why this spec exists). Ranking by popularity belongs in a future spec that scores relevance and popularity together.
+- **Yes:** the S2 page wrapper gets `px-4 py-8`. `AppShell` is not mounted in `(app)/layout.tsx` yet, so the page had no margin of its own. Added in a separate `fix:` commit outside this spec's original scope.
 
 ## Risks
 
@@ -163,8 +155,7 @@ Layout, contrast, focus ring and reduced motion cannot be measured in jsdom. The
 | Title normalization merges two real different books by the same author, for example "Dune" and "Dune: Messiah" | The subtitle cut applies at `:` and ` / ` only, so "Dune: Messiah" merges into "Dune". Accepted for F1. A work stays reachable through its own `ref` on the author page. Revisit in M3.5 if it shows up |
 | A real different book hides in the fold because it has 1 edition | The fold is one click away and nothing is dropped. The count is shown on the button |
 | A duplicate that sits on page 2 stays unmerged | Accepted, see Decisions. Per-page scope keeps the cursor simple |
-| Open Library changes its `sort=editions` behavior | The provider test pins the request. Order assumptions live only in the domain tests with a fixture |
-| Fixture was recorded without `sort=editions`, so its order is by relevance | The domain function does not depend on order for grouping. Tests that check order build the input in the order they need, and no test claims the fixture order is popularity order |
+| Relevance order still has loosely matching books near the top | Accepted for F1. Open Library decides relevance. Merging and folding only remove duplicates and the 1-edition tail |
 | `moreMatches` required in the schema breaks other code that builds a response | Step 1 updates every builder and mock before anything else, and `pnpm typecheck` catches the rest |
 
 ## What is **not** in this spec

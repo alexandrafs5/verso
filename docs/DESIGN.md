@@ -231,7 +231,7 @@ End: lands on Home in its empty state.
 ### S2. Search results
 
 - Query field at top, tabs **Books** and **Users** with counts. F1 ships the Books list only, with a "Books" heading and no tabs or counts (the API returns no total). Tabs, counts and Users arrive with user search in M8.5 [F2].
-- **Books:** results are ranked by popularity (edition count). Near-duplicate works are merged into one row, and 1-edition entries sit behind one "Show more matches (N)" button after the list (M3.3b). List rows — cover thumbnail, title (serif), author(s), first publication year, number of editions ("12 editions"). If the book is in the user's library: a status badge ("Reading", "Read ×2"), added with the library in M4.2. Click → Work page.
+- **Books:** Near-duplicate works are merged into one row, and 1-edition entries sit behind one "Show more matches (N)" button after the list (M3.3b). List rows — cover thumbnail, title (serif), author(s), first publication year, number of editions ("12 editions"). If the book is in the user's library: a status badge ("Reading", "Read ×2"), added with the library in M4.2. Click → Work page.
 - Quick action on each row: split button "Want to read" + chevron (see Add-to-library control below). Added in M4.2, because it needs the library.
 - **Users** (M8.5 [F2]): avatar, display name, @username, "Private" lock badge if applicable. Click → Profile (follow button lives only there).
 - "Can't find your book? Add it manually" link at the bottom of book results → S14.

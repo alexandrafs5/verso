@@ -62,16 +62,6 @@ describe('InMemoryCatalogProvider', () => {
     expect(await provider.searchWorks('páramo', 2)).toEqual([]);
   });
 
-  it('records each search call with its options', async () => {
-    const provider = seeded();
-    await provider.searchWorks('páramo', 1, { sort: 'editions' });
-    await provider.searchWorks('rulfo', 2);
-    expect(provider.searchCalls).toEqual([
-      { query: 'páramo', page: 1, opts: { sort: 'editions' } },
-      { query: 'rulfo', page: 2, opts: undefined },
-    ]);
-  });
-
   it('returns seeded works and authors, and throws CatalogNotFoundError otherwise', async () => {
     const provider = seeded();
     expect(await provider.getWork('OL1W')).toEqual(work);

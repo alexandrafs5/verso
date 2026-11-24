@@ -5,7 +5,6 @@ import {
   type ExternalEdition,
   type ExternalWork,
   SEARCH_PAGE_SIZE,
-  type SearchOptions,
   type WorkSearchResult,
 } from './catalog-provider.js';
 import { normalizeIsbn } from './open-library-mappers.js';
@@ -14,9 +13,6 @@ import { normalizeIsbn } from './open-library-mappers.js';
 export class InMemoryCatalogProvider implements CatalogProvider {
   /** When true, every call throws CatalogUnavailableError, like an Open Library outage. */
   unavailable = false;
-
-  /** Every `searchWorks` call, in order, so tests can assert the query, page and options. */
-  readonly searchCalls: { query: string; page: number; opts: SearchOptions | undefined }[] = [];
 
   private readonly searchable: WorkSearchResult[] = [];
   private readonly works = new Map<string, ExternalWork>();
@@ -43,9 +39,8 @@ export class InMemoryCatalogProvider implements CatalogProvider {
     return this;
   }
 
-  searchWorks(query: string, page: number, opts?: SearchOptions): Promise<WorkSearchResult[]> {
+  searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
     return this.run(() => {
-      this.searchCalls.push({ query, page, opts });
       const needle = query.trim().toLowerCase();
       if (!needle) return [];
       const matches = this.searchable.filter(

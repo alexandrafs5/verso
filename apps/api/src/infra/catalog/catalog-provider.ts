@@ -49,16 +49,13 @@ export type ExternalAuthor = {
   photoUrl: string | null;
 };
 
-/** `sort: 'editions'` ranks results by edition count, descending (SPEC 17). */
-export type SearchOptions = { sort?: 'editions' };
-
 /** Source of book metadata. Services depend on this interface, never on Open Library directly. */
 export interface CatalogProvider {
   /**
    * One page of at most 20 results. Open Library docs that are not works are skipped, so a page can
    * have fewer than 20 results and still not be the last one. An empty page means no more results.
    */
-  searchWorks(query: string, page: number, opts?: SearchOptions): Promise<WorkSearchResult[]>;
+  searchWorks(query: string, page: number): Promise<WorkSearchResult[]>;
   getWork(olWorkKey: string): Promise<ExternalWork>;
   listEditions(olWorkKey: string, opts: { language?: string }): Promise<ExternalEdition[]>;
   getEditionByIsbn(isbn: string): Promise<ExternalEdition | null>;
