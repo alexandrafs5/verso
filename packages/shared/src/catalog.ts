@@ -118,6 +118,8 @@ export const isbnResultSchema = z.object({
 
 export const searchBooksResponseSchema = z.object({
   items: z.array(workSummarySchema),
+  /** Folded 1-edition tail of this page (SPEC 17). */
+  moreMatches: z.array(workSummarySchema),
   nextCursor: z.string().nullable(),
 });
 

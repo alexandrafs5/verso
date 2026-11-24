@@ -81,6 +81,7 @@ export class CatalogService {
     // An empty page is the provider's end-of-results signal (SPEC 13).
     return {
       items: results.map(searchResultToSummary),
+      moreMatches: [],
       nextCursor: results.length > 0 ? encodeCursor(page + 1) : null,
     };
   }

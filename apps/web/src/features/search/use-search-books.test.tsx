@@ -21,6 +21,7 @@ function page(refs: string[], nextCursor: string | null) {
         editionCount: 3,
         libraryStatus: null,
       })),
+      moreMatches: [],
       nextCursor,
     }),
     { status: 200, headers: { 'content-type': 'application/json' } },

@@ -122,7 +122,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('returns a null nextCursor on an empty page', async () => {
       fresh();
       const res = await service.searchBooks({ q: 'nothing' });
-      expect(res).toEqual({ items: [], nextCursor: null });
+      expect(res).toEqual({ items: [], moreMatches: [], nextCursor: null });
     });
 
     it('rejects a malformed cursor without calling the provider', async () => {

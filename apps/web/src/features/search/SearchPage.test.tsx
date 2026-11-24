@@ -52,6 +52,7 @@ describe('SearchPage', () => {
     stubFetch(() =>
       json({
         items: [work('ol:OL1W', 'Pedro Páramo'), work('ol:OL2W', 'Other', { editionCount: null })],
+        moreMatches: [],
         nextCursor: null,
       }),
     );
@@ -73,8 +74,8 @@ describe('SearchPage', () => {
     nav.search = 'q=dune';
     const fetchMock = stubFetch((url) =>
       url.includes('cursor=c2')
-        ? json({ items: [work('ol:OL2W', 'Second')], nextCursor: null })
-        : json({ items: [work('ol:OL1W', 'First')], nextCursor: 'c2' }),
+        ? json({ items: [work('ol:OL2W', 'Second')], moreMatches: [], nextCursor: null })
+        : json({ items: [work('ol:OL1W', 'First')], moreMatches: [], nextCursor: 'c2' }),
     );
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /First/ });
@@ -87,7 +88,9 @@ describe('SearchPage', () => {
 
   it('sends the genre, shows the chip and drops only genre when removed', async () => {
     nav.search = 'q=dune&genre=Fiction';
-    const fetchMock = stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    const fetchMock = stubFetch(() =>
+      json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }),
+    );
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /Dune/ });
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('genre=Fiction');
@@ -98,7 +101,7 @@ describe('SearchPage', () => {
 
   it('keeps the genre and stores the text in recents on submit', async () => {
     nav.search = 'q=dune&genre=Fiction';
-    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }));
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /Dune/ });
     const field = screen.getByRole('searchbox');
@@ -110,7 +113,7 @@ describe('SearchPage', () => {
 
   it('shows the empty state with the manual add link when nothing matches', async () => {
     nav.search = 'q=zzzz';
-    stubFetch(() => json({ items: [], nextCursor: null }));
+    stubFetch(() => json({ items: [], moreMatches: [], nextCursor: null }));
     renderWithProviders(<SearchPage />);
     expect(await screen.findByRole('status')).toHaveTextContent('No books match ‘zzzz’');
     expect(screen.getByRole('heading', { name: 'No books match ‘zzzz’' })).toBeInTheDocument();
@@ -131,7 +134,7 @@ describe('SearchPage', () => {
     stubFetch(() =>
       fail
         ? problem(500, 'INTERNAL')
-        : json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }),
+        : json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }),
     );
     renderWithProviders(<SearchPage />);
     expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t load the results');
@@ -153,7 +156,7 @@ describe('SearchPage', () => {
     stubFetch((url) =>
       url.includes('cursor=')
         ? problem(500, 'INTERNAL')
-        : json({ items: [work('ol:OL1W', 'First')], nextCursor: 'c2' }),
+        : json({ items: [work('ol:OL1W', 'First')], moreMatches: [], nextCursor: 'c2' }),
     );
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /First/ });
@@ -173,7 +176,9 @@ describe('SearchPage', () => {
 
   it('treats a blank genre as no genre', async () => {
     nav.search = 'q=dune&genre=%20%20';
-    const fetchMock = stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    const fetchMock = stubFetch(() =>
+      json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }),
+    );
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /Dune/ });
     expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('genre=');
@@ -182,7 +187,7 @@ describe('SearchPage', () => {
 
   it('announces how many results loaded', async () => {
     nav.search = 'q=dune';
-    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], nextCursor: null }));
+    stubFetch(() => json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }));
     renderWithProviders(<SearchPage />);
     await screen.findByRole('link', { name: /Dune/ });
     expect(screen.getByRole('status')).toHaveTextContent('1 result loaded');
