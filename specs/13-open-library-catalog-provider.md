@@ -1,7 +1,7 @@
 # SPEC 13 — CatalogProvider and OpenLibraryProvider (M3.1)
 
-> **Status:** Approved
-> **Depends on:** SPEC 01, SPEC 08
+> **Status:** Implemented
+> **Depends on:** SPEC 01, SPEC 06, SPEC 08
 > **Date:** 2026-11-24
 > **Objective:** Add the `CatalogProvider` interface, an `OpenLibraryProvider` (search, work, editions, ISBN, author) backed by a Postgres `ExternalCache`, and an in-memory fake, all tested against recorded fixtures.
 
@@ -128,36 +128,37 @@ Conventions:
 
 **Provider**
 
-- [ ] `searchWorks("Pedro Páramo", 1)` against the fixture returns at least one result with `olWorkKey`, title, authors, `firstPublishYear` and a `coverUrl` built from a cover id.
-- [ ] `searchWorks` with an empty or whitespace query returns `[]` and makes no fetch call.
-- [ ] `getWork`, `listEditions`, `getEditionByIsbn` and `getAuthor` map their fixtures to the types above, including string and `{ type, value }` descriptions.
-- [ ] `listEditions(key, { language: 'es' })` returns only Spanish editions. Without `language` it returns all.
-- [ ] Every request sends `User-Agent: Verso/1.0 (<OPEN_LIBRARY_CONTACT>)` and an abort signal with an 8000 ms timeout.
-- [ ] `getEditionByIsbn` returns `null` on a 404 and for a malformed ISBN (no fetch call).
-- [ ] A 404 on work or author throws `CatalogNotFoundError`. A malformed key throws it with no fetch call.
-- [ ] A timeout, network error, 429, 500 and an invalid JSON shape each throw `CatalogUnavailableError`.
+- [x] `searchWorks("Pedro Páramo", 1)` against the fixture returns at least one result with `olWorkKey`, title, authors, `firstPublishYear` and a `coverUrl` built from a cover id.
+- [x] `searchWorks` with an empty or whitespace query returns `[]` and makes no fetch call.
+- [x] `getWork`, `listEditions`, `getEditionByIsbn` and `getAuthor` map their fixtures to the types above, including string and `{ type, value }` descriptions.
+- [x] Search skips docs whose key is not a work key (`OL…M`), and the first result of the search fixture is a valid work.
+- [x] `listEditions(key, { language: 'es' })` returns only Spanish editions. Without `language` it returns all.
+- [x] Every request sends `User-Agent: Verso/1.0 (<OPEN_LIBRARY_CONTACT>)` and an abort signal with an 8000 ms timeout.
+- [x] `getEditionByIsbn` returns `null` on a 404 and for a malformed ISBN (no fetch call).
+- [x] A 404 on work or author throws `CatalogNotFoundError`. A malformed key throws it with no fetch call.
+- [x] A timeout, network error, 429, 500 and an invalid JSON shape each throw `CatalogUnavailableError`.
 
 **Cache**
 
-- [ ] A second identical call hits the cache: the fake `fetch` is called once.
-- [ ] Search entries expire after 1 day. Work, editions, ISBN and author entries expire after 30 days (checked through `expiresAt`).
-- [ ] An expired entry is ignored and refetched.
-- [ ] A cache read or write error is logged and the call still returns data from Open Library.
-- [ ] A cached payload that fails Zod validation is treated as a miss.
-- [ ] Errors from Open Library are not cached.
-- [ ] `ExternalCacheRepository` on real Postgres: `set` upserts by key, `get` ignores expired rows, `deleteExpired` removes only expired rows and returns the count.
+- [x] A second identical call hits the cache: the fake `fetch` is called once.
+- [x] Search entries expire after 1 day. Work, editions, ISBN and author entries expire after 30 days (checked through `expiresAt`).
+- [x] An expired entry is ignored and refetched.
+- [x] A cache read or write error is logged and the call still returns data from Open Library.
+- [x] A cached payload that fails Zod validation is treated as a miss.
+- [x] Errors from Open Library are not cached.
+- [x] `ExternalCacheRepository` on real Postgres: `set` upserts by key, `get` ignores expired rows, `deleteExpired` removes only expired rows and returns the count.
 
 **Wiring and docs**
 
-- [ ] `InMemoryCatalogProvider` can be seeded and a Nest test module can provide it under the `CATALOG_PROVIDER` token (the repo does not use `@nestjs/testing`, so there is no `overrideProvider`).
-- [ ] In production, boot fails with a clear message if `OPEN_LIBRARY_CONTACT` is empty. In development it boots with the default.
-- [ ] No test hits the network.
-- [ ] The new migration is forward-only and creates only `ExternalCache`.
-- [ ] No email or real contact value appears in the repo or fixtures.
-- [ ] `.env.example` documents `OPEN_LIBRARY_CONTACT`.
-- [ ] `ARCHITECTURE.md` §7 mentions typed errors, fail-open cache and the env var.
-- [ ] M3.1 is ticked and M3.2 carries the `ExternalCache` note in `ROADMAP.md`.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] `InMemoryCatalogProvider` can be seeded and a Nest test module can provide it under the `CATALOG_PROVIDER` token (the repo does not use `@nestjs/testing`, so there is no `overrideProvider`).
+- [x] In production, boot fails with a clear message if `OPEN_LIBRARY_CONTACT` is empty. In development it boots with the default.
+- [x] No test hits the network.
+- [x] The new migration is forward-only and creates only `ExternalCache`.
+- [x] No real contact value appears in the repo or fixtures (only placeholders such as `dev@verso.local` and `you@example.com`).
+- [x] `.env.example` documents `OPEN_LIBRARY_CONTACT`.
+- [x] `ARCHITECTURE.md` §7 mentions typed errors, fail-open cache and the env var.
+- [x] M3.1 is ticked and M3.2 carries the `ExternalCache` note in `ROADMAP.md`.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
 
 UI states: N/A, this spec touches no screen or component.
 
