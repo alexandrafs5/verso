@@ -92,7 +92,7 @@ export const workDetailSchema = z.object({
   firstPublishYear: z.number().int().nullable(),
   coverUrl: z.string().nullable(),
   authors: z.array(authorLinkSchema),
-  genres: z.array(z.string()).max(8),
+  genres: z.array(z.string()).max(30),
   series: workSeriesSchema.nullable(),
   source: workSourceSchema,
   libraryStatus: z.null(),

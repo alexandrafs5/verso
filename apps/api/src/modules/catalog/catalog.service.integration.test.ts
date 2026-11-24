@@ -266,19 +266,19 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       expect(await prisma.author.count({ where: { olAuthorKey: 'OL1A' } })).toBe(0);
     });
 
-    it('keeps at most 8 genres and 5 authors', async () => {
+    it('keeps at most 30 genres and 5 authors', async () => {
       fresh();
       const keys = ['OL1A', 'OL2A', 'OL3A', 'OL4A', 'OL5A', 'OL6A'];
       provider.addWork(
         olWork(
           keys,
-          Array.from({ length: 12 }, (_, i) => `s${i}`),
+          Array.from({ length: 40 }, (_, i) => `s${i}`),
         ),
       );
       for (const key of keys) provider.addAuthor(olAuthor(key, key));
 
       const work = await service.getWork(userId, 'ol:OL1W');
-      expect(work.genres).toHaveLength(8);
+      expect(work.genres).toHaveLength(30);
       expect(work.authors.map((a) => a.ref)).toEqual(keys.slice(0, 5).map((k) => `ol:${k}`));
     });
 

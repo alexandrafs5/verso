@@ -98,7 +98,18 @@
     "biography": "Biografía",
     "history": "Historia",
     "poetry": "Poesía",
-    "philosophy": "Filosofía"
+    "philosophy": "Filosofía",
+    "young-adult": "Juvenil",
+    "children": "Infantil",
+    "graphic-novels": "Novela gráfica",
+    "religion": "Religión",
+    "psychology": "Psicología",
+    "science": "Ciencia",
+    "business": "Negocios",
+    "self-help": "Autoayuda",
+    "art": "Arte",
+    "humor": "Humor",
+    "nonfiction": "No ficción"
   },
   "work": {
     "coverAlt": "Portada de {title}",

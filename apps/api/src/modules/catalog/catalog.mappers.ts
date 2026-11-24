@@ -10,7 +10,8 @@ import { olRef } from './domain/catalog-ref.js';
 import { plainDescription } from './domain/description-text.js';
 import { isSeriesSubject, seriesFromSubjects } from './domain/ol-series.js';
 
-export const MAX_GENRES = 8;
+/** Subjects kept per work. The web maps them to at most 5 chips (SPEC 18). */
+export const MAX_GENRES = 30;
 export const MAX_AUTHORS = 5;
 
 const asNumber = (value: { toString(): string } | null): number | null =>

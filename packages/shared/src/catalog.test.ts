@@ -118,7 +118,7 @@ describe('response shapes', () => {
     );
   });
 
-  it('caps genres at 8', () => {
+  it('caps genres at 30', () => {
     const base = {
       ref: UUID,
       title: 't',
@@ -131,8 +131,8 @@ describe('response shapes', () => {
       source: 'MANUAL',
       libraryStatus: null,
     };
-    expect(workDetailSchema.safeParse({ ...base, genres: Array(8).fill('g') }).success).toBe(true);
-    expect(workDetailSchema.safeParse({ ...base, genres: Array(9).fill('g') }).success).toBe(false);
+    expect(workDetailSchema.safeParse({ ...base, genres: Array(30).fill('g') }).success).toBe(true);
+    expect(workDetailSchema.safeParse({ ...base, genres: Array(31).fill('g') }).success).toBe(false);
   });
 
   it('parses an ISBN result', () => {

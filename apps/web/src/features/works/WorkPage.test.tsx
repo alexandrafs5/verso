@@ -149,7 +149,9 @@ describe('WorkPage', () => {
 
   it('omits the series line, chips and synopsis when absent', async () => {
     routes({
-      work: json(work({ series: null, genres: ['Zoology'], description: null, subtitle: null })),
+      work: json(
+        work({ series: null, genres: ['Accessible book'], description: null, subtitle: null }),
+      ),
     });
     renderWithProviders(<WorkPage workRef="ol:OL1W" />);
     await screen.findByRole('heading', { level: 1 });

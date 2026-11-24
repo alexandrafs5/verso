@@ -98,7 +98,18 @@
     "biography": "Biography",
     "history": "History",
     "poetry": "Poetry",
-    "philosophy": "Philosophy"
+    "philosophy": "Philosophy",
+    "young-adult": "Young adult",
+    "children": "Children's",
+    "graphic-novels": "Graphic novels",
+    "religion": "Religion",
+    "psychology": "Psychology",
+    "science": "Science",
+    "business": "Business",
+    "self-help": "Self-help",
+    "art": "Art",
+    "humor": "Humor",
+    "nonfiction": "Nonfiction"
   },
   "work": {
     "coverAlt": "Cover of {title}",

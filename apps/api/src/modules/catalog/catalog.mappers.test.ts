@@ -48,7 +48,7 @@ describe('provider mappers', () => {
     expect(summary.libraryStatus).toBeNull();
   });
 
-  it('keeps at most 8 subjects as genres and has no series', () => {
+  it('keeps at most 30 subjects as genres and has no series', () => {
     const work: ExternalWork = {
       olWorkKey: 'OL1W',
       title: 'T',
@@ -57,10 +57,10 @@ describe('provider mappers', () => {
       firstPublishYear: null,
       coverUrl: null,
       authorKeys: [],
-      subjects: Array.from({ length: 12 }, (_, i) => `s${i}`),
+      subjects: Array.from({ length: 40 }, (_, i) => `s${i}`),
     };
     const detail = externalWorkToDetail(work, []);
-    expect(detail.genres).toEqual(work.subjects.slice(0, 8));
+    expect(detail.genres).toEqual(work.subjects.slice(0, 30));
     expect(detail.series).toBeNull();
     expect(detail.source).toBe('OPEN_LIBRARY');
   });

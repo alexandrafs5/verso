@@ -20,14 +20,14 @@ describe('seedGenres (real Postgres)', () => {
     await close();
   });
 
-  it('creates the 12 genres and a second run leaves the same rows', async () => {
+  it('creates every genre of the list and a second run leaves the same rows', async () => {
     const slugs = GENRES.map((g) => g.slug);
     const read = () =>
       prisma.genre.findMany({ where: { slug: { in: [...slugs] } }, orderBy: { slug: 'asc' } });
 
     await seedGenres(prisma);
     const first = await read();
-    expect(first).toHaveLength(12);
+    expect(first).toHaveLength(GENRES.length);
     expect(first.every((g) => g.id === g.slug)).toBe(true);
     expect(first.find((g) => g.slug === 'mystery')?.name).toBe('Mystery');
 
