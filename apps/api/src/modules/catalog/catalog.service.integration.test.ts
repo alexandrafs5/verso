@@ -541,7 +541,75 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         deathYear: 1986,
       });
       expect(author.works.map((w) => w.title)).toEqual(['Early', 'Late', 'Unknown']);
-      expect(provider.searches).toEqual([{ query: 'author_key:OL1A', page: 1 }]);
+      // Three pages, most editions first (the fake ignores the sort).
+      expect(provider.searches).toEqual([
+        { query: 'author_key:OL1A', page: 1 },
+        { query: 'author_key:OL1A', page: 2 },
+        { query: 'author_key:OL1A', page: 3 },
+      ]);
+    });
+
+    it('reads several pages, drops bundles and stubs, and orders by release year', async () => {
+      fresh();
+      provider.addAuthor(olAuthor);
+      const page = (n: number): WorkSearchResult[] =>
+        n === 1
+          ? [
+              // First edition dated 2011 by mistake, typical year 2020.
+              {
+                ...searchResult('OL1W', 'Rhythm of War'),
+                firstPublishYear: 2011,
+                typicalYear: 2020,
+              },
+              {
+                ...searchResult('OL2W', 'Words of Radiance'),
+                firstPublishYear: 2012,
+                typicalYear: 2014,
+              },
+            ]
+          : n === 2
+            ? [
+                {
+                  ...searchResult('OL3W', 'The Way of Kings'),
+                  firstPublishYear: 2010,
+                  typicalYear: 2010,
+                },
+                { ...searchResult('OL4W', 'Six Books Collection Set'), editionCount: 3 },
+                { ...searchResult('OL5W', 'Study guide'), editionCount: 1 },
+              ]
+            : [{ ...searchResult('OL1W', 'Rhythm of War'), typicalYear: 2020 }];
+      provider.searchWorks = (_query, p) => Promise.resolve(page(p));
+
+      const author = await service.getAuthor('ol:OL1A');
+      expect(author.works.map((w) => w.title)).toEqual([
+        'The Way of Kings',
+        'Words of Radiance',
+        'Rhythm of War',
+      ]);
+    });
+
+    it('still answers when a later page fails, and fails when the first page fails', async () => {
+      fresh();
+      provider.addAuthor(olAuthor);
+      provider.searchWorks = (_query, p) =>
+        p === 1
+          ? Promise.resolve([searchResult('OL1W', 'First')])
+          : Promise.reject(new Error('boom'));
+      expect((await service.getAuthor('ol:OL1A')).works.map((w) => w.title)).toEqual(['First']);
+
+      provider.unavailable = true;
+      provider.searchWorks = InMemoryCatalogProvider.prototype.searchWorks.bind(provider);
+      await failsWith(service.getAuthor('ol:OL1A'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+    });
+
+    it('turns a Markdown biography into plain text', async () => {
+      fresh();
+      provider.addAuthor({
+        ...olAuthor,
+        olAuthorKey: 'OL5A',
+        bio: '**Brandon Sanderson** is [an author](https://example.org).\r\n\r\n----------\r\nSource: x',
+      });
+      expect((await service.getAuthor('ol:OL5A')).bio).toBe('Brandon Sanderson is an author.');
     });
 
     it('serves a local author with a key through the provider and returns the local id', async () => {
@@ -646,9 +714,10 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         ]);
         expect(res.id).toBe('ol:A Song of Ice and Fire');
         expect(res.name).toBe('A Song of Ice and Fire');
+        // Ordered by release year, whatever the order Open Library answered in.
         expect(res.works.map((w) => [w.ref, w.position])).toEqual([
-          ['ol:OL2W', null],
           ['ol:OL1W', null],
+          ['ol:OL2W', null],
         ]);
       });
 

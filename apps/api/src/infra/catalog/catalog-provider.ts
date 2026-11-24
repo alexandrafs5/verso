@@ -10,6 +10,16 @@ export type WorkSearchResult = {
   editionCount: number;
   /** ISO 639-1 codes. Open Library codes without a known mapping are dropped. */
   languages: string[];
+  /**
+   * A release year that ignores one stray early date (Open Library often dates a first edition
+   * years too early). Used to order works. Absent or null when Open Library gives no years.
+   */
+  typicalYear?: number | null;
+};
+
+export type SearchOptions = {
+  /** `editions` lists the works with the most editions first. Default is relevance. */
+  sort?: 'editions';
 };
 
 export type ExternalWork = {
@@ -57,7 +67,7 @@ export interface CatalogProvider {
    * One page of at most 20 results. Open Library docs that are not works are skipped, so a page can
    * have fewer than 20 results and still not be the last one. An empty page means no more results.
    */
-  searchWorks(query: string, page: number): Promise<WorkSearchResult[]>;
+  searchWorks(query: string, page: number, opts?: SearchOptions): Promise<WorkSearchResult[]>;
   getWork(olWorkKey: string): Promise<ExternalWork>;
   listEditions(olWorkKey: string, opts: { language?: string }): Promise<ExternalEdition[]>;
   getEditionByIsbn(isbn: string): Promise<ExternalEdition | null>;

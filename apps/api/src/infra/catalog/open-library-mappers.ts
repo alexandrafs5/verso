@@ -24,6 +24,7 @@ const searchDocSchema = z.object({
   cover_i: z.number().optional(),
   edition_count: z.number().optional(),
   language: z.array(z.string()).optional(),
+  publish_year: z.array(z.number()).optional(),
 });
 
 export const workSchema = z.object({
@@ -175,6 +176,20 @@ const nonEmpty = (value: string | undefined): string | null => {
 
 // Mappers
 
+/**
+ * A release year that ignores one stray early date: the second oldest year when there are at
+ * least 4 dated editions, else the oldest. Years outside 1000 to next year are ignored.
+ */
+export function typicalYear(years: readonly number[] | undefined): number | null {
+  const valid = (years ?? [])
+    .filter(
+      (year) => Number.isInteger(year) && year >= 1000 && year <= new Date().getFullYear() + 1,
+    )
+    .sort((a, b) => a - b);
+  if (valid.length === 0) return null;
+  return valid.length >= 4 ? (valid[1] as number) : (valid[0] as number);
+}
+
 /** Returns null when the document is not a work (for example an author or a malformed key). */
 export function mapSearchDoc(raw: unknown): WorkSearchResult | null {
   const parsed = searchDocSchema.safeParse(raw);
@@ -198,6 +213,7 @@ export function mapSearchDoc(raw: unknown): WorkSearchResult | null {
     coverUrl: coverUrl(doc.cover_i),
     editionCount: doc.edition_count ?? 0,
     languages,
+    typicalYear: typicalYear(doc.publish_year),
   };
 }
 

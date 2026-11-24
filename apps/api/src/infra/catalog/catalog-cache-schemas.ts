@@ -16,6 +16,8 @@ export const workSearchResultSchema: z.ZodType<WorkSearchResult> = z.object({
   coverUrl: z.string().nullable(),
   editionCount: z.number(),
   languages: z.array(z.string()),
+  // Rows cached before SPEC 18 lack this field.
+  typicalYear: z.number().nullable().optional(),
 });
 
 export const externalWorkSchema: z.ZodType<ExternalWork> = z.object({

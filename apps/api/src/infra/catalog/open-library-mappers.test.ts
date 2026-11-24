@@ -6,6 +6,7 @@ import {
   editionsResponseSchema,
   mapAuthor,
   mapEdition,
+  typicalYear,
   mapFormat,
   mapLanguage,
   mapSearchDoc,
@@ -118,7 +119,32 @@ describe('search fixture', () => {
       coverUrl: null,
       editionCount: 0,
       languages: [],
+      typicalYear: null,
     });
+  });
+
+  it('keeps a typical year from the edition years, ignoring one stray early date', () => {
+    const doc = { key: '/works/OL1W', title: 'T', first_publish_year: 2011 };
+    expect(
+      mapSearchDoc({ ...doc, publish_year: [2011, 2020, 2020, 2021, 2022] })?.typicalYear,
+    ).toBe(2020);
+    expect(mapSearchDoc({ ...doc, publish_year: [2011, 2020] })?.typicalYear).toBe(2011);
+  });
+});
+
+describe('typicalYear', () => {
+  it('uses the second oldest year with 4 or more years, else the oldest', () => {
+    expect(typicalYear([2011, 2020, 2020, 2021])).toBe(2020);
+    expect(typicalYear([2022, 2010, 2010, 2015, 2030 - 10])).toBe(2010);
+    expect(typicalYear([1996, 1998, 2000])).toBe(1996);
+    expect(typicalYear([2005])).toBe(2005);
+  });
+
+  it('returns null without usable years and ignores impossible ones', () => {
+    expect(typicalYear(undefined)).toBeNull();
+    expect(typicalYear([])).toBeNull();
+    expect(typicalYear([0, -5, 12, 99999])).toBeNull();
+    expect(typicalYear([0, 1995])).toBe(1995);
   });
 });
 

@@ -15,7 +15,11 @@ import {
   CatalogNotFoundError,
   CatalogUnavailableError,
 } from '../../infra/catalog/catalog-errors.js';
-import { CATALOG_PROVIDER, type CatalogProvider } from '../../infra/catalog/catalog-provider.js';
+import {
+  CATALOG_PROVIDER,
+  type CatalogProvider,
+  type WorkSearchResult,
+} from '../../infra/catalog/catalog-provider.js';
 import type { Author } from '../../generated/prisma/client.js';
 import { CatalogRepository, type WorkRow } from './catalog.repository.js';
 import {
@@ -27,7 +31,6 @@ import {
   localWorkToSummary,
   MAX_AUTHORS,
   searchResultToSummary,
-  sortByYear,
 } from './catalog.mappers.js';
 import {
   authorWorksQuery,
@@ -39,7 +42,9 @@ import {
   parseIsbn,
   parseRef,
 } from './domain/catalog-ref.js';
+import { plainDescription } from './domain/description-text.js';
 import { rankEditions } from './domain/edition-rank.js';
+import { sortByReleaseYear } from './domain/release-order.js';
 import {
   olSeriesName,
   seriesFieldQuery,
@@ -54,6 +59,9 @@ import {
   MIN_EDITIONS_FOR_TEXT_MATCH,
   selectSeriesWorks,
 } from './domain/series-works.js';
+
+/** Pages of 20 works read for an author page. */
+const AUTHOR_WORK_PAGES = 3;
 
 const notFound = () => new ApiException(HttpStatus.NOT_FOUND, ErrorCode.CATALOG_NOT_FOUND);
 const invalidRef = () => new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REF);
@@ -174,7 +182,8 @@ export class CatalogService {
     return {
       ref: olRef(author.olAuthorKey),
       name: author.name,
-      bio: author.bio,
+      // Open Library bios carry Markdown; the cache stores them raw, so clean on the way out.
+      bio: plainDescription(author.bio),
       birthYear: author.birthYear,
       deathYear: author.deathYear,
       photoUrl: author.photoUrl,
@@ -197,12 +206,25 @@ export class CatalogService {
     };
   }
 
-  /** First page of Open Library works for an author, oldest first. */
+  /**
+   * The main works of an Open Library author (SPEC 18): the first ${AUTHOR_WORK_PAGES} pages of the author's works with
+   * the most editions first, so a prolific author is not cut after 20 results. Bundles and split
+   * books are dropped, duplicates are merged and the 1-edition tail is dropped. Ordered by
+   * release year. Only the first page can fail the request.
+   */
   private async worksOfOlAuthor(olAuthorKey: string) {
-    const results = await mapCatalogErrors(() =>
-      this.provider.searchWorks(authorWorksQuery(olAuthorKey), 1),
-    );
-    return sortByYear(results.map(searchResultToSummary));
+    const query = authorWorksQuery(olAuthorKey);
+    const search = (page: number) => this.provider.searchWorks(query, page, { sort: 'editions' });
+    const [first, ...rest] = await Promise.all([
+      mapCatalogErrors(() => search(1)),
+      ...Array.from({ length: AUTHOR_WORK_PAGES - 1 }, (_, i) => search(i + 2).catch(() => [])),
+    ]);
+    const unique = new Map<string, WorkSearchResult>();
+    for (const result of [...first, ...rest.flat()]) {
+      if (!isSeriesJunkTitle(result.title)) unique.set(result.olWorkKey, result);
+    }
+    const { items } = collapseSearchResults([...unique.values()], { guardVisible: true });
+    return sortByReleaseYear(items).map(searchResultToSummary);
   }
 
   async getSeries(id: string): Promise<SeriesDetail> {
@@ -255,7 +277,11 @@ export class CatalogService {
     return {
       id,
       name,
-      works: items.map((result) => ({ ...searchResultToSummary(result), position: null })),
+      // Open Library has no positions and dates early editions badly: order by release year.
+      works: sortByReleaseYear(items).map((result) => ({
+        ...searchResultToSummary(result),
+        position: null,
+      })),
     };
   }
 
