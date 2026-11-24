@@ -39,6 +39,7 @@ import {
   parseIsbn,
   parseRef,
 } from './domain/catalog-ref.js';
+import { rankEditions } from './domain/edition-rank.js';
 import { collapseSearchResults } from './domain/search-collapse.js';
 
 const notFound = () => new ApiException(HttpStatus.NOT_FOUND, ErrorCode.CATALOG_NOT_FOUND);
@@ -131,7 +132,8 @@ export class CatalogService {
     const editions = await mapCatalogErrors(() =>
       this.provider.listEditions(olWorkKey, { language }),
     );
-    return editions.map(externalEditionToDto);
+    // Open Library has no popularity data: well-described editions go first (SPEC 18).
+    return rankEditions(editions).map(externalEditionToDto);
   }
 
   async getAuthor(ref: string): Promise<AuthorDetail> {

@@ -69,13 +69,14 @@ describe('WorkPage', () => {
     expect(chips[0]).toHaveAttribute('href', '/search?genre=Fiction');
   });
 
-  it('shows the edition line from the first edition and uses its cover', async () => {
-    routes();
+  it('shows the edition line from the first edition but keeps the work cover', async () => {
+    routes({ work: json(work({ coverUrl: 'https://covers.example/work.jpg' })) });
     renderWithProviders(<WorkPage workRef="ol:OL1W" />);
     expect(await screen.findByText('Edition: Spanish · Cátedra · 1955 · 128 pages')).toBeVisible();
+    // Search shows the work cover, so the page does not swap it for the first edition's cover.
     expect(screen.getByRole('img', { name: 'Cover of Pedro Páramo' })).toHaveAttribute(
       'src',
-      'https://covers.example/1.jpg',
+      'https://covers.example/work.jpg',
     );
   });
 

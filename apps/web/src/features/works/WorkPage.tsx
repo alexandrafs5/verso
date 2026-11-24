@@ -84,7 +84,8 @@ function WorkView({ workRef }: { workRef: string }) {
           size="lg"
           title={data.title}
           author={authors || undefined}
-          coverUrl={edition?.coverUrl ?? data.coverUrl}
+          // The work cover is what search shows, so it stays until the user picks an edition.
+          coverUrl={selectedRef && edition ? (edition.coverUrl ?? data.coverUrl) : data.coverUrl}
           coverAlt={t('coverAlt', { title: data.title })}
           tone={pickCoverTone(data.title)}
           className="mx-auto w-48 md:mx-0 md:w-64 [&_img]:shadow-(--shadow-high)"

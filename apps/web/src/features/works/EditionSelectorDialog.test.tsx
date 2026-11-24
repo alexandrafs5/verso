@@ -12,7 +12,7 @@ const work = {
   subtitle: null,
   description: null,
   firstPublishYear: 1955,
-  coverUrl: null,
+  coverUrl: 'https://covers.example/work.jpg',
   authors: [{ ref: 'ol:OL1A', name: 'Juan Rulfo' }],
   genres: [],
   series: null,
@@ -116,8 +116,21 @@ describe('EditionSelectorDialog', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByText('Edition: English · Grove · 1994 · 144 pages')).toBeVisible();
     expect(screen.getByText('First published 1955 · 144 pages')).toBeVisible();
-    // The new edition has no cover URL, so the cover image of the first one is gone.
-    expect(document.querySelector('img[src="https://covers.example/es.jpg"]')).toBeNull();
+    // The chosen edition has no cover, so the work cover stays.
+    expect(document.querySelector('img[src="https://covers.example/work.jpg"]')).not.toBeNull();
+  });
+
+  it('keeps the work cover until an edition is chosen, then shows that edition cover', async () => {
+    open([english, spanish]);
+    await screen.findByRole('button', { name: 'Change' });
+    const cover = () => document.querySelector('img[alt="Cover of Pedro Páramo"]');
+    expect(cover()).toHaveAttribute('src', 'https://covers.example/work.jpg');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Change' }));
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: /Spanish · Cátedra/ }),
+    );
+    expect(cover()).toHaveAttribute('src', 'https://covers.example/es.jpg');
   });
 
   it('closes with Escape and the close button, and returns focus to Change', async () => {

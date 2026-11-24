@@ -108,9 +108,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('sends the genre as a subject clause and strips quotes', async () => {
       fresh();
       await service.searchBooks({ q: 'Pedro Páramo', genre: 'Fic"tion' });
-      expect(provider.searches).toEqual([
-        { query: 'Pedro Páramo subject:"Fiction"', page: 1 },
-      ]);
+      expect(provider.searches).toEqual([{ query: 'Pedro Páramo subject:"Fiction"', page: 1 }]);
     });
 
     it('sends only the subject clause for a genre-only search', async () => {
@@ -404,6 +402,22 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       expect((await service.getEditions(userId, 'ol:OL1W', 'es')).map((e) => e.ref)).toEqual([
         'ol:OL1M',
       ]);
+    });
+
+    it('puts well-described editions before bare stubs and keeps ties in provider order', async () => {
+      fresh();
+      seedWork();
+      provider.addEdition(ed('OL3M', null)).addEdition({
+        ...ed('OL4M', 'es'),
+        coverUrl: 'https://covers.openlibrary.org/b/id/1-M.jpg',
+        isbn13: '9788437604947',
+        publisher: 'Cátedra',
+        pageCount: 128,
+        publishYear: 1955,
+      });
+      const refs = (await service.getEditions(userId, 'ol:OL1W')).map((e) => e.ref);
+      // OL4M is complete. OL1M and OL2M score 1 (language), OL3M scores 0.
+      expect(refs).toEqual(['ol:OL4M', 'ol:OL1M', 'ol:OL2M', 'ol:OL3M']);
     });
 
     it('uses the provider for a persisted Open Library work', async () => {

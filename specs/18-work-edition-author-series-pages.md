@@ -92,7 +92,8 @@ Conventions:
 - **Seed.** `seedGenres` upserts each `GENRES` entry into `Genre` by `slug`, sets `name` to the English name, and uses the `slug` as `id`. Running it twice leaves 12 rows. `Genre.name` is never shown to the user (UI labels come from i18n).
 - **Search with `genre` only.** `buildSearchQuery(undefined, 'Fiction')` returns `subject:"Fiction"`. With `q` it keeps today's `<q> subject:"<genre>"`. A `"` inside `genre` is still stripped. A `genre` that becomes empty after stripping with no `q` is a 400 (`VALIDATION_ERROR`), checked in the service.
 - **Selected edition.** S3 fetches `GET /v1/works/{ref}/editions` once, with no `language`. The first edition returned is selected by default. The language chips in S4 are the distinct non-null `language` values of that list, and filtering is done on the client. The `language` query parameter stays unused by the web.
-- **Selected edition effect.** The edition line and the page count in the info block follow the selected edition. The cover uses the selected edition's `coverUrl`, then the work's `coverUrl`, then the generated cover. The selection is React state, reset when `ref` changes.
+- **Selected edition effect.** The edition line and the page count in the info block follow the selected edition. The cover is the work's `coverUrl` (the one search shows) until the user picks an edition. After that it is the picked edition's `coverUrl`, then the work's `coverUrl`, then the generated cover. The selection is React state, reset when `ref` changes.
+- **Edition order.** `GET /v1/works/{ref}/editions` returns provider editions ranked by `rankEditions` (`domain/edition-rank.ts`): a cover scores 4, an ISBN 2, and page count, publisher, year and language 1 each. Ties keep the provider order. Open Library has no popularity data, so this puts well-described editions first and bare stubs last. Local editions keep their order.
 - **Edition line.** `Edition: <language> · <publisher> · <year> · <N pages>`, omitting any null part. It is hidden while editions load, or when there are none.
 - **Series line.** `Book {position} of {name}` when `position` is not null, else `Part of {name}`. It links to `/series/{id}`. It appears only when `WorkDetail.series` is not null.
 - **Author years.** `birthYear–deathYear`, `birthYear–` when only the birth is known, hidden when both are null.
@@ -137,7 +138,8 @@ Manual checks need the real stack: `docker compose up -d`, `pnpm dev`, network a
 - [ ] Genre chips show only for genres that map. Each links to `/search?genre=<encoded subject>`. A work with no mapped genre shows no chip block.
 - [ ] The synopsis is clamped to 5 lines and "Read more" appears only when the text overflows. A short synopsis has no button.
 - [ ] The edition line shows `Edition: <language> · <publisher> · <year> · <N pages>`, omits null parts, and is hidden while editions load or when there are none.
-- [ ] The info block page count and the cover follow the selected edition.
+- [ ] The info block page count follows the selected edition. The cover is the work cover until an edition is chosen, then that edition's cover.
+- [ ] `GET /v1/works/{ref}/editions` lists an edition with a cover and an ISBN before a bare one, and keeps the provider order for equal scores.
 - [ ] No Add-to-library control, status, progress, rating or reviews block renders.
 - [ ] A 404 or an invalid ref shows the not-found state. A 503 or 429 shows an error state with Retry.
 - [ ] Opening a work writes nothing to `Work`, `Edition` or `Author`.
@@ -254,6 +256,8 @@ Manual checks need the real stack: `docker compose up -d`, `pnpm dev`, network a
 - **Yes (mine, unconfirmed):** the list of 12 genres, their Open Library subjects and the Spanish labels below. The user reviews them in this Draft. Spanish: Ficción, Fantasía, Ciencia ficción, Misterio, Romance, Ficción histórica, Terror, Suspenso, Biografía, Historia, Poesía, Filosofía.
 - **Yes (mine, unconfirmed):** author route is `authors/[ref]`, not `authors/[id]` as ARCHITECTURE.md line 182 says. The API and `authorRefSchema` use `ref`, and refs can contain `:`. ARCHITECTURE.md is corrected in this PR.
 - **Yes (mine, unconfirmed):** the first edition returned is the default selection, without a locale preference. Simple and testable. A locale-aware default can come later.
+- **Yes (found in manual testing):** provider editions are ranked by completeness in the API, and the work cover stays until the user picks an edition. The first version showed the first edition's cover and details by default, which differed from the search cover and put stubs on top. Amends the "no change to the editions endpoint" line in Scope for ordering only: the contract does not change.
+- **No:** ranking by popularity. Open Library editions carry no popularity field.
 - **Yes (mine, unconfirmed):** match a raw genre against `subject` or `name`, case-insensitive. Local works store `WorkGenre` names that come from the seeded `Genre.name`.
 
 ## Risks
