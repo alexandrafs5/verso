@@ -1,6 +1,6 @@
 # SPEC 17 — Search relevance and duplicate collapse (M3.3b)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 13, SPEC 15, SPEC 16
 > **Date:** 2026-11-24
 > **Objective:** Merge near-duplicate works inside each result page of `GET /v1/search/books` and fold the 1-edition long tail into a `moreMatches` list that S2 shows behind a "Show more matches" button.
@@ -100,7 +100,7 @@ Conventions:
 - [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
 - [x] M3.3b is ticked in `ROADMAP.md` in the same PR.
 - [x] SPEC 15 and 16 each have a note pointing to this spec for the search change.
-- [ ] The S2 page has padding at the top, bottom and sides (`px-4 py-8`), done in a separate `fix:` commit. Manual check in a real browser.
+- [x] The S2 page has padding at the top, bottom and sides (`px-4 py-8`), done in a separate `fix:` commit. Manual check in a real browser.
 
 ### UI states: S2 search results, fold control
 
@@ -109,9 +109,9 @@ Conventions:
 - [x] **Empty:** no results in `items` and `moreMatches` shows the existing empty state with the manual add link. If only `moreMatches` has entries (a later page), the button still shows.
 - [x] **Error:** existing error state and retry. A failed "Load more" keeps the rows and the fold button.
 - [x] **Light theme:** the button uses tokens only and is legible.
-- [ ] **Dark theme:** the button uses tokens only and is legible.
-- [ ] **Mobile:** the button is full width, at least 44 px tall, and there is no horizontal scroll.
-- [ ] **Desktop:** the button aligns with the list column and shows a visible focus ring.
+- [x] **Dark theme:** the button uses tokens only and is legible.
+- [x] **Mobile:** the button is full width, at least 44 px tall, and there is no horizontal scroll.
+- [x] **Desktop:** the button aligns with the list column and shows a visible focus ring.
 
 ### UI states: Top-bar quick results
 
