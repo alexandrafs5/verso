@@ -10,14 +10,9 @@ import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/verso';
 import { focusRing } from '@/components/shell/nav';
 import { cn } from '@/lib/utils';
+import { searchHref } from './search-href';
 import { SearchResultsList } from './SearchResultsList';
 import { useRecentSearches } from './use-recent-searches';
-
-export function searchHref(q: string, genre?: string): string {
-  const params = new URLSearchParams({ q });
-  if (genre) params.set('genre', genre);
-  return `/search?${params.toString()}`;
-}
 
 /** Text from the URL that is usable as a query, or null. */
 function validQuery(raw: string | null, max: number): string | null {

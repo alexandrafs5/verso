@@ -1,6 +1,6 @@
 'use client';
 
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import {
   type SearchBooksQuery,
   searchBooksQuerySchema,
@@ -16,6 +16,8 @@ type Params = {
   genre?: string;
   /** Shortest trimmed query that sends a request. */
   minLength: number;
+  /** Keep the last results on screen while a new query loads. */
+  keepPrevious?: boolean;
 };
 
 /** Returns the parsed query when it is valid and long enough, otherwise null. */
@@ -47,6 +49,7 @@ export function useSearchBooks(params: Params) {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: query !== null,
+    placeholderData: params.keepPrevious ? keepPreviousData : undefined,
     staleTime: SEARCH_STALE_MS,
   });
 }

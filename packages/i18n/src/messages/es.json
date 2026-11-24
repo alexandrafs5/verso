@@ -59,6 +59,7 @@
       "clearAll": "Borrar todo"
     },
     "seeAll": "Ver todos los resultados",
+    "searching": "Buscando",
     "noMatch": "Ningún libro coincide con ‘{query}’",
     "noMatchHint": "Revisa la ortografía o prueba con otro título o autor.",
     "quickError": "La búsqueda no está disponible ahora mismo.",

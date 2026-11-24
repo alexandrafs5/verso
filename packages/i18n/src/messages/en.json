@@ -59,6 +59,7 @@
       "clearAll": "Clear all"
     },
     "seeAll": "See all results",
+    "searching": "Searching",
     "noMatch": "No books match ‘{query}’",
     "noMatchHint": "Check the spelling or try another title or author.",
     "quickError": "Search is not available right now.",
