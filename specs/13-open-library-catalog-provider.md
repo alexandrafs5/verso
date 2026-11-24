@@ -4,6 +4,7 @@
 > **Depends on:** SPEC 01, SPEC 06, SPEC 08
 > **Date:** 2026-11-24
 > **Objective:** Add the `CatalogProvider` interface, an `OpenLibraryProvider` (search, work, editions, ISBN, author) backed by a Postgres `ExternalCache`, and an in-memory fake, all tested against recorded fixtures.
+> **Amended by SPEC 17:** `searchWorks(query, page, opts?)` takes an optional `{ sort: 'editions' }`, sent to Open Library as `sort=editions` and part of the cache key.
 
 ## Why this spec exists
 
