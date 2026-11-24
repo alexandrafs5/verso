@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
+import { RateLimitModule } from '../../common/rate-limit/rate-limit.module.js';
+import { AuthModule } from '../auth/auth.module.js';
+import { CatalogController } from './catalog.controller.js';
 import { CatalogRepository } from './catalog.repository.js';
+import { CatalogService } from './catalog.service.js';
 
-// CatalogInfraModule is global (CATALOG_PROVIDER). Service, controller and
-// auth/rate-limit imports are added in the next steps.
+// CatalogInfraModule is global, so CATALOG_PROVIDER needs no import here.
 @Module({
-  providers: [CatalogRepository],
-  exports: [CatalogRepository],
+  imports: [AuthModule, RateLimitModule],
+  controllers: [CatalogController],
+  providers: [CatalogService, CatalogRepository],
+  exports: [CatalogService],
 })
 export class CatalogModule {}
