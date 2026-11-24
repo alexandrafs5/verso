@@ -164,7 +164,6 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
     it('serves an unpersisted Open Library work with author names and writes nothing', async () => {
       fresh();
-      const before = await prisma.work.count();
       provider.addWork(olWork(['OL1A'])).addAuthor(olAuthor('OL1A', 'Juan Rulfo'));
 
       const work = await service.getWork(userId, 'ol:OL1W');
@@ -176,7 +175,8 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         source: 'OPEN_LIBRARY',
         libraryStatus: null,
       });
-      expect(await prisma.work.count()).toBe(before);
+      expect(await prisma.work.count({ where: { olWorkKey: 'OL1W' } })).toBe(0);
+      expect(await prisma.edition.count({ where: { work: { olWorkKey: 'OL1W' } } })).toBe(0);
       expect(await prisma.author.count({ where: { olAuthorKey: 'OL1A' } })).toBe(0);
     });
 
