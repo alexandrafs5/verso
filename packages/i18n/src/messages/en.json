@@ -50,6 +50,7 @@
   "search": {
     "label": "Search books",
     "placeholder": "Search books",
+    "submit": "Search",
     "shortcutHint": "Press Ctrl+K or ⌘K to search",
     "results": "Search results",
     "recent": {
@@ -59,6 +60,7 @@
     },
     "seeAll": "See all results",
     "noMatch": "No books match ‘{query}’",
+    "noMatchHint": "Check the spelling or try another title or author.",
     "quickError": "Search is not available right now.",
     "retry": "Try again",
     "page": {
