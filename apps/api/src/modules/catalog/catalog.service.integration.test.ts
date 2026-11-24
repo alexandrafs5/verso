@@ -4,7 +4,9 @@ import { ErrorCode } from '@verso/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { ApiException } from '../../common/api-exception.js';
-import type { WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
+import type { SearchOptions, WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
+import { mapSearchDoc } from '../../infra/catalog/open-library-mappers.js';
+import { loadFixture } from '../../infra/catalog/test-fixtures.js';
 import { InMemoryCatalogProvider } from '../../infra/catalog/in-memory-catalog.provider.js';
 import { PrismaModule } from '../../infra/prisma/prisma.module.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
@@ -16,15 +18,19 @@ const TAG = `cs${Date.now().toString(36)}`;
 
 /** Records the queries and pages the service sends. */
 class RecordingProvider extends InMemoryCatalogProvider {
-  readonly searches: { query: string; page: number }[] = [];
+  readonly searches: { query: string; page: number; opts: SearchOptions | undefined }[] = [];
   /** Exact query to canned results, for queries the in-memory matcher cannot answer. */
   readonly canned = new Map<string, WorkSearchResult[]>();
 
-  override searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
-    this.searches.push({ query, page });
+  override searchWorks(
+    query: string,
+    page: number,
+    opts?: SearchOptions,
+  ): Promise<WorkSearchResult[]> {
+    this.searches.push({ query, page, opts });
     const canned = this.canned.get(query);
     if (canned) return Promise.resolve(canned);
-    return super.searchWorks(query, page);
+    return super.searchWorks(query, page, opts);
   }
 }
 
@@ -106,7 +112,9 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('sends the genre as a subject clause and strips quotes', async () => {
       fresh();
       await service.searchBooks({ q: 'Pedro Páramo', genre: 'Fic"tion' });
-      expect(provider.searches).toEqual([{ query: 'Pedro Páramo subject:"Fiction"', page: 1 }]);
+      expect(provider.searches).toEqual([
+        { query: 'Pedro Páramo subject:"Fiction"', page: 1, opts: { sort: 'editions' } },
+      ]);
     });
 
     it('sets nextCursor to the next page and follows it', async () => {
@@ -117,6 +125,79 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
       await service.searchBooks({ q: 'Pedro', cursor: first.nextCursor ?? '' });
       expect(provider.searches.map((s) => s.page)).toEqual([1, 2]);
+    });
+
+    it('asks for popularity order on every search page', async () => {
+      fresh();
+      provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
+      const first = await service.searchBooks({ q: 'Pedro' });
+      await service.searchBooks({ q: 'Pedro', cursor: first.nextCursor ?? '' });
+      expect(provider.searches.map((s) => s.opts)).toEqual([
+        { sort: 'editions' },
+        { sort: 'editions' },
+      ]);
+    });
+
+    describe('collapse and fold', () => {
+      const tail = (n: number): WorkSearchResult => ({
+        ...searchResult(`OL${n}W`, `Study ${n}`),
+        authors: [{ olAuthorKey: `OL${n}A`, name: `Author ${n}` }],
+        editionCount: 1,
+      });
+
+      it('merges duplicates and folds the 1-edition tail on the first page', async () => {
+        fresh();
+        provider.canned.set('Pedro', [
+          searchResult('OL1W', 'Pedro Páramo'),
+          { ...searchResult('OL2W', 'Pedro Paramo'), editionCount: 3 },
+          tail(7),
+        ]);
+        const res = await service.searchBooks({ q: 'Pedro' });
+        expect(res.items.map((i) => [i.ref, i.editionCount])).toEqual([['ol:OL1W', 15]]);
+        expect(res.moreMatches.map((i) => i.ref)).toEqual(['ol:OL7W']);
+        expect(res.nextCursor).toBe(encodeCursor(2));
+      });
+
+      it('keeps every result in items when the first page has only 1-edition works', async () => {
+        fresh();
+        provider.canned.set('Tail', [tail(7), tail(8)]);
+        const res = await service.searchBooks({ q: 'Tail' });
+        expect(res.items).toHaveLength(2);
+        expect(res.moreMatches).toEqual([]);
+      });
+
+      it('folds 1-edition works on a later page, even when items ends up empty', async () => {
+        fresh();
+        provider.canned.set('Tail', [tail(7), tail(8)]);
+        const res = await service.searchBooks({ q: 'Tail', cursor: encodeCursor(2) });
+        expect(res.items).toEqual([]);
+        expect(res.moreMatches.map((i) => i.ref)).toEqual(['ol:OL7W', 'ol:OL8W']);
+        expect(res.nextCursor).toBe(encodeCursor(3));
+      });
+
+      it('collapses the pedro paramo fixture to one Pedro Páramo item', async () => {
+        fresh();
+        const docs = loadFixture<{ docs: unknown[] }>('search-pedro-paramo.json').docs;
+        provider.canned.set(
+          'pedro paramo',
+          docs.flatMap((doc) => mapSearchDoc(doc) ?? []),
+        );
+        const res = await service.searchBooks({ q: 'pedro paramo' });
+        const rulfo = res.items.filter(
+          (i) => i.title === 'Pedro Páramo' && i.authors[0]?.ref === 'ol:OL199285A',
+        );
+        expect(rulfo).toHaveLength(1);
+        expect(rulfo[0]?.editionCount).toBeGreaterThanOrEqual(160);
+        expect(res.moreMatches.length).toBeGreaterThan(0);
+        expect(res.moreMatches.every((m) => (m.editionCount ?? 0) <= 1)).toBe(true);
+        expect(res.items.every((i) => i.libraryStatus === null)).toBe(true);
+      });
+
+      it('returns two empty lists and no cursor for an empty provider page', async () => {
+        fresh();
+        const res = await service.searchBooks({ q: 'nothing', cursor: encodeCursor(5) });
+        expect(res).toEqual({ items: [], moreMatches: [], nextCursor: null });
+      });
     });
 
     it('returns a null nextCursor on an empty page', async () => {
@@ -389,7 +470,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         deathYear: 1986,
       });
       expect(author.works.map((w) => w.title)).toEqual(['Early', 'Late', 'Unknown']);
-      expect(provider.searches).toEqual([{ query: 'author_key:OL1A', page: 1 }]);
+      expect(provider.searches).toEqual([{ query: 'author_key:OL1A', page: 1, opts: undefined }]);
     });
 
     it('serves a local author with a key through the provider and returns the local id', async () => {

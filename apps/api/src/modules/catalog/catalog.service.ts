@@ -39,6 +39,7 @@ import {
   parseIsbn,
   parseRef,
 } from './domain/catalog-ref.js';
+import { collapseSearchResults } from './domain/search-collapse.js';
 
 const notFound = () => new ApiException(HttpStatus.NOT_FOUND, ErrorCode.CATALOG_NOT_FOUND);
 const invalidRef = () => new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REF);
@@ -76,12 +77,16 @@ export class CatalogService {
       page = decoded;
     }
     const results = await mapCatalogErrors(() =>
-      this.provider.searchWorks(buildSearchQuery(query.q, query.genre), page),
+      this.provider.searchWorks(buildSearchQuery(query.q, query.genre), page, { sort: 'editions' }),
     );
-    // An empty page is the provider's end-of-results signal (SPEC 13).
+    // Merging happens per provider page, so the cursor and the end-of-results signal (an empty
+    // provider page, SPEC 13) are unchanged. The visible guard applies on the first page only.
+    const { items, moreMatches } = collapseSearchResults(results, {
+      guardVisible: query.cursor === undefined,
+    });
     return {
-      items: results.map(searchResultToSummary),
-      moreMatches: [],
+      items: items.map(searchResultToSummary),
+      moreMatches: moreMatches.map(searchResultToSummary),
       nextCursor: results.length > 0 ? encodeCursor(page + 1) : null,
     };
   }
