@@ -47,6 +47,38 @@
     "userMenu": "Account menu",
     "wakingUp": "Waking up the server. This can take up to a minute."
   },
+  "search": {
+    "label": "Search books",
+    "placeholder": "Search books",
+    "shortcutHint": "Press Ctrl+K or ⌘K to search",
+    "results": "Search results",
+    "recent": {
+      "heading": "Recent searches",
+      "remove": "Remove {query} from recent searches",
+      "clearAll": "Clear all"
+    },
+    "seeAll": "See all results",
+    "noMatch": "No books match ‘{query}’",
+    "quickError": "Search is not available right now.",
+    "retry": "Try again",
+    "page": {
+      "heading": "Books",
+      "promptHeading": "Search for a book",
+      "promptBody": "Type a title, author or ISBN.",
+      "editions": "{count, plural, one {# edition} other {# editions}}",
+      "coverAlt": "Cover of {title}",
+      "authorsBy": "by {authors}",
+      "genreChip": "Genre: {genre}",
+      "removeGenre": "Remove genre filter {genre}",
+      "manualAdd": "Can’t find your book? Add it manually",
+      "loadMore": "Load more",
+      "loadingMore": "Loading more",
+      "errorHeading": "We couldn’t load the results",
+      "errorBody": "Check your connection and try again.",
+      "rateLimited": "Too many searches. Wait a moment and try again.",
+      "loadMoreError": "We couldn’t load more results."
+    }
+  },
   "auth": {
     "newPassage": "A new passage on every visit",
     "quoteLabel": "Quote",
