@@ -45,6 +45,7 @@ export const externalEditionSchema: z.ZodType<ExternalEdition> = z.object({
   coverUrl: z.string().nullable(),
   // Rows cached before SPEC 18 lack this field.
   translatedFrom: z.string().nullable().default(null),
+  description: z.string().nullable().optional(),
 });
 
 export const externalAuthorSchema: z.ZodType<ExternalAuthor> = z.object({

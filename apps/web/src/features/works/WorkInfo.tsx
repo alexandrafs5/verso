@@ -14,13 +14,15 @@ const linkClass = cn('text-accent-text underline-offset-4 hover:underline', focu
 
 type WorkInfoProps = {
   work: WorkDetail;
+  /** The description to show, already picked for the reader's language. */
+  description: string | null;
   /** Page count of the selected edition, or null when unknown. */
   pageCount: number | null;
   /** The edition line, rendered by the page once editions are loaded. */
   editionSlot?: ReactNode;
 };
 
-export function WorkInfo({ work, pageCount, editionSlot }: WorkInfoProps) {
+export function WorkInfo({ work, description, pageCount, editionSlot }: WorkInfoProps) {
   const t = useTranslations('work');
   const meta = [
     work.firstPublishYear === null ? null : t('firstPublished', { year: work.firstPublishYear }),
@@ -65,12 +67,8 @@ export function WorkInfo({ work, pageCount, editionSlot }: WorkInfoProps) {
 
       {editionSlot}
 
-      {work.description ? (
-        <Synopsis
-          text={work.description}
-          readMoreLabel={t('readMore')}
-          readLessLabel={t('readLess')}
-        />
+      {description ? (
+        <Synopsis text={description} readMoreLabel={t('readMore')} readLessLabel={t('readLess')} />
       ) : null}
     </div>
   );

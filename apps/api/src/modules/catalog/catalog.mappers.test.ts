@@ -104,6 +104,30 @@ describe('provider mappers', () => {
     expect(externalWorkToDetail({ ...work, description: null }, []).description).toBeNull();
   });
 
+  it('turns a Markdown edition blurb into plain text and gives none for a missing one', () => {
+    const edition: ExternalEdition = {
+      olEditionKey: 'OL5M',
+      olWorkKey: 'OL1W',
+      title: 'T',
+      isbn10: null,
+      isbn13: null,
+      publisher: null,
+      publishYear: null,
+      language: 'es',
+      pageCount: null,
+      format: 'EBOOK',
+      coverUrl: null,
+      translatedFrom: null,
+      description: 'En un mundo **distinto** al nuestro, [leer más](https://example.org).',
+    };
+    expect(externalEditionToDto(edition, null).description).toBe(
+      'En un mundo distinto al nuestro, leer más.',
+    );
+    expect(
+      externalEditionToDto({ ...edition, description: undefined }, null).description,
+    ).toBeNull();
+  });
+
   it('maps an external edition to an ol: ref', () => {
     const edition: ExternalEdition = {
       olEditionKey: 'OL5M',

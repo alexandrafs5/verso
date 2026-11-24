@@ -50,6 +50,8 @@ export type ExternalEdition = {
   coverUrl: string | null;
   /** ISO 639-1 of the language this edition was translated from, when Open Library says so. */
   translatedFrom: string | null;
+  /** Raw blurb of the edition (may carry Markdown). Absent in rows cached before SPEC 18. */
+  description?: string | null;
 };
 
 export type ExternalAuthor = {

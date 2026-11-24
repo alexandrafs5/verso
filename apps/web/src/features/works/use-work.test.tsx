@@ -33,6 +33,7 @@ const edition = {
   format: 'PAPERBACK',
   coverUrl: null,
   isOriginalLanguage: true,
+  description: null,
 };
 
 afterEach(() => vi.unstubAllGlobals());

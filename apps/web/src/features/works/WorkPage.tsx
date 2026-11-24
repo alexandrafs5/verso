@@ -11,7 +11,7 @@ import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { EditionLine } from './EditionLine';
 import { EditionSelectorDialog } from './EditionSelectorDialog';
-import { pickDefaultEdition } from './edition-utils';
+import { pickDefaultEdition, pickDescription } from './edition-utils';
 import { useWork } from './use-work';
 import { useWorkEditions } from './use-work-editions';
 import { WorkInfo } from './WorkInfo';
@@ -100,6 +100,7 @@ function WorkView({ workRef }: { workRef: string }) {
         />
         <WorkInfo
           work={data}
+          description={pickDescription(data.description, editionList, locale)}
           pageCount={edition?.pageCount ?? null}
           editionSlot={
             edition ? (

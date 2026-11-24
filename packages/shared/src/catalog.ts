@@ -111,6 +111,9 @@ export const editionDtoSchema = z.object({
   coverUrl: z.string().nullable(),
   /** True when `language` is the original language of the work (SPEC 18). */
   isOriginalLanguage: z.boolean(),
+  /** Plain-text blurb of this edition, in its own language. Lets the page show a description
+   * in the reader's language, which Open Library has for some editions (SPEC 18). */
+  description: z.string().nullable(),
 });
 
 export const authorDetailSchema = z.object({

@@ -200,6 +200,7 @@ describe('editions fixture', () => {
       pageCount: 139,
       format: 'EBOOK',
       translatedFrom: null,
+      description: null,
       coverUrl: 'https://covers.openlibrary.org/b/id/15269114-M.jpg',
     });
   });
@@ -235,6 +236,16 @@ describe('editions fixture', () => {
     expect(
       mapEdition({ ...base, translated_from: [{ key: '/languages/zzz' }] })?.translatedFrom,
     ).toBeNull();
+  });
+
+  it('maps the edition description from a string or a text object', () => {
+    const base = { key: '/books/OL1M', title: 'T' };
+    expect(mapEdition({ ...base, description: 'Plain blurb' })?.description).toBe('Plain blurb');
+    expect(
+      mapEdition({ ...base, description: { type: '/type/text', value: 'Typed blurb' } })
+        ?.description,
+    ).toBe('Typed blurb');
+    expect(mapEdition(base)?.description).toBeNull();
   });
 
   it('returns null for an entry without a title', () => {

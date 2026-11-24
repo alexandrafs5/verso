@@ -95,6 +95,7 @@ export function localEditionToDto(edition: Edition, original: string | null): Ed
     format: edition.format,
     coverUrl: edition.coverUrl,
     isOriginalLanguage: original !== null && edition.language === original,
+    description: null,
   };
 }
 
@@ -114,6 +115,8 @@ export function externalEditionToDto(
     format: edition.format,
     coverUrl: edition.coverUrl,
     isOriginalLanguage: original !== null && edition.language === original,
+    // Open Library blurbs carry Markdown; the cache stores them raw, so clean on the way out.
+    description: plainDescription(edition.description),
   };
 }
 

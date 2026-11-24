@@ -39,6 +39,7 @@ const edition = (extra: Record<string, unknown> = {}) => ({
   format: 'PAPERBACK',
   coverUrl: 'https://covers.example/1.jpg',
   isOriginalLanguage: false,
+  description: null,
   ...extra,
 });
 
@@ -104,6 +105,7 @@ describe('WorkPage', () => {
           publisher: 'Gigamesh',
           pageCount: 700,
           isOriginalLanguage: true,
+          description: null,
         }),
       ]),
     });

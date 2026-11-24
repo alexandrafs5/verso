@@ -24,6 +24,7 @@ const edition = {
   format: 'PAPERBACK',
   coverUrl: null,
   isOriginalLanguage: true,
+  description: null,
 };
 
 describe('refs', () => {
@@ -132,7 +133,9 @@ describe('response shapes', () => {
       libraryStatus: null,
     };
     expect(workDetailSchema.safeParse({ ...base, genres: Array(30).fill('g') }).success).toBe(true);
-    expect(workDetailSchema.safeParse({ ...base, genres: Array(31).fill('g') }).success).toBe(false);
+    expect(workDetailSchema.safeParse({ ...base, genres: Array(31).fill('g') }).success).toBe(
+      false,
+    );
   });
 
   it('parses an ISBN result', () => {
