@@ -146,6 +146,7 @@
     "readLess": "Leer menos",
     "worksHeading": "Libros",
     "worksEmpty": "No encontramos libros de este autor",
+    "worksEmptyHint": "Prueba buscando uno de sus libros.",
     "coverAlt": "Portada de {title}",
     "notFoundHeading": "Autor no encontrado",
     "notFoundBody": "Este autor no existe o ya no está disponible.",
