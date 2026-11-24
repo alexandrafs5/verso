@@ -1,6 +1,7 @@
 {
   "common": {
     "retry": "Reintentar",
+    "rateLimited": "Vas demasiado rápido. Espera un momento e inténtalo de nuevo.",
     "close": "Cerrar",
     "language": "Idioma",
     "theme": "Cambiar tema"

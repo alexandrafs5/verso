@@ -44,7 +44,7 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 
 ### M3. Catalog
 
-- [ ] **M3.0** `@nestjs/throttler` on `/v1`: search 60/min/user, writes 120/min/user, plus `/v1/me` username availability and avatar upload URL limits (deferred from M2.6). §10
+- [x] **M3.0** `@nestjs/throttler` on `/v1`: search 60/min/user, writes 120/min/user, plus `/v1/me` username availability and avatar upload URL limits (deferred from M2.6). §10
 - [x] **M3.1** `CatalogProvider` + `OpenLibraryProvider` (search, work, editions, ISBN, author) with `ExternalCache`, User-Agent, timeouts. Fixture-based tests. §7
 - [ ] **M3.2** Catalog tables and migration (Work, Edition, Author, WorkAuthor, Genre, WorkGenre, Series). §5.3 (`ExternalCache` already exists, created in M3.1.)
 - [ ] **M3.3** `GET /v1/search/books`, `/v1/works/{ref}`, `/editions`, `/v1/authors/{ref}`, `/v1/series/{id}`, `/v1/isbn/{isbn}`.
