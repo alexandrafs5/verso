@@ -1,6 +1,7 @@
 {
   "common": {
     "retry": "Try again",
+    "rateLimited": "You are going too fast. Wait a moment and try again.",
     "close": "Close",
     "language": "Language",
     "theme": "Toggle theme"

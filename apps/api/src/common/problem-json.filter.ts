@@ -67,6 +67,7 @@ export class ProblemJsonFilter implements ExceptionFilter {
     if (status === HttpStatus.UNAUTHORIZED) return ErrorCode.UNAUTHENTICATED;
     if (status === HttpStatus.FORBIDDEN) return ErrorCode.FORBIDDEN;
     if (status === HttpStatus.NOT_FOUND) return ErrorCode.NOT_FOUND;
+    if (status === HttpStatus.TOO_MANY_REQUESTS) return ErrorCode.RATE_LIMITED;
     if (status === HttpStatus.BAD_REQUEST) return ErrorCode.VALIDATION_ERROR;
     return ErrorCode.INTERNAL_ERROR;
   }

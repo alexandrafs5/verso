@@ -26,13 +26,15 @@ import {
   upsertGoalSchema,
   usernameParamSchema,
 } from '@verso/shared';
+import { RateLimit, RateLimitBucket } from '../../common/rate-limit/rate-limit.js';
+import { UserThrottlerGuard } from '../../common/rate-limit/user-throttler.guard.js';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { CurrentUser, SessionGuard, type AuthUser } from '../auth/index.js';
 import { UsersService } from './users.service.js';
 
 /** HTTP and validation only. Every route acts on the session user. */
 @Controller('v1')
-@UseGuards(SessionGuard)
+@UseGuards(SessionGuard, UserThrottlerGuard)
 export class UsersController {
   constructor(@Inject(UsersService) private readonly users: UsersService) {}
 
@@ -58,6 +60,7 @@ export class UsersController {
   }
 
   @Post('me/avatar/upload-url')
+  @RateLimit(RateLimitBucket.AVATAR_UPLOAD)
   @HttpCode(200)
   createAvatarUpload(
     @CurrentUser() user: AuthUser,
@@ -67,6 +70,7 @@ export class UsersController {
   }
 
   @Get('usernames/:username/availability')
+  @RateLimit(RateLimitBucket.USERNAME_CHECK)
   checkUsername(
     @CurrentUser() user: AuthUser,
     @Param('username', new ZodValidationPipe(usernameParamSchema)) username: string,

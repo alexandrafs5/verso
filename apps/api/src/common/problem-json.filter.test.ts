@@ -7,6 +7,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import { problemSchema } from '@verso/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -64,6 +65,12 @@ describe('ProblemJsonFilter', () => {
     expect(res.status).toBe(400);
     expect(problem.code).toBe('VALIDATION_ERROR');
     expect(problem.errors).toBeUndefined();
+  });
+
+  it('maps 429 to RATE_LIMITED', () => {
+    const res = run(new ThrottlerException());
+    expect(res.status).toBe(429);
+    expect(problemSchema.parse(res.body).code).toBe('RATE_LIMITED');
   });
 
   it('maps 401 to UNAUTHENTICATED and 403 to FORBIDDEN', () => {
