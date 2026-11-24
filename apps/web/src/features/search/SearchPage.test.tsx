@@ -47,6 +47,12 @@ describe('SearchPage', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('shows a Back button', () => {
+    stubFetch(() => json({}));
+    renderWithProviders(<SearchPage />);
+    expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
+  });
+
   it('renders rows linking to the encoded work ref', async () => {
     nav.search = 'q=Pedro+P%C3%A1ramo';
     stubFetch(() =>

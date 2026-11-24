@@ -158,6 +158,19 @@ describe('WorkPage', () => {
     expect(screen.queryByRole('button', { name: 'Read more' })).not.toBeInTheDocument();
   });
 
+  it('shows a Back button, also in the not-found state', async () => {
+    routes();
+    const first = renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
+    first.unmount();
+
+    routes({ work: problem(404, 'CATALOG_NOT_FOUND') });
+    renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+    await screen.findByText('Book not found');
+    expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
+  });
+
   it('renders no library, status, rating or reviews controls', async () => {
     routes();
     renderWithProviders(<WorkPage workRef="ol:OL1W" />);

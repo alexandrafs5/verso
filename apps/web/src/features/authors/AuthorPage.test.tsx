@@ -106,6 +106,12 @@ describe('AuthorPage', () => {
     expect(await screen.findByText('No books found for this author')).toBeVisible();
   });
 
+  it('shows a Back button', async () => {
+    open(json(author()));
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
+  });
+
   it('shows no status badge or add-to-library control on covers', async () => {
     open(json(author()));
     await screen.findByRole('heading', { level: 1 });

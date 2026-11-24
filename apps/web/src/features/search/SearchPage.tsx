@@ -4,6 +4,7 @@ import { GENRE_MAX, SEARCH_QUERY_MAX } from '@verso/shared';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { BackButton } from '@/components/shell/BackButton';
 import { Button } from '@/components/ui/button';
 import { XIcon, SearchIcon } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
@@ -55,6 +56,7 @@ export function SearchPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
+      <BackButton className="mb-4" fallbackHref="/home" />
       <form role="search" aria-label={t('label')} onSubmit={onSubmit} className="flex gap-2">
         <div className="relative flex-1">
           <SearchIcon

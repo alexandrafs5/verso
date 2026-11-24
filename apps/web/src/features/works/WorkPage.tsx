@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { BookCover } from '@/components/verso';
 import { EmptyState, ErrorState } from '@/components/verso';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { EditionLine } from './EditionLine';
 import { EditionSelectorDialog } from './EditionSelectorDialog';
@@ -21,6 +22,7 @@ const LAYOUT = 'grid gap-8 md:grid-cols-[16rem_minmax(0,1fr)]';
 function WorkSkeleton() {
   return (
     <div className={PAGE}>
+      <BackButton className="mb-4" />
       <div aria-hidden="true" className={LAYOUT}>
         <Skeleton className="mx-auto aspect-[2/3] w-48 md:mx-0 md:w-64" />
         <div className="space-y-4">
@@ -53,6 +55,7 @@ function WorkView({ workRef }: { workRef: string }) {
     if (isCatalogNotFound(work.error)) {
       return (
         <div className={PAGE}>
+          <BackButton className="mb-4" />
           <EmptyState
             heading={t('notFoundHeading')}
             description={t('notFoundBody')}
@@ -63,6 +66,7 @@ function WorkView({ workRef }: { workRef: string }) {
     }
     return (
       <div className={PAGE}>
+        <BackButton className="mb-4" />
         <ErrorState
           heading={t('errorHeading')}
           description={isRateLimited(work.error) ? t('rateLimited') : t('errorBody')}
@@ -82,6 +86,7 @@ function WorkView({ workRef }: { workRef: string }) {
 
   return (
     <div className={PAGE}>
+      <BackButton className="mb-4" />
       <div className={LAYOUT}>
         <BookCover
           size="lg"

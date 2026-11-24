@@ -126,6 +126,12 @@ describe('SeriesPage', () => {
     );
   });
 
+  it('shows a Back button', async () => {
+    open(json(series()));
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
+  });
+
   it('shows no read count, library control or status', async () => {
     open(json(series()));
     await screen.findByRole('heading', { level: 1 });

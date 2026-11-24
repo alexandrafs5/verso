@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { EmptyState, ErrorState } from '@/components/verso';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { AuthorHeader } from './AuthorHeader';
 import { AuthorWorksGrid } from './AuthorWorksGrid';
@@ -14,6 +15,7 @@ const PAGE = 'mx-auto max-w-[1200px] px-4 py-8';
 function AuthorSkeleton() {
   return (
     <div className={PAGE}>
+      <BackButton className="mb-4" />
       <div aria-hidden="true" className="space-y-10">
         <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
           <Skeleton className="size-32 rounded-full md:size-40" />
@@ -47,6 +49,7 @@ function AuthorView({ authorRef }: { authorRef: string }) {
     if (isCatalogNotFound(author.error)) {
       return (
         <div className={PAGE}>
+          <BackButton className="mb-4" />
           <EmptyState
             heading={t('notFoundHeading')}
             description={t('notFoundBody')}
@@ -57,6 +60,7 @@ function AuthorView({ authorRef }: { authorRef: string }) {
     }
     return (
       <div className={PAGE}>
+        <BackButton className="mb-4" />
         <ErrorState
           heading={t('errorHeading')}
           description={isRateLimited(author.error) ? t('rateLimited') : t('errorBody')}
@@ -69,6 +73,7 @@ function AuthorView({ authorRef }: { authorRef: string }) {
 
   return (
     <div className={PAGE}>
+      <BackButton className="mb-4" />
       <AuthorHeader author={author.data} />
       <section className="mt-10">
         <h2 className="mb-4 font-serif text-2xl">{t('worksHeading')}</h2>

@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { focusRing } from '@/components/shell/nav';
 import { BookCover, EmptyState, ErrorState } from '@/components/verso';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { workHref } from '@/features/catalog/hrefs';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ const PAGE = 'mx-auto max-w-[1200px] px-4 py-8';
 function SeriesSkeleton() {
   return (
     <div className={PAGE}>
+      <BackButton className="mb-4" />
       <div aria-hidden="true" className="space-y-6">
         <Skeleton className="h-10 w-1/2" />
         <ul className="divide-y divide-border">
@@ -93,6 +95,7 @@ function SeriesView({ seriesId }: { seriesId: string }) {
     if (isCatalogNotFound(series.error)) {
       return (
         <div className={PAGE}>
+          <BackButton className="mb-4" />
           <EmptyState
             heading={t('notFoundHeading')}
             description={t('notFoundBody')}
@@ -103,6 +106,7 @@ function SeriesView({ seriesId }: { seriesId: string }) {
     }
     return (
       <div className={PAGE}>
+        <BackButton className="mb-4" />
         <ErrorState
           heading={t('errorHeading')}
           description={isRateLimited(series.error) ? t('rateLimited') : t('errorBody')}
@@ -115,6 +119,7 @@ function SeriesView({ seriesId }: { seriesId: string }) {
 
   return (
     <div className={PAGE}>
+      <BackButton className="mb-4" />
       <h1 className="font-serif text-3xl leading-tight break-words md:text-4xl">
         {series.data.name}
       </h1>

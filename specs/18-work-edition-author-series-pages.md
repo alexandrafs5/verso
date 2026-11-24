@@ -11,7 +11,7 @@ M3.4 left every work link in search pointing at a 404 and left `?genre=` reading
 
 Three DESIGN parts of S3 to S6 depend on later milestones: Add-to-library and the user block (M4, M5), public reviews (M6), and library status or "You've read N of M" (M4). They are left out here, as SPEC 16 did for the same reason. The S4 progress-conversion note needs reading progress (M5) and is also left out.
 
-**Amended after manual testing (2026-11-24).** Real data showed four gaps, and the user asked to close them in this spec instead of opening a new one. (1) The default edition was an arbitrary one (a Catalan edition of an English book). It is now the original-language edition first, then the reader's language. (2) Editions came in no useful order, so they are ranked by completeness. (3) Descriptions showed Markdown raw, so they are converted to plain text. (4) Series were never filled for Open Library works. Open Library has no series field, but its subjects carry `series:<name>` tags, so S3 and S6 now work for Open Library works too, without waiting for M4.
+**Amended after manual testing (2026-11-24).** Real data showed five gaps, and the user asked to close them in this spec instead of opening a new one. (1) The default edition was an arbitrary one (a Catalan edition of an English book). It is now the original-language edition first, then the reader's language. (2) Editions came in no useful order, so they are ranked by completeness. (3) Descriptions showed Markdown raw, so they are converted to plain text. (4) Series were never filled for Open Library works. Open Library has no series field, but its subjects carry `series:<name>` tags, so S3 and S6 now work for Open Library works too, without waiting for M4. The tags are uneven (for The Stormlight Archive only 2 of 7 books have one, for Discworld 3 of about 40), so the series page merges three searches. (5) No page had a way back, so S2, S3, S5 and S6 get a Back button.
 
 The scope is larger than the usual one PR (four screens, a seed, three contract amendments). The user chose one spec and one PR over a split into S3 and S4 versus S5 and S6 (see Decisions). The implementation plan keeps every step commitable on its own, so the PR can still be reviewed commit by commit.
 
@@ -26,7 +26,8 @@ The scope is larger than the usual one PR (four screens, a seed, three contract 
 - **S4 edition selector** as a modal opened from S3: language chips, list of editions, the current one marked "Selected". Selecting is local UI state.
 - **S5 author page** at `apps/web/src/app/(app)/authors/[ref]/page.tsx`: photo or initials, name, life years, biography collapsed, works as a cover grid ordered by first publication year.
 - **S6 series page** at `apps/web/src/app/(app)/series/[id]/page.tsx`: series name and the ordered list of works.
-- **Series from Open Library.** The `series:<name>` subjects of an Open Library work give `WorkDetail.series` (id `ol:<name>`, position `null`). `GET /v1/series/ol:<name>` lists the works of that series from a subject search. `series:` subjects no longer count as genres.
+- **Series from Open Library.** The `series:<name>` subjects of an Open Library work give `WorkDetail.series` (id `ol:<name>`, position `null`). `GET /v1/series/ol:<name>` lists the works of that series by merging three searches (subject, `series` field, series name in titles by the main author). `series:` subjects no longer count as genres.
+- **Back button.** `components/shell/BackButton.tsx` on S2, S3, S5 and S6, in every state. It goes back in the browser history, or to `/home` when the page is the first history entry.
 - **Original-language default.** `EditionDto` gets `isOriginalLanguage`, derived in the API from `translated_from` and edition dates. S3 selects the original-language edition first, then the UI language, then the first edition.
 - **Edition order and plain-text descriptions.** The editions endpoint ranks provider editions by completeness, and the work description is converted to plain text in the API.
 - Web hooks and TanStack Query keys for work, editions, author and series, through `lib/api-client.ts`.
@@ -112,7 +113,11 @@ Conventions:
 - **Series line.** `Book {position} of {name}` when `position` is not null, else `Part of {name}`. It links to `/series/{id}`. It appears only when `WorkDetail.series` is not null. Open Library series have no position, so they read `Part of {name}`.
 - **Original language.** `ExternalEdition.translatedFrom` is the first `translated_from` language of an Open Library edition record, mapped to ISO 639-1, or `null` (the cached schema defaults it to `null`, so older cache rows still parse). `domain/original-language.ts` (`originalLanguage`, pure) returns, in order: (1) the most frequent non-null `translatedFrom` of the list, ties to the first seen; (2) else the `language` of the edition with the smallest `publishYear` among those that have both, ties to the first in list order; (3) else `null`. `isOriginalLanguage` is `true` for an edition whose `language` equals it. It is computed on the full list before any `language` filter, so the service always loads the full list and filters in memory. Local editions use the same function (rule 2 applies, they have no `translatedFrom`).
 - **Series from subjects.** `domain/ol-series.ts` (`seriesFromSubjects`, pure) takes the first subject that matches `series:<name>` (case-insensitive prefix, name trimmed). It replaces underscores with spaces, collapses spaces, and title-cases a name that is all lowercase. The id is `ol:<name>`. Position is `null`. `externalWorkToDetail` uses it for `series`, and drops `series:` subjects before taking the first 8 genres.
-- **Series works.** `GET /v1/series/ol:<name>` runs the provider search `subject:"series:<name>"` (first page only, `"` stripped), merges duplicates with `collapseSearchResults` (first-page guard on) and returns the main `items` as `SeriesDetail.works` with `position: null`. An empty result is `404 CATALOG_NOT_FOUND`. The name is the id without the `ol:` prefix. UUID ids keep the local path.
+- **Series works.** `GET /v1/series/ol:<name>` merges three first-page provider searches (`"` stripped from the name):
+  1. `subject:"series:<name>"`: trusted, its works skip the edition threshold. It alone can fail the request (503).
+  2. `series:"<name>"`: the `series` field, which Open Library fills on other books. Best effort.
+  3. `title:"<name>" author:"<main author>"`: books whose title holds the series name. Best effort, and only when a main author is known.
+  The main author is the most frequent author of the trusted works (of the field results with at least 5 editions when none is tagged). `domain/series-works.ts` (`selectSeriesWorks`, pure) keeps a trusted work unless its title is junk, and keeps a text match only when it has the main author, at least 5 editions and a title that is not junk. Junk titles are split books ("Part Two"), bundles ("Collection Set", "Boxed Set", "Books 1-4", "Omnibus") and titles with " / ". Then `collapseSearchResults` (first-page guard on) merges duplicates, and the main `items` become `SeriesDetail.works` with `position: null`. An empty result is `404 CATALOG_NOT_FOUND`. The name is the id without the `ol:` prefix. UUID ids keep the local path.
 - **Author years.** `birthYear–deathYear`, `birthYear–` when only the birth is known, hidden when both are null.
 - **Author works order.** Client sort by `firstPublishYear` ascending, `null` last, ties by title (locale-aware). S6 order is `position` ascending, `null` last, then `firstPublishYear` ascending, `null` last, then title.
 - **Photo fallback.** When `photoUrl` is null the page shows the author's initials on the tobacco token (`--tobacco` in `styles/tokens.css`).
@@ -139,6 +144,7 @@ Steps 10 to 13 were added after manual testing (see Why this spec exists).
 11. **Original-language default.** Add `isOriginalLanguage` to `editionDtoSchema` (schema test), `translatedFrom` to the provider edition, mapper and cache schema, `domain/original-language.ts` with tests, and make `getEditions` load the full list and filter in memory. Web: `pickDefaultEdition` uses the flag, then the UI language, then the first edition. Update every edition fixture. Verify: `pnpm typecheck && pnpm test`.
 12. **Series API.** `domain/ol-series.ts` with tests, `series` in `externalWorkToDetail`, `series:` subjects out of genres, `seriesIdSchema` accepting `ol:<name>`, and the `ol:` path in `CatalogService.getSeries`. Integration tests: a work with a `series:` subject returns `series`, and `GET /v1/series/ol:<name>` returns its works. Verify: `pnpm --filter api test`.
 13. **Series web and docs.** `sortSeriesWorks` orders by position, then year, then title. S3 links to S6 for Open Library works, and S6 loads `ol:` ids. Update DESIGN.md, ARCHITECTURE.md and this spec. Run `pnpm lint && pnpm typecheck && pnpm test`, then a manual check with "A Game of Thrones".
+14. **Series completeness and Back button** (after more manual testing). `domain/series-works.ts` with tests, the merge in `getOpenLibrarySeries`, `addQueryResults` in the fake provider, `BackButton` with an arrow icon and `common.back`, and the button on S2, S3, S5 and S6. Verify: `pnpm lint && pnpm typecheck && pnpm test`, then the live data of "Stormlight Archive" and the Back button in a browser.
 
 ## Acceptance criteria
 
@@ -194,7 +200,10 @@ Steps 10 to 13 were added after manual testing (see Why this spec exists).
 **S6 series page**
 
 - [ ] `/series/<id>` shows the series name and the works ordered by `position` ascending, `null` last, then by first publication year, then by title.
-- [ ] `GET /v1/series/ol:A Song of Ice and Fire` returns the books of the series from the subject search, duplicates merged, with `position: null`. An unknown name returns 404 `CATALOG_NOT_FOUND`. A UUID id still reads the local series.
+- [ ] `GET /v1/series/ol:A Song of Ice and Fire` returns the books of the series, duplicates merged, with `position: null`. An unknown name returns 404 `CATALOG_NOT_FOUND`. A UUID id still reads the local series.
+- [ ] A series where only some books carry the subject is completed from the `series` field and the title search: with the live data of "Stormlight Archive" the page lists the 5 novels plus the 2 novellas, and no part, bundle or box set.
+- [ ] A text match by another author, with fewer than 5 editions, or with a junk title (`Part Two`, `Collection Set`, `Books 1-4`, `Boxed Set`, ` / `) is not listed. A trusted work with a junk title is not listed either.
+- [ ] If the `series` field search or the title search fails, the page still lists the subject-tagged works. If the subject search fails, the request returns 503.
 - [ ] From the S3 page of "A Game of Thrones" the series line leads to a series page that lists the five books in publication order (manual check with live data).
 - [ ] Each row shows the number (or no number when `position` is null), cover, title and first publication year, and links to the work.
 - [ ] No "You've read N of M" line and no Add-to-library control appear.
@@ -202,6 +211,7 @@ Steps 10 to 13 were added after manual testing (see Why this spec exists).
 
 **General**
 
+- [ ] S2, S3, S5 and S6 show a Back button in every state (normal, loading, empty, error, not found). It goes back in the history, or to `/home` when the page is the first entry in the tab.
 - [ ] Every string comes from `packages/i18n` in EN and ES (key-parity test passes). No raw hex colors, no emojis.
 - [ ] Every cover has alt text from i18n. Every control is reachable with the keyboard.
 - [ ] Skeleton animation respects reduced motion (manual check).
@@ -293,6 +303,12 @@ Steps 10 to 13 were added after manual testing (see Why this spec exists).
 - **Yes:** `isOriginalLanguage` on `EditionDto`, computed in the API, as a required field. The rule is pure and tested once, and M4 reuses it for the default edition when adding a book. A work-level field would need a second provider call in `getWork`.
 - **No:** a client-only derivation from `translatedFrom`. It exposes a provider detail in the contract and repeats the rule in the web.
 - **Yes:** series come from the `series:<name>` subjects of Open Library works, with id `ol:<name>`. Chosen by the user, who asked for series in this spec and not a new one. Checked live: `subject:"series:A Song of Ice and Fire"` returns exactly the five books of the series, and the underscore form (`series:a_song_of_ice_and_fire`) returns the same set.
+- **Yes (found in manual testing):** the series page merges three searches and filters the union. The subject alone listed 2 of the 7 Stormlight Archive books. Checked live: the `series` field adds a third book, and a title plus author search adds the rest, while Discworld goes from 3 to 34 books. The merge needs a main author and junk rules because the text searches also return bundles, split books and study guides.
+- **No:** the subject search alone. Open Library tags series on a few books only.
+- **No:** every text match with no filter. It brings box sets, "Part One" splits and other authors.
+- **Yes (mine, unconfirmed):** the thresholds (5 editions, the junk title patterns) and keeping companion books by the main author whose title holds the series name (for A Song of Ice and Fire this adds Fire & Blood and The World of Ice & Fire). A series page may list a companion. The user can say if those should go.
+- **Yes:** a Back button on S2, S3, S5 and S6. The top bar has no back control and no page had one. It uses the browser history, with `/home` as the fallback for a page opened directly.
+- **No:** a fixed parent link (for example S3 always back to search). The reader may come from a series, an author or a genre chip.
 - **No:** creating series locally for every book. It needs persisted works (M4) and manual work per series.
 - **No:** series positions. Open Library has none, and parsing titles ("Book 2") is unreliable. Order is by first publication year.
 - **Yes:** the series page reads the first provider page only and drops the 1-edition tail. Series have few books, and the tail is mostly study guides.
@@ -307,7 +323,8 @@ Steps 10 to 13 were added after manual testing (see Why this spec exists).
 | ---- | ---------- |
 | An Open Library subject string in `GENRES` returns few or no results | Step 3 manual check opens `/search?genre=<subject>` for all 12 and the list is corrected before merge |
 | Most provider works carry subjects that map to no chip, so S3 often has no genres | Accepted for F1. Chips are a navigation aid, and the raw list stays available in `WorkDetail.genres` for a later spec |
-| The series search also returns companion books or books of another author tagged with the same series | Accepted for F1. The list is ordered by year, and the user sees titles and authors. A later spec can filter by the main author |
+| The series page lists a companion book (Fire & Blood in A Song of Ice and Fire) or misses a book with no tag and no series name in its title | Accepted for F1. The list is ordered by year. Other authors, bundles and split books are filtered out. Revisit when M4 stores series |
+| The series page runs three searches, so it costs three Open Library calls and three catalog-read tokens | Each search is cached for 1 day. Two of them are best effort and run after the first one. Catalog reads allow 120 per minute |
 | A `series:` subject written with a different spelling (`harry_potter` against `Harry Potter`) gives a second series name for the same books | The search treats underscores and case alike (checked live for A Song of Ice and Fire). Works keep one `series` each, the first subject. Revisit when M4 persists series |
 | The derived original language is wrong when Open Library lacks the first printing | The default is only a starting point: S4 lists every edition and the user can change it. Without a language the default falls back to the UI language, then the first edition |
 | S6 for a series whose name has odd characters (`/`, `?`, `%`) | The id is percent-encoded in links and decoded once in the route. The service strips `"` and rejects names over 120 characters |
