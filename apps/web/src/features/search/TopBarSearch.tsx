@@ -11,6 +11,7 @@ import { type QuickOption, QuickResults, type QuickStatus } from './QuickResults
 import { RecentSearches } from './RecentSearches';
 import { searchHref } from './search-href';
 import { useRecentSearches } from './use-recent-searches';
+import { useSearchShortcut } from './use-search-shortcut';
 import { useSearchBooks } from './use-search-books';
 import { workHref } from './SearchResultRow';
 
@@ -58,6 +59,15 @@ export function TopBarSearch({ className }: { className?: string }) {
     : recents.items.map((item): QuickOption => ({ kind: 'recent', text: item }));
   const showPanel = open && (searching || recents.items.length > 0);
   const active = activeIndex >= 0 && activeIndex < options.length ? activeIndex : -1;
+
+  useSearchShortcut(
+    () => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+      setOpen(true);
+    },
+    () => document.activeElement === inputRef.current,
+  );
 
   function close() {
     setOpen(false);
