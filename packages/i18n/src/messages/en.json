@@ -139,7 +139,6 @@
     "languageFilter": "Filter by language",
     "allLanguages": "All",
     "selected": "Selected",
-    "select": "Select this edition",
     "coverAlt": "Cover of {title}",
     "isbn": "ISBN {isbn}",
     "pages": "{count, plural, one {# page} other {# pages}}",

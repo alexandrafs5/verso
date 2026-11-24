@@ -139,7 +139,6 @@
     "languageFilter": "Filtrar por idioma",
     "allLanguages": "Todos",
     "selected": "Seleccionada",
-    "select": "Elegir esta edición",
     "coverAlt": "Portada de {title}",
     "isbn": "ISBN {isbn}",
     "pages": "{count, plural, one {# página} other {# páginas}}",
