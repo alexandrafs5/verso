@@ -8,6 +8,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export const RateLimitBucket = {
   WRITES: 'writes',
   SEARCH: 'search',
+  CATALOG_READ: 'catalogRead',
   USERNAME_CHECK: 'usernameCheck',
   AVATAR_UPLOAD: 'avatarUpload',
 } as const;
@@ -17,6 +18,7 @@ export type RateLimitBucket = (typeof RateLimitBucket)[keyof typeof RateLimitBuc
 export const RATE_LIMITS: Record<RateLimitBucket, number> = {
   writes: 120,
   search: 60,
+  catalogRead: 120,
   usernameCheck: 30,
   avatarUpload: 10,
 };
