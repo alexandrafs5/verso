@@ -38,6 +38,7 @@ const edition = (extra: Record<string, unknown> = {}) => ({
   pageCount: 128,
   format: 'PAPERBACK',
   coverUrl: 'https://covers.example/1.jpg',
+  isOriginalLanguage: false,
   ...extra,
 });
 
@@ -90,6 +91,26 @@ describe('WorkPage', () => {
     renderWithProviders(<WorkPage workRef="ol:OL1W" />);
     expect(await screen.findByText('Edition: English · Bantam · 1955 · 694 pages')).toBeVisible();
     expect(screen.queryByText(/Catalan/)).not.toBeInTheDocument();
+  });
+
+  it('defaults to the original-language edition before the UI language', async () => {
+    routes({
+      editions: json([
+        edition({ ref: 'ol:OL9M', language: 'ca', publisher: 'Debutxaca', pageCount: 824 }),
+        edition({ ref: 'ol:OL8M', language: 'en', publisher: 'Bantam', pageCount: 694 }),
+        edition({
+          ref: 'ol:OL7M',
+          language: 'es',
+          publisher: 'Gigamesh',
+          pageCount: 700,
+          isOriginalLanguage: true,
+        }),
+      ]),
+    });
+    renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+    // The UI is English, but the original language wins.
+    expect(await screen.findByText(/Edition: Spanish · Gigamesh/)).toBeVisible();
+    expect(screen.queryByText(/Edition: English/)).not.toBeInTheDocument();
   });
 
   it('falls back to the first edition when none is in the UI language', async () => {

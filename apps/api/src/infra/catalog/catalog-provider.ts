@@ -38,6 +38,8 @@ export type ExternalEdition = {
   pageCount: number | null;
   format: EditionFormat;
   coverUrl: string | null;
+  /** ISO 639-1 of the language this edition was translated from, when Open Library says so. */
+  translatedFrom: string | null;
 };
 
 export type ExternalAuthor = {

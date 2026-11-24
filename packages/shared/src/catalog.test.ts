@@ -23,6 +23,7 @@ const edition = {
   pageCount: 128,
   format: 'PAPERBACK',
   coverUrl: null,
+  isOriginalLanguage: true,
 };
 
 describe('refs', () => {

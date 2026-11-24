@@ -41,6 +41,8 @@ export const externalEditionSchema: z.ZodType<ExternalEdition> = z.object({
   pageCount: z.number().nullable(),
   format: z.enum(['PAPERBACK', 'HARDCOVER', 'EBOOK', 'OTHER']),
   coverUrl: z.string().nullable(),
+  // Rows cached before SPEC 18 lack this field.
+  translatedFrom: z.string().nullable().default(null),
 });
 
 export const externalAuthorSchema: z.ZodType<ExternalAuthor> = z.object({

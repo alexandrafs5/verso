@@ -375,6 +375,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       language,
       pageCount: null,
       format: 'PAPERBACK' as const,
+      translatedFrom: null,
       coverUrl: null,
     });
     const seedWork = () =>
@@ -418,6 +419,55 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       const refs = (await service.getEditions(userId, 'ol:OL1W')).map((e) => e.ref);
       // OL4M is complete. OL1M and OL2M score 1 (language), OL3M scores 0.
       expect(refs).toEqual(['ol:OL4M', 'ol:OL1M', 'ol:OL2M', 'ol:OL3M']);
+    });
+
+    it('flags the original-language editions from translated_from and keeps the flag under a language filter', async () => {
+      fresh();
+      seedWork();
+      provider
+        .addEdition({ ...ed('OL5M', 'ca'), translatedFrom: 'en' })
+        .addEdition({ ...ed('OL6M', 'en'), publishYear: 1996 });
+      const flags = async (language?: string) =>
+        (await service.getEditions(userId, 'ol:OL1W', language)).map((e) => [
+          e.ref,
+          e.isOriginalLanguage,
+        ]);
+      // ed() gives OL1M "es" and OL2M "en". Only English is the original language.
+      expect(await flags()).toEqual(
+        expect.arrayContaining([
+          ['ol:OL1M', false],
+          ['ol:OL2M', true],
+          ['ol:OL5M', false],
+          ['ol:OL6M', true],
+        ]),
+      );
+      // The filter does not change the flag: the original language comes from the full list.
+      expect(await flags('ca')).toEqual([['ol:OL5M', false]]);
+      expect(await flags('en')).toEqual(
+        expect.arrayContaining([
+          ['ol:OL2M', true],
+          ['ol:OL6M', true],
+        ]),
+      );
+    });
+
+    it('derives the original language of a local work from its oldest dated edition', async () => {
+      fresh();
+      const work = await prisma.work.create({ data: { id: uuidv7(), title: `${TAG} local` } });
+      const add = (language: string, publishYear: number) =>
+        prisma.edition.create({
+          data: { id: uuidv7(), workId: work.id, title: `${TAG} e`, language, publishYear },
+        });
+      await add('en', 1994);
+      await add('es', 1955);
+      const list = await service.getEditions(userId, work.id);
+      expect(list.map((e) => [e.language, e.isOriginalLanguage])).toEqual([
+        ['es', true],
+        ['en', false],
+      ]);
+      expect(
+        (await service.getEditions(userId, work.id, 'en')).map((e) => e.isOriginalLanguage),
+      ).toEqual([false]);
     });
 
     it('uses the provider for a persisted Open Library work', async () => {
@@ -585,6 +635,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       language: 'es',
       pageCount: 128,
       format: 'PAPERBACK' as const,
+      translatedFrom: null,
       coverUrl: null,
     };
 

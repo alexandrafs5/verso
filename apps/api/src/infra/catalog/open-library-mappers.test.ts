@@ -173,6 +173,7 @@ describe('editions fixture', () => {
       language: 'en',
       pageCount: 139,
       format: 'EBOOK',
+      translatedFrom: null,
       coverUrl: 'https://covers.openlibrary.org/b/id/15269114-M.jpg',
     });
   });
@@ -181,6 +182,7 @@ describe('editions fixture', () => {
     expect(byKey('OL47268921M')).toMatchObject({
       language: 'es',
       format: 'HARDCOVER',
+      translatedFrom: null,
       publishYear: 1984,
       pageCount: 151,
       coverUrl: null,
@@ -196,6 +198,17 @@ describe('editions fixture', () => {
     expect(byKey('OL35608794M')?.format).toBe('PAPERBACK');
     expect(byKey('OL46564967M')?.format).toBe('PAPERBACK');
     expect(byKey('OL50259580M')?.language).toBe('he');
+  });
+
+  it('maps translated_from to the original language code', () => {
+    const base = { key: '/books/OL1M', title: 'T', languages: [{ key: '/languages/cat' }] };
+    expect(
+      mapEdition({ ...base, translated_from: [{ key: '/languages/eng' }] })?.translatedFrom,
+    ).toBe('en');
+    expect(mapEdition(base)?.translatedFrom).toBeNull();
+    expect(
+      mapEdition({ ...base, translated_from: [{ key: '/languages/zzz' }] })?.translatedFrom,
+    ).toBeNull();
   });
 
   it('returns null for an entry without a title', () => {

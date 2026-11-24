@@ -50,6 +50,7 @@ export const editionSchema = z.object({
   isbn_10: z.array(z.string()).optional(),
   isbn_13: z.array(z.string()).optional(),
   languages: z.array(z.object({ key: z.string() })).optional(),
+  translated_from: z.array(z.object({ key: z.string() })).optional(),
   number_of_pages: z.number().optional(),
   physical_format: z.string().optional(),
   covers: z.array(z.number()).optional(),
@@ -223,6 +224,7 @@ export function mapEdition(raw: unknown): ExternalEdition | null {
   const edition = parsed.data;
   const workKey = edition.works?.[0] ? bareKey(edition.works[0].key) : null;
   const languageKey = edition.languages?.[0]?.key;
+  const translatedKey = edition.translated_from?.[0]?.key;
 
   return {
     olEditionKey: bareKey(edition.key),
@@ -239,6 +241,7 @@ export function mapEdition(raw: unknown): ExternalEdition | null {
         : null,
     format: mapFormat(edition.physical_format),
     coverUrl: coverUrl(firstCoverId(edition.covers)),
+    translatedFrom: translatedKey ? mapLanguage(translatedKey) : null,
   };
 }
 

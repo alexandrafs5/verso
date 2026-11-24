@@ -77,6 +77,7 @@ const fake = new InMemoryCatalogProvider()
     language: 'es',
     pageCount: 128,
     format: 'PAPERBACK',
+    translatedFrom: null,
     coverUrl: null,
   })
   .addEdition({
@@ -90,6 +91,7 @@ const fake = new InMemoryCatalogProvider()
     language: 'en',
     pageCount: 124,
     format: 'PAPERBACK',
+    translatedFrom: null,
     coverUrl: null,
   });
 

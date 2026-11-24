@@ -98,6 +98,8 @@ export const editionDtoSchema = z.object({
   pageCount: z.number().int().nullable(),
   format: editionFormatSchema,
   coverUrl: z.string().nullable(),
+  /** True when `language` is the original language of the work (SPEC 18). */
+  isOriginalLanguage: z.boolean(),
 });
 
 export const authorDetailSchema = z.object({

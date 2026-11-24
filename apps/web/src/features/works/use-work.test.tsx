@@ -32,6 +32,7 @@ const edition = {
   pageCount: 128,
   format: 'PAPERBACK',
   coverUrl: null,
+  isOriginalLanguage: true,
 };
 
 afterEach(() => vi.unstubAllGlobals());

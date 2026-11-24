@@ -78,7 +78,8 @@ export function externalWorkToDetail(work: ExternalWork, authors: AuthorLink[]):
   };
 }
 
-export function localEditionToDto(edition: Edition): EditionDto {
+/** `original` is the original language of the whole list (`originalLanguage`), or null. */
+export function localEditionToDto(edition: Edition, original: string | null): EditionDto {
   return {
     ref: edition.id,
     title: edition.title,
@@ -90,10 +91,14 @@ export function localEditionToDto(edition: Edition): EditionDto {
     pageCount: edition.pageCount,
     format: edition.format,
     coverUrl: edition.coverUrl,
+    isOriginalLanguage: original !== null && edition.language === original,
   };
 }
 
-export function externalEditionToDto(edition: ExternalEdition): EditionDto {
+export function externalEditionToDto(
+  edition: ExternalEdition,
+  original: string | null,
+): EditionDto {
   return {
     ref: olRef(edition.olEditionKey),
     title: edition.title,
@@ -105,6 +110,7 @@ export function externalEditionToDto(edition: ExternalEdition): EditionDto {
     pageCount: edition.pageCount,
     format: edition.format,
     coverUrl: edition.coverUrl,
+    isOriginalLanguage: original !== null && edition.language === original,
   };
 }
 

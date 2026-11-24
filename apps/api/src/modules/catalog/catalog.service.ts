@@ -40,6 +40,7 @@ import {
   parseRef,
 } from './domain/catalog-ref.js';
 import { rankEditions } from './domain/edition-rank.js';
+import { originalLanguage } from './domain/original-language.js';
 import { collapseSearchResults } from './domain/search-collapse.js';
 
 const notFound = () => new ApiException(HttpStatus.NOT_FOUND, ErrorCode.CATALOG_NOT_FOUND);
@@ -124,16 +125,22 @@ export class CatalogService {
       const row = await this.repo.findWorkById(parsed.id);
       if (!row || !canView(row, userId)) throw notFound();
       if (!row.olWorkKey) {
-        const editions = await this.repo.findEditionsByWork(row.id, language);
-        return editions.map(localEditionToDto);
+        // The original language is derived from the full list, then the language filter applies.
+        const editions = await this.repo.findEditionsByWork(row.id);
+        const original = originalLanguage(editions);
+        return editions
+          .filter((edition) => !language || edition.language === language)
+          .map((edition) => localEditionToDto(edition, original));
       }
       olWorkKey = row.olWorkKey;
     }
-    const editions = await mapCatalogErrors(() =>
-      this.provider.listEditions(olWorkKey, { language }),
-    );
+    // Always the full list (cached once), so the original language never depends on the filter.
+    const editions = await mapCatalogErrors(() => this.provider.listEditions(olWorkKey, {}));
+    const original = originalLanguage(editions);
     // Open Library has no popularity data: well-described editions go first (SPEC 18).
-    return rankEditions(editions).map(externalEditionToDto);
+    return rankEditions(editions)
+      .filter((edition) => !language || edition.language === language)
+      .map((edition) => externalEditionToDto(edition, original));
   }
 
   async getAuthor(ref: string): Promise<AuthorDetail> {
@@ -210,7 +217,7 @@ export class CatalogService {
     const local = await this.repo.findWorkByOlKey(edition.olWorkKey);
     return {
       workRef: local ? local.id : olRef(edition.olWorkKey),
-      edition: externalEditionToDto(edition),
+      edition: externalEditionToDto(edition, null),
     };
   }
 

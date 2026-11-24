@@ -31,6 +31,7 @@ const edition = (ref: string, extra: Record<string, unknown> = {}) => ({
   pageCount: null,
   format: 'PAPERBACK',
   coverUrl: null,
+  isOriginalLanguage: false,
   ...extra,
 });
 

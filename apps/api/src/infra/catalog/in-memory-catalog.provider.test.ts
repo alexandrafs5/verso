@@ -32,6 +32,7 @@ const edition = (key: string, language: string | null, isbn13: string | null): E
   language,
   pageCount: null,
   format: 'OTHER',
+  translatedFrom: null,
   coverUrl: null,
 });
 

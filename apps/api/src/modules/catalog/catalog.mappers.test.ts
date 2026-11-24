@@ -95,8 +95,13 @@ describe('provider mappers', () => {
       language: 'es',
       pageCount: null,
       format: 'EBOOK',
+      translatedFrom: null,
       coverUrl: null,
     };
-    expect(externalEditionToDto(edition)).toMatchObject({ ref: 'ol:OL5M', format: 'EBOOK' });
+    expect(externalEditionToDto(edition, 'es')).toMatchObject({
+      ref: 'ol:OL5M',
+      format: 'EBOOK',
+      isOriginalLanguage: true,
+    });
   });
 });
