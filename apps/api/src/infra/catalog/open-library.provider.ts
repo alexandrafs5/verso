@@ -14,6 +14,7 @@ import {
   type ExternalEdition,
   type ExternalWork,
   SEARCH_PAGE_SIZE,
+  type SearchOptions,
   type WorkSearchResult,
 } from './catalog-provider.js';
 import { buildUserAgent } from './catalog-env.js';
@@ -69,11 +70,19 @@ export class OpenLibraryProvider implements CatalogProvider {
     this.logger = options.logger ?? new Logger(OpenLibraryProvider.name);
   }
 
-  async searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
+  async searchWorks(
+    query: string,
+    page: number,
+    opts: SearchOptions = {},
+  ): Promise<WorkSearchResult[]> {
     const q = query.trim().replace(/\s+/g, ' ');
     if (!q) return [];
     const pageNumber = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
-    const hash = createHash('sha256').update(`${q.toLowerCase()}|${pageNumber}`).digest('hex');
+    // The sort is part of the key, so pages cached in relevance order are never served as popularity order.
+    const sortPart = opts.sort ? `|sort=${opts.sort}` : '';
+    const hash = createHash('sha256')
+      .update(`${q.toLowerCase()}|${pageNumber}${sortPart}`)
+      .digest('hex');
 
     const results = await this.cached(
       `ol:search:${hash}`,
@@ -86,6 +95,7 @@ export class OpenLibraryProvider implements CatalogProvider {
           limit: String(SEARCH_PAGE_SIZE),
           fields: SEARCH_FIELDS,
         });
+        if (opts.sort) params.set('sort', opts.sort);
         const body = this.parse(searchResponseSchema, await this.getJson(`/search.json?${params}`));
         return body.docs.flatMap((doc) => mapSearchDoc(doc) ?? []);
       },

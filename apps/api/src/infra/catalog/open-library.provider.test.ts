@@ -69,6 +69,15 @@ describe('searchWorks', () => {
     expect(url.searchParams.get('fields')).toContain('cover_i');
   });
 
+  it('sends sort=editions only when asked', async () => {
+    const { provider, fetchImpl } = setup(routes());
+    await provider.searchWorks('pedro', 1);
+    await provider.searchWorks('pedro', 1, { sort: 'editions' });
+    const urls = fetchImpl.mock.calls.map(([url]) => new URL(String(url)));
+    expect(urls[0]?.searchParams.has('sort')).toBe(false);
+    expect(urls[1]?.searchParams.get('sort')).toBe('editions');
+  });
+
   it('returns [] and makes no call for an empty or blank query', async () => {
     const { provider, fetchImpl } = setup(routes());
     expect(await provider.searchWorks('', 1)).toEqual([]);
@@ -273,6 +282,17 @@ describe('cache', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     await provider.searchWorks('pedro', 2);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('caches a sorted search apart from an unsorted one', async () => {
+    const { provider, cache, fetchImpl } = setup(routes());
+    const set = vi.spyOn(cache, 'set');
+    await provider.searchWorks('pedro', 1);
+    await provider.searchWorks('pedro', 1, { sort: 'editions' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(new Set(set.mock.calls.map(([key]) => key)).size).toBe(2);
+    await provider.searchWorks('PEDRO ', 1, { sort: 'editions' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it('uses 1 day for search and 30 days for everything else', async () => {
