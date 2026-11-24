@@ -3,6 +3,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { ProblemJsonFilter } from './common/problem-json.filter.js';
 import { serializeRequest } from './common/redact-request.js';
+import { CatalogInfraModule } from './infra/catalog/catalog-infra.module.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
 import { StorageModule } from './infra/storage/storage.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -31,6 +32,7 @@ import { UsersModule } from './modules/users/users.module.js';
     }),
     PrismaModule,
     StorageModule,
+    CatalogInfraModule,
     AuthModule,
     UsersModule,
     HealthModule,

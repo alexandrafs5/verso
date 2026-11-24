@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { v7 as uuidv7 } from 'uuid';
 import type { Prisma } from '../../generated/prisma/client.js';
-import type { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import type { ExternalCacheStore } from './external-cache.js';
 
 @Injectable()
 export class ExternalCacheRepository implements ExternalCacheStore {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async get(key: string): Promise<unknown | null> {
     const row = await this.prisma.externalCache.findFirst({
