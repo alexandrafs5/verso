@@ -423,6 +423,8 @@ Implementations: `OpenLibraryProvider`, `PgBossJobQueue`, `BrevoEmailProvider` (
 
 - Search: `search.json` (fields limited to what we display), in Open Library relevance order (SPEC 17 tried `sort=editions` and dropped it: it floods the top with loosely matching popular books). One result per work: near-duplicates of a page (same normalized title and first author) are merged, and merged groups with 1 edition are returned in `moreMatches` instead of `items` (SPEC 17). Merging is per provider page and nothing is persisted.
 - Genres: the S3 chips come from a fixed list of 12 in `packages/shared/src/genres.ts` (slug, English name, Open Library subject). A work's raw subjects map to chips by subject or name, case-insensitive, and unmapped subjects show no chip. The same list seeds the `Genre` table (`seedGenres`). Chips link to `/search?genre=<subject>` (SPEC 18).
+- Series: Open Library has no series field, but its work subjects carry `series:<name>` tags. The work page derives `series` from them (id `ol:<name>`, position `null`, `series:` subjects removed from the genres), and `GET /v1/series/ol:<name>` lists the works with the subject search `subject:"series:<name>"` (first page, duplicates merged, 1-edition tail dropped). UUID ids keep reading the local `Series` table (SPEC 18).
+- Original language: Open Library has no such field either. Each edition carries `isOriginalLanguage`, derived from the `translated_from` of the list (most frequent value), else the language of the oldest dated edition. The web picks the default edition from it (SPEC 18).
 - Editions: Open Library gives no popularity data, so `GET /v1/works/{ref}/editions` ranks provider editions by completeness (cover, ISBN, page count, publisher, year, language), keeping the provider order for ties (SPEC 18).
 - Work: `/works/{key}.json`; editions: `/works/{key}/editions.json`; ISBN: `/isbn/{isbn}.json`; authors: `/authors/{key}.json`.
 - Covers: use **cover-ID URLs** (`covers.openlibrary.org/b/id/{id}-M.jpg`), not ISBN-based cover lookups, which are rate-limited.
@@ -475,7 +477,7 @@ Conventions:
 | GET | `/v1/works/{ref}/editions?language=` | Edition selector |
 | GET | `/v1/works/{ref}/reviews?cursor=` | Public reviews from public profiles, newest first |
 | GET | `/v1/authors/{ref}` | Author page with works |
-| GET | `/v1/series/{id}` | Series page |
+| GET | `/v1/series/{id}` | Series page. `id` is a UUID (local series) or `ol:<name>` (derived from Open Library subjects) |
 | GET | `/v1/isbn/{isbn}` | Barcode scan → work ref |
 | POST | `/v1/books/manual` | Create manual book (private, review PENDING) |
 | POST | `/v1/books/manual/cover-upload-url` | Signed upload URL |

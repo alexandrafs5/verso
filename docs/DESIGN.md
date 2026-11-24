@@ -245,7 +245,7 @@ A split button: the large part adds the book to **Want to read**; a small chevro
 
 - **Layout:** classic editorial — large cover left (with soft shadow), info right.
 - **Info:** title (display serif), subtitle, author(s) linked to S5, series line "Book 2 of {Series}" linked to S6 (when known), genres as clickable chips (→ search filtered by genre; only the 12 genres of a fixed list in `packages/shared` show a chip, SPEC 18), first published year, page count of the selected edition, synopsis (collapsed to 5 lines with "Read more").
-- **User block:** Add-to-library control; if in library: status, progress, your rating, link "Go to my book" (S8). Added with the library in M4 and M5. Edition line: "Edition: Spanish · Penguin · 2019 · 320 pages · Change" (opens S4). The edition line ships in M3.5 as local state: choosing an edition changes the page only, nothing is saved before M4.
+- **User block:** Add-to-library control; if in library: status, progress, your rating, link "Go to my book" (S8). Added with the library in M4 and M5. Edition line: "Edition: Spanish · Penguin · 2019 · 320 pages · Change" (opens S4). The edition line ships in M3.5 as local state: choosing an edition changes the page only, nothing is saved before M4. The default edition is the first one in the original language of the book, then the first one in the interface language, then the first one (SPEC 18). The cover is the one search shows until an edition is chosen.
 - **Reviews:** public reviews from public profiles only, newest first. Each: avatar, name, rating in the viewer's scale, date, text (collapsed if long). Reviews marked with spoilers show "This review contains spoilers · Show". Empty: "No reviews yet". Added with reviews in M6; not shown before.
 - No community averages or reader counts in F1.
 
@@ -263,7 +263,7 @@ A split button: the large part adds the book to **Want to read**; a small chevro
 ### S6. Series page
 
 - Series name, "You've read 2 of 5". Added with the library in M4.
-- Ordered list: number (1, 2, 3…), cover, title, year, the user's status or the Add-to-library control (status and control added in M4). Series exist only for works already in the catalog tables, so the S3 series line and this page are reachable only after M4.
+- Ordered list: number (1, 2, 3…), cover, title, year, the user's status or the Add-to-library control (status and control added in M4). For Open Library works the series comes from the `series:<name>` subjects (id `ol:<name>`) and the list comes from a subject search, ordered by publication year, with no numbers because Open Library has no positions (SPEC 18). Series positions ("Book 2 of 5"), and series stored in our own tables, arrive with the library in M4.
 
 ### S7. My library
 

@@ -1,14 +1,20 @@
-/** Works by `position` ascending, unknown positions last, ties by title (SPEC 18). */
-export function sortSeriesWorks<T extends { position: number | null; title: string }>(
-  works: readonly T[],
-  locale: string,
-): T[] {
-  return [...works].sort((a, b) => {
-    if (a.position !== b.position) {
-      if (a.position === null) return 1;
-      if (b.position === null) return -1;
-      return a.position - b.position;
-    }
-    return a.title.localeCompare(b.title, locale);
-  });
+type SeriesEntry = { position: number | null; firstPublishYear: number | null; title: string };
+
+/**
+ * Works by `position` ascending, then `firstPublishYear` ascending, then title; unknown values
+ * go last (SPEC 18). Open Library has no positions, so its series sort by publication year.
+ */
+export function sortSeriesWorks<T extends SeriesEntry>(works: readonly T[], locale: string): T[] {
+  const compare = (a: number | null, b: number | null): number => {
+    if (a === b) return 0;
+    if (a === null) return 1;
+    if (b === null) return -1;
+    return a - b;
+  };
+  return [...works].sort(
+    (a, b) =>
+      compare(a.position, b.position) ||
+      compare(a.firstPublishYear, b.firstPublishYear) ||
+      a.title.localeCompare(b.title, locale),
+  );
 }

@@ -43,18 +43,38 @@ beforeEach(() => nav.push.mockReset());
 afterEach(() => vi.unstubAllGlobals());
 
 describe('sortSeriesWorks', () => {
+  const w = (title: string, position: number | null, firstPublishYear: number | null) => ({
+    title,
+    position,
+    firstPublishYear,
+  });
+
   it('sorts by position, unknown positions last, ties by title', () => {
     const sorted = sortSeriesWorks(
+      [w('Z', null, null), w('B', 2, null), w('A', 2, null), w('C', 1.5, null), w('Y', null, null)],
+      'en',
+    ).map((work) => work.title);
+    expect(sorted).toEqual(['C', 'A', 'B', 'Y', 'Z']);
+  });
+
+  it('sorts works with no position by first publication year, unknown years last', () => {
+    const sorted = sortSeriesWorks(
       [
-        { position: null, title: 'Z' },
-        { position: 2, title: 'B' },
-        { position: 2, title: 'A' },
-        { position: 1.5, title: 'C' },
-        { position: null, title: 'Y' },
+        w('Later', null, 2005),
+        w('Undated', null, null),
+        w('First', null, 1996),
+        w('B', null, 2005),
       ],
       'en',
-    ).map((w) => w.title);
-    expect(sorted).toEqual(['C', 'A', 'B', 'Y', 'Z']);
+    ).map((work) => work.title);
+    expect(sorted).toEqual(['First', 'B', 'Later', 'Undated']);
+  });
+
+  it('puts a numbered work before an unnumbered one, whatever the years', () => {
+    const sorted = sortSeriesWorks([w('Old', null, 1900), w('Numbered', 3, 2020)], 'en').map(
+      (work) => work.title,
+    );
+    expect(sorted).toEqual(['Numbered', 'Old']);
   });
 });
 
@@ -74,6 +94,36 @@ describe('SeriesPage', () => {
     expect(items[3]?.textContent).not.toMatch(/[0-9]/);
     const link = within(items[0] as HTMLElement).getByRole('link');
     expect(link).toHaveAttribute('href', '/works/ol%3AOL1W');
+  });
+
+  it('lists a series derived from Open Library: no numbers, publication order', async () => {
+    const id = 'ol:A Song of Ice and Fire';
+    mockApi({
+      [`GET /api/v1/series/${encodeURIComponent(id)}`]: () =>
+        json({
+          id,
+          name: 'A Song of Ice and Fire',
+          works: [
+            entry('ol:OL2W', 'A Clash of Kings', null, 1998),
+            entry('ol:OL1W', 'A Game of Thrones', null, 1996),
+            entry('ol:OL5W', 'A Dance With Dragons', null, 2008),
+          ],
+        }),
+    });
+    renderWithProviders(<SeriesPage seriesId={id} />);
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'A Song of Ice and Fire' }),
+    ).toBeVisible();
+    const items = within(screen.getByRole('list')).getAllByRole('listitem');
+    const order = items.map(
+      (item) => /Game of Thrones|Clash of Kings|Dance With Dragons/.exec(item.textContent)?.[0],
+    );
+    expect(order).toEqual(['Game of Thrones', 'Clash of Kings', 'Dance With Dragons']);
+    expect(within(items[0] as HTMLElement).getByText('1996')).toBeVisible();
+    expect(within(items[0] as HTMLElement).getByRole('link')).toHaveAttribute(
+      'href',
+      '/works/ol%3AOL1W',
+    );
   });
 
   it('shows no read count, library control or status', async () => {
