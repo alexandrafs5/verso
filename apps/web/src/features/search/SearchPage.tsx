@@ -33,6 +33,8 @@ export function SearchPage() {
   const genreInvalid = rawGenre.length > GENRE_MAX;
   const genre = rawGenre !== '' && !genreInvalid ? rawGenre : undefined;
   const q = genreInvalid ? null : validQuery(rawQ, SEARCH_QUERY_MAX);
+  // A genre alone is a valid search; the prompt shows only when neither is usable.
+  const hasSearch = q !== null || genre !== undefined;
 
   const [text, setText] = useState(rawQ);
   // Keep the field in step with the URL (back button, quick-results Enter).
@@ -40,8 +42,8 @@ export function SearchPage() {
     setText(rawQ);
   }, [rawQ]);
   useEffect(() => {
-    if (!q) inputRef.current?.focus();
-  }, [q]);
+    if (!hasSearch) inputRef.current?.focus();
+  }, [hasSearch]);
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -97,8 +99,8 @@ export function SearchPage() {
       ) : null}
 
       <div className="mt-4">
-        {q ? (
-          <SearchResultsList q={q} genre={genre} />
+        {hasSearch ? (
+          <SearchResultsList q={q ?? undefined} genre={genre} />
         ) : (
           <EmptyState heading={t('page.promptHeading')} description={t('page.promptBody')} />
         )}

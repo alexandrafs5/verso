@@ -22,13 +22,17 @@ type Params = {
   keepPrevious?: boolean;
 };
 
-/** Returns the parsed query when it is valid and long enough, otherwise null. */
+/**
+ * Returns the parsed query when it is valid and long enough, otherwise null. An empty `q` is
+ * valid only together with a genre (genre-only search, SPEC 18).
+ */
 export function parseSearchParams({ q, genre, minLength }: Params): SearchBooksQuery | null {
   const trimmed = q.trim();
-  if (trimmed.length < minLength) return null;
+  const trimmedGenre = genre?.trim() || undefined;
+  if (trimmed === '' ? trimmedGenre === undefined : trimmed.length < minLength) return null;
   const parsed = searchBooksQuerySchema.safeParse({
-    q: trimmed,
-    genre: genre?.trim() || undefined,
+    q: trimmed || undefined,
+    genre: trimmedGenre,
   });
   return parsed.success ? parsed.data : null;
 }
