@@ -1,0 +1,279 @@
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import { ErrorCode } from '@verso/shared';
+import { v7 as uuidv7 } from 'uuid';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { ApiException } from '../../common/api-exception.js';
+import type { WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
+import { InMemoryCatalogProvider } from '../../infra/catalog/in-memory-catalog.provider.js';
+import { PrismaModule } from '../../infra/prisma/prisma.module.js';
+import { PrismaService } from '../../infra/prisma/prisma.service.js';
+import { CatalogRepository } from './catalog.repository.js';
+import { CatalogService } from './catalog.service.js';
+import { encodeCursor } from './domain/catalog-ref.js';
+
+const TAG = `cs${Date.now().toString(36)}`;
+
+/** Records the queries and pages the service sends. */
+class RecordingProvider extends InMemoryCatalogProvider {
+  readonly searches: { query: string; page: number }[] = [];
+
+  override searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
+    this.searches.push({ query, page });
+    return super.searchWorks(query, page);
+  }
+}
+
+const searchResult = (key: string, title: string): WorkSearchResult => ({
+  olWorkKey: key,
+  title,
+  authors: [{ olAuthorKey: 'OL1A', name: 'Juan Rulfo' }],
+  firstPublishYear: 1955,
+  coverUrl: 'https://covers.openlibrary.org/b/id/1-M.jpg',
+  editionCount: 12,
+  languages: ['es'],
+});
+
+async function failsWith(promise: Promise<unknown>, status: number, code: string): Promise<void> {
+  const error = await promise.then(
+    () => null,
+    (e: unknown) => e,
+  );
+  expect(error).toBeInstanceOf(ApiException);
+  expect((error as ApiException).getStatus()).toBe(status);
+  expect((error as ApiException).code).toBe(code);
+}
+
+describe('CatalogService search and work (real Postgres, fake provider)', () => {
+  let prisma: PrismaService;
+  let close: () => Promise<void>;
+  let provider: RecordingProvider;
+  let service: CatalogService;
+
+  const userId = uuidv7();
+  const otherId = uuidv7();
+
+  beforeAll(async () => {
+    const ctx = await NestFactory.createApplicationContext(PrismaModule, { logger: false });
+    prisma = ctx.get(PrismaService);
+    close = () => ctx.close();
+    for (const id of [userId, otherId]) {
+      await prisma.user.create({
+        data: { id, email: `${TAG}-${id}@example.com`, name: `${TAG} user` },
+      });
+    }
+  });
+
+  afterEach(async () => {
+    await prisma.work.deleteMany({ where: { title: { startsWith: TAG } } });
+    await prisma.author.deleteMany({ where: { name: { startsWith: TAG } } });
+    await prisma.genre.deleteMany({ where: { slug: { startsWith: TAG } } });
+    await prisma.series.deleteMany({ where: { name: { startsWith: TAG } } });
+  });
+
+  afterAll(async () => {
+    await prisma.user.deleteMany({ where: { email: { startsWith: TAG } } });
+    await close();
+  });
+
+  const fresh = () => {
+    provider = new RecordingProvider();
+    service = new CatalogService(new CatalogRepository(prisma), provider);
+  };
+
+  describe('searchBooks', () => {
+    it('maps results to summaries with ol refs and a null library status', async () => {
+      fresh();
+      provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
+      const res = await service.searchBooks({ q: 'Pedro', limit: 20 });
+      expect(res.items).toEqual([
+        {
+          ref: 'ol:OL1W',
+          title: 'Pedro Páramo',
+          authors: [{ ref: 'ol:OL1A', name: 'Juan Rulfo' }],
+          firstPublishYear: 1955,
+          coverUrl: 'https://covers.openlibrary.org/b/id/1-M.jpg',
+          editionCount: 12,
+          libraryStatus: null,
+        },
+      ]);
+    });
+
+    it('sends the genre as a subject clause and strips quotes', async () => {
+      fresh();
+      await service.searchBooks({ q: 'Pedro Páramo', genre: 'Fic"tion', limit: 20 });
+      expect(provider.searches).toEqual([{ query: 'Pedro Páramo subject:"Fiction"', page: 1 }]);
+    });
+
+    it('sets nextCursor to the next page and follows it', async () => {
+      fresh();
+      provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
+      const first = await service.searchBooks({ q: 'Pedro', limit: 20 });
+      expect(first.nextCursor).toBe(encodeCursor(2));
+
+      await service.searchBooks({ q: 'Pedro', cursor: first.nextCursor ?? '', limit: 20 });
+      expect(provider.searches.map((s) => s.page)).toEqual([1, 2]);
+    });
+
+    it('returns a null nextCursor on an empty page', async () => {
+      fresh();
+      const res = await service.searchBooks({ q: 'nothing', limit: 20 });
+      expect(res).toEqual({ items: [], nextCursor: null });
+    });
+
+    it('rejects a malformed cursor without calling the provider', async () => {
+      fresh();
+      await failsWith(
+        service.searchBooks({ q: 'a', cursor: 'garbage', limit: 20 }),
+        400,
+        ErrorCode.INVALID_CURSOR,
+      );
+      expect(provider.searches).toEqual([]);
+    });
+
+    it('maps an outage to 503 CATALOG_UNAVAILABLE', async () => {
+      fresh();
+      provider.unavailable = true;
+      await failsWith(
+        service.searchBooks({ q: 'a', limit: 20 }),
+        503,
+        ErrorCode.CATALOG_UNAVAILABLE,
+      );
+    });
+  });
+
+  describe('getWork', () => {
+    const olWork = (authorKeys: string[], subjects: string[] = []) => ({
+      olWorkKey: 'OL1W',
+      title: 'Pedro Páramo',
+      subtitle: null,
+      description: 'A novel.',
+      firstPublishYear: 1955,
+      coverUrl: null,
+      authorKeys,
+      subjects,
+    });
+    const olAuthor = (key: string, name: string) => ({
+      olAuthorKey: key,
+      name,
+      bio: null,
+      birthYear: null,
+      deathYear: null,
+      photoUrl: null,
+    });
+
+    it('serves an unpersisted Open Library work with author names and writes nothing', async () => {
+      fresh();
+      const before = await prisma.work.count();
+      provider.addWork(olWork(['OL1A'])).addAuthor(olAuthor('OL1A', 'Juan Rulfo'));
+
+      const work = await service.getWork(userId, 'ol:OL1W');
+      expect(work).toMatchObject({
+        ref: 'ol:OL1W',
+        title: 'Pedro Páramo',
+        authors: [{ ref: 'ol:OL1A', name: 'Juan Rulfo' }],
+        series: null,
+        source: 'OPEN_LIBRARY',
+        libraryStatus: null,
+      });
+      expect(await prisma.work.count()).toBe(before);
+      expect(await prisma.author.count({ where: { olAuthorKey: 'OL1A' } })).toBe(0);
+    });
+
+    it('keeps at most 8 genres and 5 authors', async () => {
+      fresh();
+      const keys = ['OL1A', 'OL2A', 'OL3A', 'OL4A', 'OL5A', 'OL6A'];
+      provider.addWork(
+        olWork(
+          keys,
+          Array.from({ length: 12 }, (_, i) => `s${i}`),
+        ),
+      );
+      for (const key of keys) provider.addAuthor(olAuthor(key, key));
+
+      const work = await service.getWork(userId, 'ol:OL1W');
+      expect(work.genres).toHaveLength(8);
+      expect(work.authors.map((a) => a.ref)).toEqual(keys.slice(0, 5).map((k) => `ol:${k}`));
+    });
+
+    it('drops an author Open Library does not know but fails on an outage', async () => {
+      fresh();
+      provider.addWork(olWork(['OL1A', 'OL9A'])).addAuthor(olAuthor('OL1A', 'Juan Rulfo'));
+      const work = await service.getWork(userId, 'ol:OL1W');
+      expect(work.authors).toEqual([{ ref: 'ol:OL1A', name: 'Juan Rulfo' }]);
+
+      provider.unavailable = true;
+      await failsWith(service.getWork(userId, 'ol:OL1W'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+    });
+
+    it('returns 404 CATALOG_NOT_FOUND for an unknown Open Library work', async () => {
+      fresh();
+      await failsWith(service.getWork(userId, 'ol:OL404W'), 404, ErrorCode.CATALOG_NOT_FOUND);
+    });
+
+    it('rejects malformed refs with 400 INVALID_REF', async () => {
+      fresh();
+      for (const ref of ['nope', 'ol:OL1A', 'OL1W', '../etc']) {
+        await failsWith(service.getWork(userId, ref), 400, ErrorCode.INVALID_REF);
+      }
+    });
+
+    it('serves a persisted work with local authors, genres and series', async () => {
+      fresh();
+      const series = await prisma.series.create({ data: { id: uuidv7(), name: `${TAG} s` } });
+      const genre = await prisma.genre.create({
+        data: { id: uuidv7(), slug: `${TAG}-g`, name: 'Fiction' },
+      });
+      const author = await prisma.author.create({
+        data: { id: uuidv7(), name: `${TAG} author` },
+      });
+      const work = await prisma.work.create({
+        data: {
+          id: uuidv7(),
+          title: `${TAG} work`,
+          seriesId: series.id,
+          seriesPosition: 1.5,
+          authors: { create: { authorId: author.id } },
+          genres: { create: { genreId: genre.id } },
+        },
+      });
+
+      const res = await service.getWork(userId, work.id);
+      expect(res.ref).toBe(work.id);
+      expect(res.authors).toEqual([{ ref: author.id, name: `${TAG} author` }]);
+      expect(res.genres).toEqual(['Fiction']);
+      expect(res.series).toEqual({ id: series.id, name: `${TAG} s`, position: 1.5 });
+    });
+
+    it('returns the local id for an ol ref that was persisted', async () => {
+      fresh();
+      const key = `OL${Date.now()}W`;
+      const work = await prisma.work.create({
+        data: { id: uuidv7(), title: `${TAG} persisted`, olWorkKey: key },
+      });
+      // The provider does not know this key: the local row must answer.
+      const res = await service.getWork(userId, `ol:${key}`);
+      expect(res.ref).toBe(work.id);
+    });
+
+    it('shows a private manual work to its creator only', async () => {
+      fresh();
+      const work = await prisma.work.create({
+        data: {
+          id: uuidv7(),
+          title: `${TAG} private`,
+          source: 'MANUAL',
+          catalogStatus: 'PRIVATE',
+          createdById: userId,
+        },
+      });
+      expect((await service.getWork(userId, work.id)).ref).toBe(work.id);
+      await failsWith(service.getWork(otherId, work.id), 404, ErrorCode.CATALOG_NOT_FOUND);
+    });
+
+    it('returns 404 for an unknown UUID', async () => {
+      fresh();
+      await failsWith(service.getWork(userId, uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
+    });
+  });
+});
