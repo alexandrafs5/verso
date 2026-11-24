@@ -473,7 +473,7 @@ Conventions:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips). At least one of `q` and `genre` is required: `genre` alone searches the subject only (SPEC 18) |
+| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips). At least one of `q` and `genre` is required: `genre` alone searches the subject only, most editions first (SPEC 18) |
 | GET | `/v1/search/users?q=` | Users (private ones show a lock) |
 | GET | `/v1/works/{ref}` | Work page data |
 | GET | `/v1/works/{ref}/editions?language=` | Edition selector |

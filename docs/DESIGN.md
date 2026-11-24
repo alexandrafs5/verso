@@ -129,7 +129,7 @@ A horizontal top bar, editorial in feel, on every signed-in screen:
 
 ### Search behavior \[F1\]
 
-Typing in the top-bar field opens a dropdown with quick results: **Books** (max 5 works) in F1, and a **Users** group (max 5) that arrives with user search in M8.5 [F2]. Enter opens the full search results page. Recent searches show when the field is focused and empty. A genre alone is a valid search: `/search?genre=<subject>` (the target of the S3 genre chips) lists books of that subject with an empty field and a removable chip (SPEC 18).
+Typing in the top-bar field opens a dropdown with quick results: **Books** (max 5 works) in F1, and a **Users** group (max 5) that arrives with user search in M8.5 [F2]. Enter opens the full search results page. Recent searches show when the field is focused and empty. A genre alone is a valid search: `/search?genre=<subject>` (the target of the S3 genre chips) lists books of that subject, most editions first, with an empty field and a removable chip (SPEC 18).
 
 ### Responsive
 

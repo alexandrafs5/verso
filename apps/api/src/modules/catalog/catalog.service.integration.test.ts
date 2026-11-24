@@ -132,7 +132,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
     it('keeps the edition-count order on later pages of a genre-only search', async () => {
       fresh();
-      provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
+      provider.canned.set('subject:"Fiction"', [searchResult('OL1W', 'Pedro Páramo')]);
       const first = await service.searchBooks({ genre: 'Fiction' });
       await service.searchBooks({ genre: 'Fiction', cursor: first.nextCursor ?? '' });
       expect(provider.searches.map((s) => [s.page, s.sort])).toEqual([
@@ -565,11 +565,11 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         deathYear: 1986,
       });
       expect(author.works.map((w) => w.title)).toEqual(['Early', 'Late', 'Unknown']);
-      // Three pages, most editions first (the fake ignores the sort).
+      // Three pages, most editions first (the fake ignores the sort, the service sends it).
       expect(provider.searches).toEqual([
-        { query: 'author_key:OL1A', page: 1 },
-        { query: 'author_key:OL1A', page: 2 },
-        { query: 'author_key:OL1A', page: 3 },
+        { query: 'author_key:OL1A', page: 1, sort: 'editions' },
+        { query: 'author_key:OL1A', page: 2, sort: 'editions' },
+        { query: 'author_key:OL1A', page: 3, sort: 'editions' },
       ]);
     });
 
