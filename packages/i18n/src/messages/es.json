@@ -75,6 +75,8 @@
       "removeGenre": "Quitar el filtro de género {genre}",
       "manualAdd": "¿No encuentras tu libro? Añádelo a mano",
       "loadMore": "Cargar más",
+      "showMoreMatches": "Mostrar más coincidencias ({count})",
+      "hideMoreMatches": "Ocultar más coincidencias ({count})",
       "loadingMore": "Cargando más",
       "resultsLoaded": "{count, plural, one {# resultado cargado} other {# resultados cargados}}",
       "errorHeading": "No pudimos cargar los resultados",

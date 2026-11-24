@@ -75,6 +75,8 @@
       "removeGenre": "Remove genre filter {genre}",
       "manualAdd": "Can’t find your book? Add it manually",
       "loadMore": "Load more",
+      "showMoreMatches": "Show more matches ({count})",
+      "hideMoreMatches": "Hide more matches ({count})",
       "loadingMore": "Loading more",
       "resultsLoaded": "{count, plural, one {# result loaded} other {# results loaded}}",
       "errorHeading": "We couldn’t load the results",

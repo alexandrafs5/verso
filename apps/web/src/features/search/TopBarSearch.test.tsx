@@ -72,6 +72,15 @@ describe('TopBarSearch', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('q=dun');
   });
 
+  it('ignores moreMatches and shows no fold control', async () => {
+    stubFetch(() => json({ items: [work(1)], moreMatches: [work(2), work(3)], nextCursor: null }));
+    renderWithProviders(<TopBarSearch />);
+    await userEvent.type(screen.getByRole('combobox'), 'dun');
+    await screen.findByRole('option', { name: /Book 1/ });
+    expect(screen.queryByRole('option', { name: /Book 2/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /more matches/i })).not.toBeInTheDocument();
+  });
+
   it('lists at most 5 works plus the see-all item', async () => {
     stubFetch(sevenWorks);
     renderWithProviders(<TopBarSearch />);
