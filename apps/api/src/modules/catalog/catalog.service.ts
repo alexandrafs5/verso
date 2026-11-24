@@ -1,9 +1,13 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import {
+  type AuthorDetail,
   type AuthorLink,
+  type EditionDto,
   ErrorCode,
+  type IsbnResult,
   type SearchBooksQuery,
   type SearchBooksResponse,
+  type SeriesDetail,
   type WorkDetail,
 } from '@verso/shared';
 import { ApiException } from '../../common/api-exception.js';
@@ -12,18 +16,27 @@ import {
   CatalogUnavailableError,
 } from '../../infra/catalog/catalog-errors.js';
 import { CATALOG_PROVIDER, type CatalogProvider } from '../../infra/catalog/catalog-provider.js';
+import type { Author } from '../../generated/prisma/client.js';
 import { CatalogRepository, type WorkRow } from './catalog.repository.js';
 import {
+  decimalToNumber,
+  externalEditionToDto,
   externalWorkToDetail,
+  localEditionToDto,
   localWorkToDetail,
+  localWorkToSummary,
   MAX_AUTHORS,
   searchResultToSummary,
+  sortByYear,
 } from './catalog.mappers.js';
 import {
+  authorWorksQuery,
   buildSearchQuery,
   decodeCursor,
   encodeCursor,
+  isUuid,
   olRef,
+  parseIsbn,
   parseRef,
 } from './domain/catalog-ref.js';
 
@@ -89,6 +102,106 @@ export class CatalogService {
     const work = await mapCatalogErrors(() => this.provider.getWork(parsed.key));
     const authors = await this.resolveAuthors(work.authorKeys);
     return externalWorkToDetail(work, authors);
+  }
+
+  async getEditions(userId: string, ref: string, language?: string): Promise<EditionDto[]> {
+    const parsed = parseRef(ref, 'W');
+    if (!parsed) throw invalidRef();
+
+    let olWorkKey: string;
+    if (parsed.kind === 'ol') {
+      olWorkKey = parsed.key;
+    } else {
+      const row = await this.repo.findWorkById(parsed.id);
+      if (!row || !canView(row, userId)) throw notFound();
+      if (!row.olWorkKey) {
+        const editions = await this.repo.findEditionsByWork(row.id, language);
+        return editions.map(localEditionToDto);
+      }
+      olWorkKey = row.olWorkKey;
+    }
+    const editions = await mapCatalogErrors(() =>
+      this.provider.listEditions(olWorkKey, { language }),
+    );
+    return editions.map(externalEditionToDto);
+  }
+
+  async getAuthor(ref: string): Promise<AuthorDetail> {
+    const parsed = parseRef(ref, 'A');
+    if (!parsed) throw invalidRef();
+
+    if (parsed.kind === 'local') {
+      const row = await this.repo.findAuthorById(parsed.id);
+      if (!row) throw notFound();
+      return this.localAuthorDetail(row);
+    }
+    const local = await this.repo.findAuthorByOlKey(parsed.key);
+    if (local) return this.localAuthorDetail(local);
+
+    const [author, works] = await Promise.all([
+      mapCatalogErrors(() => this.provider.getAuthor(parsed.key)),
+      this.worksOfOlAuthor(parsed.key),
+    ]);
+    return {
+      ref: olRef(author.olAuthorKey),
+      name: author.name,
+      bio: author.bio,
+      birthYear: author.birthYear,
+      deathYear: author.deathYear,
+      photoUrl: author.photoUrl,
+      works,
+    };
+  }
+
+  private async localAuthorDetail(local: Author): Promise<AuthorDetail> {
+    const works = local.olAuthorKey
+      ? await this.worksOfOlAuthor(local.olAuthorKey)
+      : (await this.repo.findPublicWorksByAuthor(local.id)).map(localWorkToSummary);
+    return {
+      ref: local.id,
+      name: local.name,
+      bio: local.bio,
+      birthYear: local.birthYear,
+      deathYear: local.deathYear,
+      photoUrl: local.photoUrl,
+      works,
+    };
+  }
+
+  /** First page of Open Library works for an author, oldest first. */
+  private async worksOfOlAuthor(olAuthorKey: string) {
+    const results = await mapCatalogErrors(() =>
+      this.provider.searchWorks(authorWorksQuery(olAuthorKey), 1),
+    );
+    return sortByYear(results.map(searchResultToSummary));
+  }
+
+  async getSeries(id: string): Promise<SeriesDetail> {
+    if (!isUuid(id)) throw invalidRef();
+    const row = await this.repo.findSeriesById(id);
+    if (!row) throw notFound();
+    return {
+      id: row.id,
+      name: row.name,
+      works: row.works.map((work) => ({
+        ...localWorkToSummary(work),
+        position: decimalToNumber(work.seriesPosition),
+      })),
+    };
+  }
+
+  async lookupIsbn(isbn: string): Promise<IsbnResult> {
+    const normalized = parseIsbn(isbn);
+    if (!normalized) throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_ISBN);
+
+    const edition = await mapCatalogErrors(() => this.provider.getEditionByIsbn(normalized));
+    if (!edition?.olWorkKey) throw notFound();
+
+    const local = await this.repo.findWorkByOlKey(edition.olWorkKey);
+    return {
+      workRef: local ? local.id : olRef(edition.olWorkKey),
+      edition: externalEditionToDto(edition),
+    };
   }
 
   /** At most MAX_AUTHORS. An author Open Library no longer knows is dropped; an outage fails. */

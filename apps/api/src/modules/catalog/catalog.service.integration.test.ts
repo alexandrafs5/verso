@@ -17,9 +17,13 @@ const TAG = `cs${Date.now().toString(36)}`;
 /** Records the queries and pages the service sends. */
 class RecordingProvider extends InMemoryCatalogProvider {
   readonly searches: { query: string; page: number }[] = [];
+  /** Exact query to canned results, for queries the in-memory matcher cannot answer. */
+  readonly canned = new Map<string, WorkSearchResult[]>();
 
   override searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
     this.searches.push({ query, page });
+    const canned = this.canned.get(query);
+    if (canned) return Promise.resolve(canned);
     return super.searchWorks(query, page);
   }
 }
@@ -274,6 +278,247 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('returns 404 for an unknown UUID', async () => {
       fresh();
       await failsWith(service.getWork(userId, uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
+    });
+  });
+
+  describe('getEditions', () => {
+    const ed = (key: string, language: string | null) => ({
+      olEditionKey: key,
+      olWorkKey: 'OL1W',
+      title: 'Pedro Páramo',
+      isbn10: null,
+      isbn13: null,
+      publisher: null,
+      publishYear: null,
+      language,
+      pageCount: null,
+      format: 'PAPERBACK' as const,
+      coverUrl: null,
+    });
+    const seedWork = () =>
+      provider
+        .addWork({
+          olWorkKey: 'OL1W',
+          title: 'Pedro Páramo',
+          subtitle: null,
+          description: null,
+          firstPublishYear: null,
+          coverUrl: null,
+          authorKeys: [],
+          subjects: [],
+        })
+        .addEdition(ed('OL1M', 'es'))
+        .addEdition(ed('OL2M', 'en'));
+
+    it('lists provider editions for an Open Library work, filtered by language', async () => {
+      fresh();
+      seedWork();
+      expect((await service.getEditions(userId, 'ol:OL1W')).map((e) => e.ref)).toEqual([
+        'ol:OL1M',
+        'ol:OL2M',
+      ]);
+      expect((await service.getEditions(userId, 'ol:OL1W', 'es')).map((e) => e.ref)).toEqual([
+        'ol:OL1M',
+      ]);
+    });
+
+    it('uses the provider for a persisted Open Library work', async () => {
+      fresh();
+      seedWork();
+      const work = await prisma.work.create({
+        data: { id: uuidv7(), title: `${TAG} w`, olWorkKey: 'OL1W' },
+      });
+      expect(await service.getEditions(userId, work.id)).toHaveLength(2);
+    });
+
+    it('lists local editions of a manual work, filtered by language', async () => {
+      fresh();
+      const work = await prisma.work.create({
+        data: { id: uuidv7(), title: `${TAG} manual`, source: 'MANUAL', createdById: userId },
+      });
+      const local = (language: string) =>
+        prisma.edition.create({
+          data: { id: uuidv7(), workId: work.id, title: `${TAG} e`, language, source: 'MANUAL' },
+        });
+      const es = await local('es');
+      await local('en');
+
+      expect(await service.getEditions(userId, work.id)).toHaveLength(2);
+      expect((await service.getEditions(userId, work.id, 'es')).map((e) => e.ref)).toEqual([es.id]);
+    });
+
+    it('hides editions of a private work, rejects bad refs and unknown works', async () => {
+      fresh();
+      const work = await prisma.work.create({
+        data: {
+          id: uuidv7(),
+          title: `${TAG} private`,
+          source: 'MANUAL',
+          catalogStatus: 'PRIVATE',
+          createdById: userId,
+        },
+      });
+      await failsWith(service.getEditions(otherId, work.id), 404, ErrorCode.CATALOG_NOT_FOUND);
+      await failsWith(service.getEditions(userId, 'bad'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getEditions(userId, uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
+      await failsWith(service.getEditions(userId, 'ol:OL9W'), 404, ErrorCode.CATALOG_NOT_FOUND);
+    });
+  });
+
+  describe('getAuthor', () => {
+    const olAuthor = {
+      olAuthorKey: 'OL1A',
+      name: 'Juan Rulfo',
+      bio: 'Mexican writer.',
+      birthYear: 1917,
+      deathYear: 1986,
+      photoUrl: null,
+    };
+
+    it('returns an Open Library author with works ordered by year, unknown last', async () => {
+      fresh();
+      provider.addAuthor(olAuthor);
+      provider.canned.set('author_key:OL1A', [
+        { ...searchResult('OL3W', 'Unknown'), firstPublishYear: null },
+        { ...searchResult('OL2W', 'Late'), firstPublishYear: 1980 },
+        { ...searchResult('OL1W', 'Early'), firstPublishYear: 1953 },
+      ]);
+
+      const author = await service.getAuthor('ol:OL1A');
+      expect(author).toMatchObject({
+        ref: 'ol:OL1A',
+        name: 'Juan Rulfo',
+        bio: 'Mexican writer.',
+        birthYear: 1917,
+        deathYear: 1986,
+      });
+      expect(author.works.map((w) => w.title)).toEqual(['Early', 'Late', 'Unknown']);
+      expect(provider.searches).toEqual([{ query: 'author_key:OL1A', page: 1 }]);
+    });
+
+    it('serves a local author with a key through the provider and returns the local id', async () => {
+      fresh();
+      const local = await prisma.author.create({
+        data: { id: uuidv7(), name: `${TAG} rulfo`, olAuthorKey: 'OL7A' },
+      });
+      provider.canned.set('author_key:OL7A', [searchResult('OL1W', 'Pedro Páramo')]);
+
+      const byId = await service.getAuthor(local.id);
+      expect(byId.ref).toBe(local.id);
+      expect(byId.works.map((w) => w.title)).toEqual(['Pedro Páramo']);
+      expect((await service.getAuthor('ol:OL7A')).ref).toBe(local.id);
+    });
+
+    it('serves a local author without a key from WorkAuthor, public works only', async () => {
+      fresh();
+      const local = await prisma.author.create({ data: { id: uuidv7(), name: `${TAG} manual` } });
+      const make = (title: string, catalogStatus: 'PUBLIC' | 'PRIVATE') =>
+        prisma.work.create({
+          data: {
+            id: uuidv7(),
+            title: `${TAG} ${title}`,
+            catalogStatus,
+            authors: { create: { authorId: local.id } },
+          },
+        });
+      await make('public', 'PUBLIC');
+      await make('private', 'PRIVATE');
+
+      const res = await service.getAuthor(local.id);
+      expect(res.works.map((w) => w.title)).toEqual([`${TAG} public`]);
+      expect(provider.searches).toEqual([]);
+    });
+
+    it('maps unknown authors, bad refs and outages', async () => {
+      fresh();
+      await failsWith(service.getAuthor('ol:OL404A'), 404, ErrorCode.CATALOG_NOT_FOUND);
+      await failsWith(service.getAuthor(uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
+      await failsWith(service.getAuthor('ol:OL1W'), 400, ErrorCode.INVALID_REF);
+      provider.addAuthor(olAuthor);
+      provider.unavailable = true;
+      await failsWith(service.getAuthor('ol:OL1A'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+    });
+  });
+
+  describe('getSeries', () => {
+    it('orders works by position and keeps 1.5, without private works', async () => {
+      fresh();
+      const series = await prisma.series.create({ data: { id: uuidv7(), name: `${TAG} s` } });
+      const make = (title: string, position: number | null, status: 'PUBLIC' | 'PRIVATE') =>
+        prisma.work.create({
+          data: {
+            id: uuidv7(),
+            title: `${TAG} ${title}`,
+            seriesId: series.id,
+            seriesPosition: position,
+            catalogStatus: status,
+          },
+        });
+      await make('two', 2, 'PUBLIC');
+      await make('half', 1.5, 'PUBLIC');
+      await make('none', null, 'PUBLIC');
+      await make('hidden', 1, 'PRIVATE');
+
+      const res = await service.getSeries(series.id);
+      expect(res.name).toBe(`${TAG} s`);
+      expect(res.works.map((w) => [w.title.replace(`${TAG} `, ''), w.position])).toEqual([
+        ['half', 1.5],
+        ['two', 2],
+        ['none', null],
+      ]);
+    });
+
+    it('returns 404 for an unknown id and 400 for a non-UUID', async () => {
+      fresh();
+      await failsWith(service.getSeries(uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
+      await failsWith(service.getSeries('ol:OL1W'), 400, ErrorCode.INVALID_REF);
+    });
+  });
+
+  describe('lookupIsbn', () => {
+    const edition = {
+      olEditionKey: 'OL1M',
+      olWorkKey: 'OL1W' as string | null,
+      title: 'Pedro Páramo',
+      isbn10: null,
+      isbn13: '9788437604947',
+      publisher: null,
+      publishYear: 1955,
+      language: 'es',
+      pageCount: 128,
+      format: 'PAPERBACK' as const,
+      coverUrl: null,
+    };
+
+    it('normalizes hyphens and returns the work ref and edition', async () => {
+      fresh();
+      provider.addEdition(edition);
+      const res = await service.lookupIsbn('978-84-376-0494-7');
+      expect(res.workRef).toBe('ol:OL1W');
+      expect(res.edition).toMatchObject({ ref: 'ol:OL1M', isbn13: '9788437604947' });
+    });
+
+    it('returns the local work id when the work was persisted', async () => {
+      fresh();
+      provider.addEdition(edition);
+      const work = await prisma.work.create({
+        data: { id: uuidv7(), title: `${TAG} w`, olWorkKey: 'OL1W' },
+      });
+      expect((await service.lookupIsbn('9788437604947')).workRef).toBe(work.id);
+    });
+
+    it('returns 404 for an unknown ISBN or an edition without a work', async () => {
+      fresh();
+      await failsWith(service.lookupIsbn('9780000000002'), 404, ErrorCode.CATALOG_NOT_FOUND);
+      provider.addEdition({ ...edition, olWorkKey: null });
+      await failsWith(service.lookupIsbn('9788437604947'), 404, ErrorCode.CATALOG_NOT_FOUND);
+    });
+
+    it('returns 400 INVALID_ISBN for a malformed ISBN and 503 on an outage', async () => {
+      fresh();
+      await failsWith(service.lookupIsbn('12345'), 400, ErrorCode.INVALID_ISBN);
+      provider.unavailable = true;
+      await failsWith(service.lookupIsbn('9788437604947'), 503, ErrorCode.CATALOG_UNAVAILABLE);
     });
   });
 });
