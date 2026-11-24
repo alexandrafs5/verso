@@ -3,11 +3,13 @@
 import { pickCoverTone } from '@verso/shared';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useRef, useState } from 'react';
 import { BookCover } from '@/components/verso';
 import { EmptyState, ErrorState } from '@/components/verso';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { EditionLine } from './EditionLine';
+import { EditionSelectorDialog } from './EditionSelectorDialog';
 import { useWork } from './use-work';
 import { useWorkEditions } from './use-work-editions';
 import { WorkInfo } from './WorkInfo';
@@ -38,6 +40,10 @@ function WorkView({ workRef }: { workRef: string }) {
   const router = useRouter();
   const work = useWork(workRef);
   const editions = useWorkEditions(workRef);
+  // Local UI state: the selection is not persisted and resets with the page (SPEC 18).
+  const [selectedRef, setSelectedRef] = useState<string | null>(null);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const changeRef = useRef<HTMLButtonElement>(null);
 
   if (work.isPending) return <WorkSkeleton />;
 
@@ -67,7 +73,8 @@ function WorkView({ workRef }: { workRef: string }) {
 
   const data = work.data;
   // The first edition returned is the default selection (SPEC 18).
-  const edition = editions.data?.[0] ?? null;
+  const editionList = editions.data ?? [];
+  const edition = editionList.find((item) => item.ref === selectedRef) ?? editionList[0] ?? null;
   const authors = data.authors.map((author) => author.name).join(', ');
 
   return (
@@ -85,9 +92,27 @@ function WorkView({ workRef }: { workRef: string }) {
         <WorkInfo
           work={data}
           pageCount={edition?.pageCount ?? null}
-          editionSlot={edition ? <EditionLine edition={edition} /> : null}
+          editionSlot={
+            edition ? (
+              <EditionLine
+                edition={edition}
+                onChange={() => setSelectorOpen(true)}
+                changeRef={changeRef}
+              />
+            ) : null
+          }
         />
       </div>
+      {edition ? (
+        <EditionSelectorDialog
+          open={selectorOpen}
+          onOpenChange={setSelectorOpen}
+          editions={editionList}
+          selectedRef={edition.ref}
+          onSelect={setSelectedRef}
+          returnFocusRef={changeRef}
+        />
+      ) : null}
     </div>
   );
 }
