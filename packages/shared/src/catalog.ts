@@ -26,9 +26,20 @@ export const editionRefSchema = z
   .string()
   .refine((v) => UUID_RE.test(v) || OL_EDITION_REF_RE.test(v), { message: 'Invalid edition ref' });
 
-export const seriesIdSchema = z.string().refine((v) => UUID_RE.test(v), {
-  message: 'Invalid series id',
-});
+const MAX_OL_SERIES_ID = 3 + 120;
+
+/** A UUID (local series) or `ol:<name>` (derived from Open Library subjects, SPEC 18). */
+export const seriesIdSchema = z
+  .string()
+  .refine(
+    (v) =>
+      UUID_RE.test(v) ||
+      (v.startsWith('ol:') &&
+        v.slice(3).trim() !== '' &&
+        v.length <= MAX_OL_SERIES_ID &&
+        ![...v].some((ch) => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)),
+    { message: 'Invalid series id' },
+  );
 
 export const editionFormatSchema = z.enum(EDITION_FORMATS);
 export const workSourceSchema = z.enum(WORK_SOURCES);

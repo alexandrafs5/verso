@@ -8,6 +8,7 @@ import type { Edition } from '../../generated/prisma/client.js';
 import type { WorkRow, WorkSummaryRow } from './catalog.repository.js';
 import { olRef } from './domain/catalog-ref.js';
 import { plainDescription } from './domain/description-text.js';
+import { isSeriesSubject, seriesFromSubjects } from './domain/ol-series.js';
 
 export const MAX_GENRES = 8;
 export const MAX_AUTHORS = 5;
@@ -71,8 +72,9 @@ export function externalWorkToDetail(work: ExternalWork, authors: AuthorLink[]):
     firstPublishYear: work.firstPublishYear,
     coverUrl: work.coverUrl,
     authors,
-    genres: work.subjects.slice(0, MAX_GENRES),
-    series: null,
+    // `series:` subjects feed the series line, not the genre chips.
+    genres: work.subjects.filter((subject) => !isSeriesSubject(subject)).slice(0, MAX_GENRES),
+    series: seriesFromSubjects(work.subjects),
     source: 'OPEN_LIBRARY',
     libraryStatus: null,
   };

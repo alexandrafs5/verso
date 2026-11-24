@@ -40,6 +40,7 @@ import {
   parseRef,
 } from './domain/catalog-ref.js';
 import { rankEditions } from './domain/edition-rank.js';
+import { olSeriesName, seriesSearchQuery } from './domain/ol-series.js';
 import { originalLanguage } from './domain/original-language.js';
 import { collapseSearchResults } from './domain/search-collapse.js';
 
@@ -194,6 +195,8 @@ export class CatalogService {
   }
 
   async getSeries(id: string): Promise<SeriesDetail> {
+    const olName = olSeriesName(id);
+    if (olName !== null) return this.getOpenLibrarySeries(id, olName);
     if (!isUuid(id)) throw invalidRef();
     const row = await this.repo.findSeriesById(id);
     if (!row) throw notFound();
@@ -204,6 +207,24 @@ export class CatalogService {
         ...localWorkToSummary(work),
         position: decimalToNumber(work.seriesPosition),
       })),
+    };
+  }
+
+  /**
+   * A series derived from Open Library subjects (SPEC 18). The works come from a subject search,
+   * first page only, with duplicates merged and the 1-edition tail dropped. Open Library has no
+   * series positions, so every position is null.
+   */
+  private async getOpenLibrarySeries(id: string, name: string): Promise<SeriesDetail> {
+    const results = await mapCatalogErrors(() =>
+      this.provider.searchWorks(seriesSearchQuery(name), 1),
+    );
+    const { items } = collapseSearchResults(results, { guardVisible: true });
+    if (items.length === 0) throw notFound();
+    return {
+      id,
+      name,
+      works: items.map((result) => ({ ...searchResultToSummary(result), position: null })),
     };
   }
 

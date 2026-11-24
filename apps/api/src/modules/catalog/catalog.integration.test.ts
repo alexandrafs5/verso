@@ -269,6 +269,12 @@ describe('Catalog endpoints (HTTP, real Postgres, fake provider)', () => {
     expect(seriesDetailSchema.parse(res.body).works[0]?.position).toBe(1.5);
     expectProblem(await get(`/series/${uuidv7()}`, cookie), 404, 'CATALOG_NOT_FOUND');
     expectProblem(await get('/series/not-a-uuid', cookie), 400, 'INVALID_REF');
+    // A series derived from Open Library subjects: unknown to the fake, so 404.
+    expectProblem(
+      await get(`/series/${encodeURIComponent('ol:Nope')}`, cookie),
+      404,
+      'CATALOG_NOT_FOUND',
+    );
   });
 
   it('looks up an ISBN', async () => {

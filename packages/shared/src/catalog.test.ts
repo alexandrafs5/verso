@@ -43,9 +43,14 @@ describe('refs', () => {
     expect(authorRefSchema.safeParse('ol:OL9W').success).toBe(false);
   });
 
-  it('series id must be a UUID', () => {
+  it('series id is a UUID or ol:<name>', () => {
     expect(seriesIdSchema.safeParse(UUID).success).toBe(true);
-    expect(seriesIdSchema.safeParse('ol:OL9W').success).toBe(false);
+    expect(seriesIdSchema.safeParse('ol:A Song of Ice and Fire').success).toBe(true);
+    expect(seriesIdSchema.safeParse('ol:').success).toBe(false);
+    expect(seriesIdSchema.safeParse('ol:   ').success).toBe(false);
+    expect(seriesIdSchema.safeParse(`ol:${'a'.repeat(121)}`).success).toBe(false);
+    expect(seriesIdSchema.safeParse(`ol:a${String.fromCharCode(7)}b`).success).toBe(false);
+    expect(seriesIdSchema.safeParse('not-a-series').success).toBe(false);
   });
 });
 

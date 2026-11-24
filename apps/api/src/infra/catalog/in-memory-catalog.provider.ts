@@ -15,12 +15,19 @@ export class InMemoryCatalogProvider implements CatalogProvider {
   unavailable = false;
 
   private readonly searchable: WorkSearchResult[] = [];
+  private readonly seriesWorks = new Map<string, WorkSearchResult[]>();
   private readonly works = new Map<string, ExternalWork>();
   private readonly editions: ExternalEdition[] = [];
   private readonly authors = new Map<string, ExternalAuthor>();
 
   addSearchResult(result: WorkSearchResult): this {
     this.searchable.push(result);
+    return this;
+  }
+
+  /** Seeds the answer to the subject search `subject:"series:<name>"` (case-insensitive). */
+  addSeries(name: string, results: WorkSearchResult[]): this {
+    this.seriesWorks.set(name.trim().toLowerCase(), results);
     return this;
   }
 
@@ -43,6 +50,9 @@ export class InMemoryCatalogProvider implements CatalogProvider {
     return this.run(() => {
       const needle = query.trim().toLowerCase();
       if (!needle) return [];
+      const series = /^subject:"series:(.+)"$/.exec(needle)?.[1];
+      if (series !== undefined)
+        return page === 1 ? (this.seriesWorks.get(series.trim()) ?? []) : [];
       const matches = this.searchable.filter(
         (result) =>
           result.title.toLowerCase().includes(needle) ||

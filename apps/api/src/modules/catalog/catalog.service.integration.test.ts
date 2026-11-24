@@ -616,10 +616,60 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       ]);
     });
 
-    it('returns 404 for an unknown id and 400 for a non-UUID', async () => {
+    it('returns 404 for an unknown id and 400 for an id that is neither a UUID nor ol:<name>', async () => {
       fresh();
       await failsWith(service.getSeries(uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
-      await failsWith(service.getSeries('ol:OL1W'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getSeries('not-a-uuid'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getSeries('ol:'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getSeries(`ol:${'a'.repeat(121)}`), 400, ErrorCode.INVALID_REF);
+    });
+
+    describe('derived from Open Library subjects', () => {
+      const entry = (key: string, title: string, year: number, editions: number) => ({
+        ...searchResult(key, title),
+        firstPublishYear: year,
+        editionCount: editions,
+      });
+
+      it('lists the works of a series from a subject search, with null positions', async () => {
+        fresh();
+        provider.addSeries('A Song of Ice and Fire', [
+          entry('OL2W', 'A Clash of Kings', 1998, 76),
+          entry('OL1W', 'A Game of Thrones', 1996, 136),
+        ]);
+        const res = await service.getSeries('ol:A Song of Ice and Fire');
+        expect(provider.searches).toEqual([
+          { query: 'subject:"series:A Song of Ice and Fire"', page: 1 },
+        ]);
+        expect(res.id).toBe('ol:A Song of Ice and Fire');
+        expect(res.name).toBe('A Song of Ice and Fire');
+        expect(res.works.map((w) => [w.ref, w.position])).toEqual([
+          ['ol:OL2W', null],
+          ['ol:OL1W', null],
+        ]);
+      });
+
+      it('merges duplicates and drops the 1-edition tail', async () => {
+        fresh();
+        provider.addSeries('Saga', [
+          entry('OL1W', 'First', 2001, 10),
+          entry('OL2W', 'First', 2001, 5),
+          entry('OL3W', 'Study guide', 2005, 1),
+        ]);
+        const res = await service.getSeries('ol:Saga');
+        expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W']);
+      });
+
+      it('returns 404 when the subject search finds nothing', async () => {
+        fresh();
+        await failsWith(service.getSeries('ol:Unknown'), 404, ErrorCode.CATALOG_NOT_FOUND);
+      });
+
+      it('returns 503 when Open Library is down', async () => {
+        fresh();
+        provider.unavailable = true;
+        await failsWith(service.getSeries('ol:Saga'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+      });
     });
   });
 

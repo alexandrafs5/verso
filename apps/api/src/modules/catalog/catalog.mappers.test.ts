@@ -65,6 +65,27 @@ describe('provider mappers', () => {
     expect(detail.source).toBe('OPEN_LIBRARY');
   });
 
+  it('derives the series from a series: subject and keeps it out of the genres', () => {
+    const work: ExternalWork = {
+      olWorkKey: 'OL1W',
+      title: 'T',
+      subtitle: null,
+      description: null,
+      firstPublishYear: null,
+      coverUrl: null,
+      authorKeys: [],
+      subjects: ['series:A Song of Ice and Fire', ...Array.from({ length: 8 }, (_, i) => `s${i}`)],
+    };
+    const detail = externalWorkToDetail(work, []);
+    expect(detail.series).toEqual({
+      id: 'ol:A Song of Ice and Fire',
+      name: 'A Song of Ice and Fire',
+      position: null,
+    });
+    // The series subject does not take one of the 8 genre slots.
+    expect(detail.genres).toEqual(Array.from({ length: 8 }, (_, i) => `s${i}`));
+  });
+
   it('turns a Markdown description into plain text', () => {
     const work: ExternalWork = {
       olWorkKey: 'OL1W',
