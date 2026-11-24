@@ -59,7 +59,7 @@ External types (in `apps/api/src/infra/catalog/catalog-provider.ts`):
 type EditionFormat = 'PAPERBACK' | 'HARDCOVER' | 'EBOOK' | 'OTHER';
 
 type WorkSearchResult = {
-  olWorkKey: string; // "OL45883W"
+  olWorkKey: string; // "OL1731119W"
   title: string;
   authors: { olAuthorKey: string; name: string }[];
   firstPublishYear: number | null;
@@ -105,9 +105,9 @@ type ExternalAuthor = {
 
 Conventions:
 
-- Keys are bare (`OL45883W`), never `/works/OL45883W`. Malformed keys throw `CatalogNotFoundError` without a network call, so a caller cannot inject path segments.
+- Keys are bare (`OL1731119W`), never `/works/OL1731119W`. Malformed keys throw `CatalogNotFoundError` without a network call, so a caller cannot inject path segments.
 - Covers: `https://covers.openlibrary.org/b/id/{id}-M.jpg` (authors: `/a/id/`). Missing or non-positive cover id means `null`.
-- Search returns one page of 20 results as an array. Fewer than 20 means the last page.
+- Search returns one page of at most 20 results as an array. Docs whose key is not a work (`OL…W`) are skipped, because the real API files some edition ids under `/works/OL…M`. A page can therefore have fewer than 20 results and still not be the last. An empty page means there are no more results.
 - `listEditions` fetches up to 100 editions in one call and filters by `language` in the provider, because Open Library has no language filter. Open Library language codes (`/languages/spa`) map to ISO 639-1 through a small table; unknown codes become `null`.
 - Open Library `description` and `bio` can be a string or `{ type, value }`. Both map to a string.
 - ISBN input is normalized (hyphens and spaces removed, `x` uppercased). Anything that is not 10 or 13 characters returns `null` without a call.
@@ -149,7 +149,7 @@ Conventions:
 
 **Wiring and docs**
 
-- [ ] `InMemoryCatalogProvider` can be seeded and replaces `CATALOG_PROVIDER` in a Nest test module with `overrideProvider`.
+- [ ] `InMemoryCatalogProvider` can be seeded and a Nest test module can provide it under the `CATALOG_PROVIDER` token (the repo does not use `@nestjs/testing`, so there is no `overrideProvider`).
 - [ ] In production, boot fails with a clear message if `OPEN_LIBRARY_CONTACT` is empty. In development it boots with the default.
 - [ ] No test hits the network.
 - [ ] The new migration is forward-only and creates only `ExternalCache`.
@@ -178,6 +178,8 @@ UI states: N/A, this spec touches no screen or component.
 - **No:** `getSeries` in `CatalogProvider`. Series is local data (§5.3).
 - **No:** negative caching, retries, circuit breaker. About 5 users and one instance do not justify them.
 - **Yes:** `ExternalCacheStore` interface plus a Prisma implementation. Provider unit tests use the in-memory fake, and the Prisma class is tested on real Postgres, so Prisma is never mocked.
+- **Yes:** swap the fake through a plain test module that provides `CATALOG_PROVIDER`, not `overrideProvider`. It avoids adding `@nestjs/testing`, which the repo does not use.
+- **Yes:** an empty page is the end-of-results signal, not a page shorter than 20. Skipped non-work docs make short pages normal.
 - **Yes:** wire the module into `AppModule` now. M3.3 can inject `CATALOG_PROVIDER` without touching infra. It makes production env validation fail at boot.
 
 ## Risks
