@@ -13,7 +13,7 @@ import { workHref } from '@/features/catalog/hrefs';
 import { cn } from '@/lib/utils';
 import { useSeries } from './use-series';
 
-const PAGE = 'mx-auto max-w-[1200px] px-4 py-8';
+const PAGE = 'mx-auto max-w-(--content-max) px-4 py-8';
 
 function SeriesSkeleton() {
   return (

@@ -38,6 +38,9 @@ const TAG = `ci${Date.now().toString(36)}`;
 let counter = 0;
 const uniqueEmail = (): string => `user${Date.now()}-${counter++}${EMAIL_DOMAIN}`;
 
+/** The sort the service asked the provider for, one entry per search. */
+const searchSorts: (string | undefined)[] = [];
+
 const fake = new InMemoryCatalogProvider()
   .addSearchResult({
     olWorkKey: 'OL1W',
@@ -146,7 +149,10 @@ describe('Catalog endpoints (HTTP, real Postgres, fake provider)', () => {
     realStorage.createUploadUrl = (path, contentType) => storage.createUploadUrl(path, contentType);
     // No test hits Open Library: route every provider call to the fake.
     const provider = app.get<CatalogProvider>(CATALOG_PROVIDER);
-    provider.searchWorks = (q, page) => fake.searchWorks(q, page);
+    provider.searchWorks = (q, page, opts) => {
+      searchSorts.push(opts?.sort);
+      return fake.searchWorks(q, page);
+    };
     provider.getWork = (key) => fake.getWork(key);
     provider.listEditions = (key, opts) => fake.listEditions(key, opts);
     provider.getEditionByIsbn = (isbn) => fake.getEditionByIsbn(isbn);
@@ -295,6 +301,39 @@ describe('Catalog endpoints (HTTP, real Postgres, fake provider)', () => {
     } finally {
       fake.unavailable = false;
     }
+  });
+
+  it('serves a series derived from Open Library subjects', async () => {
+    const { cookie } = await createSession();
+    const work = (key: string, title: string, year: number) => ({
+      olWorkKey: key,
+      title,
+      authors: [{ olAuthorKey: 'OL1A', name: 'Juan Rulfo' }],
+      firstPublishYear: year,
+      coverUrl: null,
+      editionCount: 12,
+      languages: ['es'],
+    });
+    fake.addSeries('Http Saga', [work('OL2W', 'Second', 2002), work('OL1W', 'First', 2001)]);
+
+    const res = await get(`/series/${encodeURIComponent('ol:Http Saga')}`, cookie);
+    expect(res.status).toBe(200);
+    const body = seriesDetailSchema.parse(res.body);
+    expect(body).toMatchObject({ id: 'ol:Http Saga', name: 'Http Saga' });
+    // Ordered by release year, with no positions (Open Library has none).
+    expect(body.works.map((w) => [w.ref, w.position])).toEqual([
+      ['ol:OL1W', null],
+      ['ol:OL2W', null],
+    ]);
+  });
+
+  it('sorts a genre-only search by edition count and leaves a text search alone', async () => {
+    const { cookie } = await createSession();
+    searchSorts.length = 0;
+    expect((await get('/search/books?genre=Fiction', cookie)).status).toBe(200);
+    expect((await get('/search/books?q=Pedro', cookie)).status).toBe(200);
+    expect((await get('/search/books?q=Pedro&genre=Fiction', cookie)).status).toBe(200);
+    expect(searchSorts).toEqual(['editions', undefined, undefined]);
   });
 
   it('limits search to 60/min/user and other reads to 120/min/user', async () => {

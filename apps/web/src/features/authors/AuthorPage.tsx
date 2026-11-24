@@ -10,7 +10,7 @@ import { AuthorHeader } from './AuthorHeader';
 import { AuthorWorksGrid } from './AuthorWorksGrid';
 import { useAuthor } from './use-author';
 
-const PAGE = 'mx-auto max-w-[1200px] px-4 py-8';
+const PAGE = 'mx-auto max-w-(--content-max) px-4 py-8';
 
 function AuthorSkeleton() {
   return (
@@ -26,7 +26,7 @@ function AuthorSkeleton() {
             <Skeleton className="h-4 w-2/3" />
           </div>
         </div>
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <ul className="grid grid-cols-2 gap-4 md:grid-cols-4 min-[1200px]:grid-cols-6">
           {Array.from({ length: 6 }, (_, i) => (
             <li key={i}>
               <Skeleton className="aspect-[2/3] w-full" />

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
-import { seedGenres } from '../src/modules/catalog/genre-seed.js';
+import { seedGenres } from '../src/infra/prisma/genre-seed.js';
 
 // Seed scaffold (M0.4). Later milestones add: one admin, two users, a few books with
 // sessions, highlights and follows (ARCHITECTURE.md §13). Keep it idempotent.

@@ -129,11 +129,30 @@ describe('WorkPage', () => {
     expect(await screen.findByText('Edition: 1955')).toBeVisible();
   });
 
-  it('hides the edition line when editions fail or are empty', async () => {
-    routes({ editions: problem(500, 'INTERNAL_ERROR') });
+  it('shows an inline error with a retry when the editions fail, and the rest of the page stays', async () => {
+    let calls = 0;
+    mockApi({
+      'GET /api/v1/works/ol%3AOL1W': () => json(work()),
+      'GET /api/v1/works/ol%3AOL1W/editions': () =>
+        ++calls === 1 ? problem(500, 'INTERNAL_ERROR') : json([edition()]),
+    });
+    renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+    await screen.findByRole('heading', { level: 1 });
+    expect(await screen.findByText('We couldn’t load the editions.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument();
+    expect(screen.getByText('A man travels to Comala.')).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText(/^Edition:/)).toBeVisible();
+    expect(screen.queryByText('We couldn’t load the editions.')).not.toBeInTheDocument();
+  });
+
+  it('shows nothing for the edition line when the work has no editions', async () => {
+    routes({ editions: json([]) });
     renderWithProviders(<WorkPage workRef="ol:OL1W" />);
     await screen.findByRole('heading', { level: 1 });
     await waitFor(() => expect(screen.queryByText(/^Edition:/)).not.toBeInTheDocument());
+    expect(screen.queryByText('We couldn’t load the editions.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument();
   });
 

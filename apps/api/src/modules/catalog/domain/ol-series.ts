@@ -10,6 +10,9 @@ const MAX_SERIES_NAME = 120;
 
 export type DerivedSeries = { id: string; name: string; position: null };
 
+const hasControlCharacter = (text: string): boolean =>
+  [...text].some((ch) => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127);
+
 export const isSeriesSubject = (subject: string): boolean => SERIES_SUBJECT.test(subject.trim());
 
 /** "series:harry_potter" becomes "Harry Potter". A name with capitals is kept as written. */
@@ -36,9 +39,7 @@ export function seriesFromSubjects(subjects: readonly string[]): DerivedSeries |
 export function olSeriesName(id: string): string | null {
   if (!id.startsWith(OL_SERIES_PREFIX)) return null;
   const name = id.slice(OL_SERIES_PREFIX.length).trim();
-  // eslint-disable-next-line no-control-regex
-  if (name === '' || name.length > MAX_SERIES_NAME || /[\u0000-\u001f\u007f]/.test(name))
-    return null;
+  if (name === '' || name.length > MAX_SERIES_NAME || hasControlCharacter(name)) return null;
   return name;
 }
 

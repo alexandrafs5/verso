@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { BookCover } from '@/components/verso';
 import { EmptyState, ErrorState } from '@/components/verso';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
@@ -16,7 +17,7 @@ import { useWork } from './use-work';
 import { useWorkEditions } from './use-work-editions';
 import { WorkInfo } from './WorkInfo';
 
-const PAGE = 'mx-auto max-w-[1200px] px-4 py-8';
+const PAGE = 'mx-auto max-w-(--content-max) px-4 py-8';
 const LAYOUT = 'grid gap-8 md:grid-cols-[16rem_minmax(0,1fr)]';
 
 function WorkSkeleton() {
@@ -109,6 +110,19 @@ function WorkView({ workRef }: { workRef: string }) {
                 onChange={() => setSelectorOpen(true)}
                 changeRef={changeRef}
               />
+            ) : editions.isPending ? (
+              // Same height as the edition line, so the info column does not jump.
+              <Skeleton aria-hidden="true" className="h-8 w-2/3" />
+            ) : editions.isError ? (
+              <p
+                role="alert"
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted"
+              >
+                {t('editionsError')}
+                <Button variant="secondary" size="sm" onClick={() => void editions.refetch()}>
+                  {t('retry')}
+                </Button>
+              </p>
             ) : null
           }
         />

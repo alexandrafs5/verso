@@ -123,6 +123,7 @@
     "readLess": "Leer menos",
     "editionLine": "Edición: {details}",
     "change": "Cambiar",
+    "editionsError": "No pudimos cargar las ediciones.",
     "notFoundHeading": "Libro no encontrado",
     "notFoundBody": "Este libro no existe o ya no está disponible.",
     "searchAgain": "Buscar un libro",

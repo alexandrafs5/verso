@@ -2,8 +2,8 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { GENRES } from '@verso/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { PrismaModule } from '../../infra/prisma/prisma.module.js';
-import { PrismaService } from '../../infra/prisma/prisma.service.js';
+import { PrismaModule } from './prisma.module.js';
+import { PrismaService } from './prisma.service.js';
 import { seedGenres } from './genre-seed.js';
 
 describe('seedGenres (real Postgres)', () => {

@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import {
   type AuthorDetail,
   type AuthorLink,
@@ -85,6 +85,8 @@ const canView = (work: Pick<WorkRow, 'catalogStatus' | 'createdById'>, userId: s
 
 @Injectable()
 export class CatalogService {
+  private readonly logger = new Logger(CatalogService.name);
+
   constructor(
     @Inject(CatalogRepository) private readonly repo: CatalogRepository,
     @Inject(CATALOG_PROVIDER) private readonly provider: CatalogProvider,
@@ -168,6 +170,21 @@ export class CatalogService {
       .map((edition) => externalEditionToDto(edition, original));
   }
 
+  /** A secondary provider search: a failure is logged and gives no results, it never fails the request. */
+  private async bestEffort(
+    label: string,
+    run: () => Promise<WorkSearchResult[]>,
+  ): Promise<WorkSearchResult[]> {
+    try {
+      return await run();
+    } catch (error) {
+      this.logger.warn(
+        `${label} failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return [];
+    }
+  }
+
   async getAuthor(ref: string): Promise<AuthorDetail> {
     const parsed = parseRef(ref, 'A');
     if (!parsed) throw invalidRef();
@@ -212,7 +229,7 @@ export class CatalogService {
   }
 
   /**
-   * The main works of an Open Library author (SPEC 18): the first ${AUTHOR_WORK_PAGES} pages of the author's works with
+   * The main works of an Open Library author (SPEC 18): the first 3 pages of the author's works with
    * the most editions first, so a prolific author is not cut after 20 results. Bundles and split
    * books are dropped, duplicates are merged and the 1-edition tail is dropped. Ordered by
    * release year. Only the first page can fail the request.
@@ -222,7 +239,9 @@ export class CatalogService {
     const search = (page: number) => this.provider.searchWorks(query, page, { sort: 'editions' });
     const [first, ...rest] = await Promise.all([
       mapCatalogErrors(() => search(1)),
-      ...Array.from({ length: AUTHOR_WORK_PAGES - 1 }, (_, i) => search(i + 2).catch(() => [])),
+      ...Array.from({ length: AUTHOR_WORK_PAGES - 1 }, (_, i) =>
+        this.bestEffort(`author works page ${i + 2}`, () => search(i + 2)),
+      ),
     ]);
     const unique = new Map<string, WorkSearchResult>();
     for (const result of [...first, ...rest.flat()]) {
@@ -260,7 +279,7 @@ export class CatalogService {
     const search = (query: string) => this.provider.searchWorks(query, 1);
     const [tagged, byField] = await Promise.all([
       mapCatalogErrors(() => search(seriesSearchQuery(name))),
-      search(seriesFieldQuery(name)).catch(() => []),
+      this.bestEffort('series field search', () => search(seriesFieldQuery(name))),
     ]);
     const seeds =
       tagged.length > 0
@@ -271,7 +290,11 @@ export class CatalogService {
               !isSeriesJunkTitle(result.title),
           );
     const author = mainAuthor(seeds);
-    const byTitle = author ? await search(seriesTitleQuery(name, author.name)).catch(() => []) : [];
+    const byTitle = author
+      ? await this.bestEffort('series title search', () =>
+          search(seriesTitleQuery(name, author.name)),
+        )
+      : [];
     const results = selectSeriesWorks({
       tagged,
       textMatches: [...byField, ...byTitle],
