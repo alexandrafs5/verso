@@ -102,7 +102,12 @@ export class CatalogService {
     // A genre that is only quotes, with no q, leaves nothing to search for.
     if (providerQuery === '')
       throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR);
-    const results = await mapCatalogErrors(() => this.provider.searchWorks(providerQuery, page));
+    // A genre alone is an exact subject match, so the works with most editions come first.
+    // With text the sort would put loosely matching popular books on top (SPEC 17).
+    const sort = query.q === undefined ? ({ sort: 'editions' } as const) : undefined;
+    const results = await mapCatalogErrors(() =>
+      this.provider.searchWorks(providerQuery, page, sort),
+    );
     // Merging happens per provider page, so the cursor and the end-of-results signal (an empty
     // provider page, SPEC 13) are unchanged. The visible guard applies on the first page only.
     const { items, moreMatches } = collapseSearchResults(results, {

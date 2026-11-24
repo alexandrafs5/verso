@@ -4,7 +4,7 @@ import { ErrorCode } from '@verso/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { ApiException } from '../../common/api-exception.js';
-import type { WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
+import type { SearchOptions, WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
 import { mapSearchDoc } from '../../infra/catalog/open-library-mappers.js';
 import { loadFixture } from '../../infra/catalog/test-fixtures.js';
 import { InMemoryCatalogProvider } from '../../infra/catalog/in-memory-catalog.provider.js';
@@ -18,12 +18,16 @@ const TAG = `cs${Date.now().toString(36)}`;
 
 /** Records the queries and pages the service sends. */
 class RecordingProvider extends InMemoryCatalogProvider {
-  readonly searches: { query: string; page: number }[] = [];
+  readonly searches: { query: string; page: number; sort?: 'editions' }[] = [];
   /** Exact query to canned results, for queries the in-memory matcher cannot answer. */
   readonly canned = new Map<string, WorkSearchResult[]>();
 
-  override searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
-    this.searches.push({ query, page });
+  override searchWorks(
+    query: string,
+    page: number,
+    opts?: SearchOptions,
+  ): Promise<WorkSearchResult[]> {
+    this.searches.push({ query, page, sort: opts?.sort });
     const canned = this.canned.get(query);
     if (canned) return Promise.resolve(canned);
     return super.searchWorks(query, page);
@@ -111,10 +115,30 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       expect(provider.searches).toEqual([{ query: 'Pedro Páramo subject:"Fiction"', page: 1 }]);
     });
 
-    it('sends only the subject clause for a genre-only search', async () => {
+    it('sends only the subject clause, most editions first, for a genre-only search', async () => {
       fresh();
       await service.searchBooks({ genre: 'Fiction' });
-      expect(provider.searches).toEqual([{ query: 'subject:"Fiction"', page: 1 }]);
+      expect(provider.searches).toEqual([
+        { query: 'subject:"Fiction"', page: 1, sort: 'editions' },
+      ]);
+    });
+
+    it('keeps the relevance order when there is text, with or without a genre', async () => {
+      fresh();
+      await service.searchBooks({ q: 'dune' });
+      await service.searchBooks({ q: 'dune', genre: 'Fiction' });
+      expect(provider.searches.map((s) => s.sort)).toEqual([undefined, undefined]);
+    });
+
+    it('keeps the edition-count order on later pages of a genre-only search', async () => {
+      fresh();
+      provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
+      const first = await service.searchBooks({ genre: 'Fiction' });
+      await service.searchBooks({ genre: 'Fiction', cursor: first.nextCursor ?? '' });
+      expect(provider.searches.map((s) => [s.page, s.sort])).toEqual([
+        [1, 'editions'],
+        [2, 'editions'],
+      ]);
     });
 
     it('rejects a genre that is only quotes when there is no q', async () => {
