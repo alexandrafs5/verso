@@ -179,7 +179,7 @@ apps/web/src/
 │  ├─ (auth)/sign-in | sign-up | verify-email | forgot-password | reset-password
 │  ├─ onboarding/[step]/
 │  ├─ (app)/                               authenticated shell: top bar (desktop), bottom tabs (< 768px)
-│  │  ├─ home/  search/  works/[ref]/  authors/[id]/  series/[id]/
+│  │  ├─ home/  search/  works/[ref]/  authors/[ref]/  series/[id]/
 │  │  ├─ library/  library/[userBookId]/  books/new/
 │  │  ├─ stats/  notifications/  settings/[section]/
 │  │  ├─ import/goodreads/  admin/manual-books/
@@ -422,6 +422,7 @@ Implementations: `OpenLibraryProvider`, `PgBossJobQueue`, `BrevoEmailProvider` (
 ### Open Library integration
 
 - Search: `search.json` (fields limited to what we display), in Open Library relevance order (SPEC 17 tried `sort=editions` and dropped it: it floods the top with loosely matching popular books). One result per work: near-duplicates of a page (same normalized title and first author) are merged, and merged groups with 1 edition are returned in `moreMatches` instead of `items` (SPEC 17). Merging is per provider page and nothing is persisted.
+- Genres: the S3 chips come from a fixed list of 12 in `packages/shared/src/genres.ts` (slug, English name, Open Library subject). A work's raw subjects map to chips by subject or name, case-insensitive, and unmapped subjects show no chip. The same list seeds the `Genre` table (`seedGenres`). Chips link to `/search?genre=<subject>` (SPEC 18).
 - Work: `/works/{key}.json`; editions: `/works/{key}/editions.json`; ISBN: `/isbn/{isbn}.json`; authors: `/authors/{key}.json`.
 - Covers: use **cover-ID URLs** (`covers.openlibrary.org/b/id/{id}-M.jpg`), not ISBN-based cover lookups, which are rate-limited.
 - All calls send `User-Agent: Verso/1.0 (<OPEN_LIBRARY_CONTACT>)`, time out at 8 s, and are cached in `ExternalCache` (search 1 day, works/editions/ISBN/authors 30 days). `OPEN_LIBRARY_CONTACT` is required in production.
@@ -467,7 +468,7 @@ Conventions:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips) |
+| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips). At least one of `q` and `genre` is required: `genre` alone searches the subject only (SPEC 18) |
 | GET | `/v1/search/users?q=` | Users (private ones show a lock) |
 | GET | `/v1/works/{ref}` | Work page data |
 | GET | `/v1/works/{ref}/editions?language=` | Edition selector |

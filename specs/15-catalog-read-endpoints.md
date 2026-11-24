@@ -5,6 +5,7 @@
 > **Date:** 2026-11-24
 > **Objective:** Serve search, work, editions, author, series and ISBN lookup under `/api/v1` from the `CatalogProvider` and the catalog tables, with a Zod contract in `packages/shared`.
 > **Amended by SPEC 17:** `GET /v1/search/books` merges near-duplicate works per page (Open Library relevance order) and returns the 1-edition tail in `moreMatches` next to `items`. The cursor is unchanged.
+> **Amended by SPEC 18:** `q` is optional when `genre` is set, so a genre alone searches the subject (`subject:"<genre>"`). At least one of the two is required. The genre chip mapping and `Genre` seed are built in M3.5.
 
 ## Why this spec exists
 
