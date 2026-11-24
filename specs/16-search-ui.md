@@ -28,7 +28,9 @@ DESIGN describes search with Books and Users groups, row quick actions and tab c
 - S2 page: query field at top, heading "Books", list rows (cover, title, authors, first publication year, "N editions"), "Load more" button, link "Can't find your book? Add it manually".
 - Genre filter: `?genre=` shows a removable chip above the results. Removing it keeps `q`. The value is the raw subject string sent to the API.
 - EN and ES strings under a new `search` namespace in `packages/i18n/src/messages/{en,es}.json`, plus a few `shell` keys if needed.
-- Vitest and Testing Library tests for the helper, hooks, dropdown, page and TopBar.
+- Vitest and Testing Library tests for the helper, hooks, dropdown, page, TopBar and the shortcut (`use-search-shortcut.test.tsx`).
+- Accessibility structure: the dropdown `listbox` holds only `option` elements. Status text, Retry and the recents Clear all and remove buttons sit outside it. The results page announces the loaded count through a single `role="status"` line, not a live region over the whole list.
+- DESIGN.md (Search behavior) and the ROADMAP M3.5 line are updated in this PR, and the two lines in SPEC 15 that name M3.4 as owner of the genre chip mapping are corrected (see Decisions).
 - Tick M3.4 in `ROADMAP.md`.
 
 **Out of scope (for future specs):**
@@ -73,12 +75,14 @@ Conventions:
 
 ## Implementation plan
 
-1. Move `useDebouncedValue` to `lib/`, add the `search` query key and `use-search-books.ts` with a unit test (cursor paging, disabled below minimum length, query validation). Verify: `pnpm --filter web test`.
+Manual verification in steps 4 to 6 needs the real stack and network: `docker compose up -d`, `pnpm dev`, and access to Open Library. Automated tests mock `fetch` and never use the network.
+
+1. Move `useDebouncedValue` to `lib/`, add the `search` query key and `use-search-books.ts` with a unit test (cursor paging, query validation, and a `minLength` parameter that disables the query below it). Verify: `pnpm --filter web test`.
 2. Add `recent-searches.ts` and `use-recent-searches.ts` with unit tests (max 8, dedupe, remove, clear, corrupt data, storage unavailable). Verify: `pnpm --filter web test`.
 3. Add i18n keys in EN and ES. Verify: the i18n key-parity test.
 4. Build `SearchResultRow`, `SearchResultsList` (skeleton, empty, error with retry, Load more) and `SearchPage` with the genre chip, and the `/search` route. Verify: open `/search?q=Pedro Páramo`, see one row per work, open `/search?q=dune&genre=Fiction`, see the chip, remove it.
 5. Build `TopBarSearch`, `QuickResults` and `RecentSearches`, then replace the icon link in `TopBar` from 768px up. Verify: type "Pedro", see up to 5 results, press Enter, land on `/search?q=Pedro`.
-6. Add `use-search-shortcut.ts` and wire it in `TopBarSearch`. Verify: ⌘K or Ctrl+K focuses the field from any signed-in screen and does not fire inside another text input in a way that steals typing.
+6. Add `use-search-shortcut.ts` and wire it in `TopBarSearch`. Verify: ⌘K or Ctrl+K focuses the field from any signed-in screen. Pressed inside another text input or textarea it still focuses the search field and no typed character is lost, because the combination has a modifier. Covered by `use-search-shortcut.test.tsx`.
 7. Component tests for the dropdown (keyboard, combobox attributes, recents), the page states and the TopBar breakpoint behavior. Tick M3.4 in `ROADMAP.md`. Run `pnpm lint && pnpm typecheck && pnpm test`.
 
 ## Acceptance criteria
@@ -92,6 +96,9 @@ Conventions:
 - [ ] Arrow Down and Arrow Up move the active option, Enter on a work goes to `/works/<encoded ref>`, Escape closes the dropdown and keeps the text.
 - [ ] Clicking outside closes the dropdown.
 - [ ] Ctrl+K (Windows, Linux) and ⌘K (macOS) focus the field and open the dropdown. The shortcut is ignored below 768px.
+- [ ] Ctrl+K pressed inside another text input or textarea focuses the search field. The browser's own handler is blocked only when the search field is not already focused.
+- [ ] The `listbox` contains only `option` elements. Buttons, status text and the error line are outside it, and `aria-controls` points at the listbox.
+- [ ] The field exposes the shortcut with `aria-keyshortcuts` and a `title`.
 - [ ] The field has an accessible name, and the combobox attributes in the Data model section are present and update with the active option.
 
 **Recent searches**
@@ -110,7 +117,7 @@ Conventions:
 - [ ] `/search?q=dune&genre=Fiction` sends `genre=Fiction` and shows a "Fiction" chip. Removing the chip reloads results for `q` only and drops `genre` from the URL.
 - [ ] Submitting the page's own field updates `q` in the URL and keeps `genre`.
 - [ ] `/search` with no `q` shows a prompt state, sends no request, and the field is focused.
-- [ ] `q` over 200 characters or `genre` over 80 characters shows the empty prompt state and sends no request.
+- [ ] `q` over 200 characters or `genre` over 80 characters shows the empty prompt state and sends no request. A blank `genre` counts as no genre.
 - [ ] The page shows "No books match ‘{query}’" with the manual add link when the result is empty.
 - [ ] A 503 `CATALOG_UNAVAILABLE` or a 429 shows an error message with a Retry action and keeps the typed query.
 - [ ] Rows have no status badge and no "Want to read" button.
@@ -139,7 +146,7 @@ Conventions:
 - [ ] **Light theme:** legible and token-based.
 - [ ] **Dark theme:** legible and token-based.
 - [ ] **Mobile:** N/A, the dropdown does not exist below 768px (icon links to `/search`).
-- [ ] **Desktop:** works at tablet and desktop widths, the dropdown is no wider than the viewport.
+- [ ] **Desktop:** at 768px and at 1280px the top bar has no horizontal overflow and the dropdown stays inside the viewport.
 
 ### UI states: S2 Search results
 
@@ -150,7 +157,7 @@ Conventions:
 - [ ] **Light theme:** legible and token-based.
 - [ ] **Dark theme:** legible and token-based.
 - [ ] **Mobile:** no horizontal scroll, touch targets at least 44px, rows stack cover left and text right.
-- [ ] **Desktop:** works at tablet and desktop widths, content max 1200px.
+- [ ] **Desktop:** at 768px and at 1280px the page has no horizontal overflow, and content is at most 1200px wide.
 
 ## Decisions
 
@@ -166,8 +173,12 @@ Conventions:
 - **Yes:** 250 ms debounce, minimum 2 characters, ARIA combobox, footer "See all results". Chosen by the user. It limits Open Library calls and the throttler budget (60 searches per minute per user).
 - **Yes (mine, unconfirmed):** move `useDebouncedValue` to `lib/` instead of importing across features. One shared hook, no cross-feature import.
 - **Yes (mine, unconfirmed):** recents are kept on sign-out. They hold only the user's own typed text on their own browser, and clearing them is one click.
-- **Yes (mine, unconfirmed):** Ctrl+K and ⌘K are both accepted on every platform, and `preventDefault` stops the browser's own handler.
-- **Yes (mine, unconfirmed):** the manual add link points to `/books/new` even though S14 does not exist yet. A dead link is preferable to omitting a DESIGN element, and the route name matches ARCHITECTURE's web layout when S14 lands. If ARCHITECTURE uses another path, the implementer must use that one and stop to ask if it disagrees.
+- **Yes (mine, unconfirmed):** Ctrl+K and ⌘K are both accepted on every platform. `preventDefault` stops the browser's own handler only when the search field is not already focused, as the Risks table says. The shortcut also works from inside other text inputs, since it needs a modifier key.
+- **Yes:** the genre chip mapping and the `Genre` seed move to M3.5, where the S3 chips are built. This supersedes the two lines in SPEC 15 that name M3.4 as their owner, and those lines are corrected in this PR. M3.4 only reads a raw `?genre=` subject.
+- **Yes:** the quick-results dropdown has no Users group. DESIGN.md is updated in this PR to tag it as arriving with user search in M8.5, so DESIGN and ROADMAP no longer disagree.
+- **Yes (found in review):** a `genre` over 80 characters invalidates the whole input, so the prompt shows and nothing is requested. A blank `genre` is treated as absent.
+- **Yes (found in review):** the genre chip remove button is 44px on mobile and 32px from 768px. The results page announces the loaded count in one status line.
+- **Yes:** the manual add link points to `/books/new` even though S14 does not exist yet. A dead link is preferable to omitting a DESIGN element, and the route name matches ARCHITECTURE's web layout when S14 lands. If ARCHITECTURE uses another path, the implementer must use that one and stop to ask if it disagrees.
 
 ## Risks
 

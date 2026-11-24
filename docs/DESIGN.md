@@ -129,7 +129,7 @@ A horizontal top bar, editorial in feel, on every signed-in screen:
 
 ### Search behavior \[F1\]
 
-Typing in the top-bar field opens a dropdown with quick results in two groups — **Books** (max 5 works) and **Users** (max 5). Enter opens the full search results page. Recent searches show when the field is focused and empty.
+Typing in the top-bar field opens a dropdown with quick results: **Books** (max 5 works) in F1, and a **Users** group (max 5) that arrives with user search in M8.5 [F2]. Enter opens the full search results page. Recent searches show when the field is focused and empty.
 
 ### Responsive
 

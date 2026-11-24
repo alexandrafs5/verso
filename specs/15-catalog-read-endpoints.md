@@ -34,7 +34,7 @@ M3.4 and M3.5 (search UI, work, author and series pages) read only through these
 - `GET /v1/works/{ref}/reviews` (M8.6) and `GET /v1/search/users` (M8.5).
 - Persisting works, editions or authors on read. Reads never write to catalog tables (CLAUDE.md hard rule). Persisting happens on add to library (M4.2).
 - The viewer's library status. `UserBook` arrives in M4.1, so `libraryStatus` is always `null` here.
-- Genre tables seeding and chip-to-subject mapping (M3.4). `genre` here is a raw subject string.
+- Genre tables seeding and chip-to-subject mapping (M3.5, moved from M3.4 by SPEC 16). `genre` here is a raw subject string.
 - Any series lookup from Open Library. Series is local data.
 - Merge redirects. A local work with `mergedIntoId` is returned as is, until M10.2 defines the behavior.
 - Any `apps/web` change, `packages/i18n` strings and OpenAPI generation.
@@ -191,7 +191,7 @@ UI states: N/A, this spec touches no screen or component.
 - **No:** omit those fields. It would force a contract change in M4.
 - **Yes:** author works through `searchWorks("author_key:…")`. It reuses the cache and fixtures and needs no provider change.
 - **No:** `listAuthorWorks` on `CatalogProvider`. More surface for a page that needs only the first 20 works in F1.
-- **Yes:** `genre` is a raw subject string, sent as `subject:"…"`. M3.4 owns the chip mapping and the `Genre` seed (SPEC 14).
+- **Yes:** `genre` is a raw subject string, sent as `subject:"…"`. M3.5 owns the chip mapping and the `Genre` seed (SPEC 14). It was assigned to M3.4 when this spec was written, and SPEC 16 moved it.
 - **No:** drop `genre` until M3.4. It would change the endpoint contract later.
 - **Yes:** cursor pagination for search, with the cursor wrapping the provider page number. It follows the §8 convention.
 - **No:** `?page=`. It breaks the convention and the web client would need a special case.
