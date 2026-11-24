@@ -1,6 +1,6 @@
 # SPEC 14 — Catalog tables (M3.2)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 06, SPEC 13
 > **Date:** 2026-11-24
 > **Objective:** Add the Work, Edition, Author, WorkAuthor, Genre, WorkGenre and Series tables (ARCHITECTURE §5.3) in one forward-only migration, tested on real Postgres.
@@ -154,21 +154,21 @@ Conventions:
 
 ## Acceptance criteria
 
-- [ ] `pnpm db:migrate` applies cleanly on an empty database and on the current dev database.
-- [ ] The migration creates only the seven new tables and four new enums. No existing table changes.
-- [ ] Two works with the same `olWorkKey` fail. Two works with `olWorkKey` null succeed.
-- [ ] Two editions with the same `isbn13` or the same `olEditionKey` fail. Two editions with those values null succeed. Two editions with the same `isbn10` succeed.
-- [ ] Two authors with the same `olAuthorKey` fail. Two genres with the same `slug` fail. Two series with the same `olSeriesKey` fail.
-- [ ] A duplicate (`workId`, `authorId`) in `WorkAuthor` fails. A duplicate (`workId`, `genreId`) in `WorkGenre` fails.
-- [ ] Deleting a work deletes its editions, `WorkAuthor` rows and `WorkGenre` rows.
-- [ ] Deleting an author or a genre that still has a work fails.
-- [ ] Deleting a series sets `seriesId` and keeps `seriesPosition` untouched on its works (position stays, series is null).
-- [ ] Deleting a work that others merged into sets their `mergedIntoId` to null.
-- [ ] Deleting a user sets `createdById` to null on their works and editions.
-- [ ] `seriesPosition` stores `1.5` and reads it back as `1.5`.
-- [ ] `Work` defaults: `source` OPEN_LIBRARY, `catalogStatus` PUBLIC, `reviewStatus` NONE. `Edition.format` defaults to OTHER.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
-- [ ] M3.2 is ticked in `ROADMAP.md`.
+- [x] `pnpm db:migrate` applies cleanly on an empty database and on the current dev database.
+- [x] The migration creates only the seven new tables and four new enums. No existing table changes.
+- [x] Two works with the same `olWorkKey` fail. Two works with `olWorkKey` null succeed.
+- [x] Two editions with the same `isbn13` or the same `olEditionKey` fail. Two editions with those values null succeed. Two editions with the same `isbn10` succeed.
+- [x] Two authors with the same `olAuthorKey` fail. Two genres with the same `slug` fail. Two series with the same `olSeriesKey` fail.
+- [x] A duplicate (`workId`, `authorId`) in `WorkAuthor` fails. A duplicate (`workId`, `genreId`) in `WorkGenre` fails.
+- [x] Deleting a work deletes its editions, `WorkAuthor` rows and `WorkGenre` rows.
+- [x] Deleting an author or a genre that still has a work fails.
+- [x] Deleting a series sets `seriesId` and keeps `seriesPosition` untouched on its works (position stays, series is null).
+- [x] Deleting a work that others merged into sets their `mergedIntoId` to null.
+- [x] Deleting a user sets `createdById` to null on their works and editions.
+- [x] `seriesPosition` stores `1.5` and reads it back as `1.5`.
+- [x] `Work` defaults: `source` OPEN_LIBRARY, `catalogStatus` PUBLIC, `reviewStatus` NONE. `Edition.format` defaults to OTHER.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] M3.2 is ticked in `ROADMAP.md`.
 
 UI states: N/A, this spec touches no screen or component.
 
