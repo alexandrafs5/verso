@@ -30,7 +30,7 @@ DESIGN describes search with Books and Users groups, row quick actions and tab c
 - EN and ES strings under a new `search` namespace in `packages/i18n/src/messages/{en,es}.json`, plus a few `shell` keys if needed.
 - Vitest and Testing Library tests for the helper, hooks, dropdown, page, TopBar and the shortcut (`use-search-shortcut.test.tsx`).
 - Accessibility structure: the dropdown `listbox` holds only `option` elements. Status text, Retry and the recents Clear all and remove buttons sit outside it. The results page announces the loaded count through a single `role="status"` line, not a live region over the whole list.
-- DESIGN.md (Search behavior) and the ROADMAP M3.5 line are updated in this PR, and the two lines in SPEC 15 that name M3.4 as owner of the genre chip mapping are corrected (see Decisions).
+- DESIGN.md (Search behavior and S2) and the ROADMAP M3.4 and M3.5 lines are updated in this PR, and the three lines in SPEC 15 that name M3.4 as owner of the genre chip mapping are corrected (see Decisions).
 - Tick M3.4 in `ROADMAP.md`.
 
 **Out of scope (for future specs):**
@@ -80,10 +80,10 @@ Manual verification in steps 4 to 6 needs the real stack and network: `docker co
 1. Move `useDebouncedValue` to `lib/`, add the `search` query key and `use-search-books.ts` with a unit test (cursor paging, query validation, and a `minLength` parameter that disables the query below it). Verify: `pnpm --filter web test`.
 2. Add `recent-searches.ts` and `use-recent-searches.ts` with unit tests (max 8, dedupe, remove, clear, corrupt data, storage unavailable). Verify: `pnpm --filter web test`.
 3. Add i18n keys in EN and ES. Verify: the i18n key-parity test.
-4. Build `SearchResultRow`, `SearchResultsList` (skeleton, empty, error with retry, Load more) and `SearchPage` with the genre chip, and the `/search` route. Verify: open `/search?q=Pedro Páramo`, see one row per work, open `/search?q=dune&genre=Fiction`, see the chip, remove it.
+4. Build `SearchResultRow`, `SearchResultsList` (skeleton, empty, error with retry, Load more) and `SearchPage` with the genre chip, and the `/search` route. Verify (needs a signed-in, onboarded session): open `/search?q=Pedro Páramo`, see one row per work, open `/search?q=dune&genre=Fiction`, see the chip, remove it.
 5. Build `TopBarSearch`, `QuickResults` and `RecentSearches`, then replace the icon link in `TopBar` from 768px up. Verify: type "Pedro", see up to 5 results, press Enter, land on `/search?q=Pedro`.
 6. Add `use-search-shortcut.ts` and wire it in `TopBarSearch`. Verify: ⌘K or Ctrl+K focuses the field from any signed-in screen. Pressed inside another text input or textarea it still focuses the search field and no typed character is lost, because the combination has a modifier. Covered by `use-search-shortcut.test.tsx`.
-7. Component tests for the dropdown (keyboard, combobox attributes, recents), the page states and the TopBar breakpoint behavior. Tick M3.4 in `ROADMAP.md`. Run `pnpm lint && pnpm typecheck && pnpm test`.
+7. Component tests for the dropdown (keyboard, combobox attributes, recents, request abort on a new query), the page states, the genre chip removal and the TopBar breakpoint classes. Layout, contrast, focus ring and reduced motion cannot be measured in jsdom, so they are a manual check in a real browser. Tick M3.4 in `ROADMAP.md`. Run `pnpm lint && pnpm typecheck && pnpm test`.
 
 ## Acceptance criteria
 
@@ -126,13 +126,13 @@ Manual verification in steps 4 to 6 needs the real stack and network: `docker co
 **Shell**
 
 - [ ] Below 768px the top-bar search icon links to `/search` and opens no dropdown.
-- [ ] From 768px the top bar shows the field instead of the icon, and the navigation layout does not jump.
+- [ ] From 768px the top bar shows the field instead of the icon (test on classes). Manual check: the navigation items keep their position when the breakpoint is crossed.
 
 **General**
 
 - [ ] Every string comes from `packages/i18n` and exists in EN and ES (key-parity test passes).
 - [ ] No raw hex colors and no emojis. The search and close icons are the only icon-only controls and have an `aria-label`.
-- [ ] Every control is reachable with the keyboard, with a visible focus ring. Reduced motion is respected.
+- [ ] Every control is reachable with the keyboard (tests). Manual check: the focus ring is visible, and reduced motion stops the skeleton animation.
 - [ ] No test hits the network. Tests use mocked `api` responses.
 - [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
 - [ ] M3.4 is ticked in `ROADMAP.md` in the same PR.
@@ -146,7 +146,7 @@ Manual verification in steps 4 to 6 needs the real stack and network: `docker co
 - [ ] **Light theme:** legible and token-based.
 - [ ] **Dark theme:** legible and token-based.
 - [ ] **Mobile:** N/A, the dropdown does not exist below 768px (icon links to `/search`).
-- [ ] **Desktop:** at 768px and at 1280px the top bar has no horizontal overflow and the dropdown stays inside the viewport.
+- [ ] **Desktop:** manual check at 768px and at 1280px: the top bar has no horizontal overflow and the dropdown stays inside the viewport.
 
 ### UI states: S2 Search results
 
@@ -157,7 +157,7 @@ Manual verification in steps 4 to 6 needs the real stack and network: `docker co
 - [ ] **Light theme:** legible and token-based.
 - [ ] **Dark theme:** legible and token-based.
 - [ ] **Mobile:** no horizontal scroll, touch targets at least 44px, rows stack cover left and text right.
-- [ ] **Desktop:** at 768px and at 1280px the page has no horizontal overflow, and content is at most 1200px wide.
+- [ ] **Desktop:** manual check at 768px and at 1280px: the page has no horizontal overflow, and content is at most 1200px wide.
 
 ## Decisions
 
@@ -178,7 +178,7 @@ Manual verification in steps 4 to 6 needs the real stack and network: `docker co
 - **Yes:** the quick-results dropdown has no Users group. DESIGN.md is updated in this PR to tag it as arriving with user search in M8.5, so DESIGN and ROADMAP no longer disagree.
 - **Yes (found in review):** a `genre` over 80 characters invalidates the whole input, so the prompt shows and nothing is requested. A blank `genre` is treated as absent.
 - **Yes (found in review):** the genre chip remove button is 44px on mobile and 32px from 768px. The results page announces the loaded count in one status line.
-- **Yes:** the manual add link points to `/books/new` even though S14 does not exist yet. A dead link is preferable to omitting a DESIGN element, and the route name matches ARCHITECTURE's web layout when S14 lands. If ARCHITECTURE uses another path, the implementer must use that one and stop to ask if it disagrees.
+- **Yes:** the manual add link points to `/books/new` even though S14 does not exist yet. A dead link is preferable to omitting a DESIGN element,, and ARCHITECTURE.md line 183 lists `books/new/` in the web layout, so the path is confirmed.
 
 ## Risks
 

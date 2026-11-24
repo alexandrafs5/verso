@@ -7,7 +7,7 @@
 
 ## Why this spec exists
 
-M3.4 and M3.5 (search UI, work, author and series pages) read only through these endpoints. The contract has to hold when M4 adds `UserBook` and when M3.4 maps genre chips, so fields that cannot be filled yet exist now as nullable. Changing the schema later would break both apps (CLAUDE.md: the shared schema is the contract).
+M3.4 and M3.5 (search UI, work, author and series pages) read only through these endpoints. The contract has to hold when M4 adds `UserBook` and when M3.5 maps genre chips, so fields that cannot be filled yet exist now as nullable. Changing the schema later would break both apps (CLAUDE.md: the shared schema is the contract).
 
 ## Scope
 
