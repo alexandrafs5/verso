@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { WorkSearchResult } from '../../../infra/catalog/catalog-provider';
 import { mapSearchDoc } from '../../../infra/catalog/open-library-mappers';
 import { loadFixture } from '../../../infra/catalog/test-fixtures';
-import { collapseSearchResults, normalizeTitle } from './search-collapse';
+import { collapseSearchResults, normalizeAuthorName, normalizeTitle } from './search-collapse';
 
 const RULFO = { olAuthorKey: 'OL199285A', name: 'Juan Rulfo' };
 
@@ -63,7 +63,36 @@ describe('normalizeTitle', () => {
   });
 });
 
+describe('normalizeAuthorName', () => {
+  it('ignores case, accents, punctuation and word order', () => {
+    expect(normalizeAuthorName('Reyes, Alfonso')).toBe(normalizeAuthorName('alfonso REYES'));
+    expect(normalizeAuthorName('José Saramago')).toBe(normalizeAuthorName('Jose Saramago'));
+  });
+
+  it('keeps different people apart', () => {
+    expect(normalizeAuthorName('Juan Rulfo')).not.toBe(normalizeAuthorName('Carmen Rulfo'));
+  });
+
+  it('returns an empty string for a blank name', () => {
+    expect(normalizeAuthorName('  ')).toBe('');
+  });
+});
+
 describe('collapseSearchResults: merging', () => {
+  it('merges the same title and author name even when the author keys differ', () => {
+    const out = collapseSearchResults(
+      [
+        result('OL1W', 'Pedro Páramo', 10),
+        result('OL2W', 'Pedro Páramo', 5, {
+          authors: [{ olAuthorKey: 'OL999A', name: 'Rulfo, Juan' }],
+        }),
+      ],
+      first,
+    );
+    expect(out.items).toHaveLength(1);
+    expect(out.items[0]).toMatchObject({ olWorkKey: 'OL1W', editionCount: 15 });
+  });
+
   it('merges the same normalized title and first author key', () => {
     const out = collapseSearchResults(
       [
@@ -78,7 +107,7 @@ describe('collapseSearchResults: merging', () => {
     expect(out.moreMatches).toEqual([]);
   });
 
-  it('keeps results with the same title but another first author key apart', () => {
+  it('keeps results with the same title but another first author apart', () => {
     const other = { olAuthorKey: 'OL1A', name: 'Other Person' };
     const out = collapseSearchResults(
       [result('OL1W', 'Pedro Páramo', 10), result('OL2W', 'Pedro Páramo', 5, { authors: [other] })],
@@ -246,6 +275,7 @@ describe('collapseSearchResults: pedro paramo fixture', () => {
     expect(out.items.length).toBeLessThan(mapped.length);
     expect(out.moreMatches.length).toBeGreaterThan(0);
     expect(out.moreMatches.every((m) => m.editionCount <= 1)).toBe(true);
+    expect(out.items.every((i) => i.editionCount > 1)).toBe(true);
     const total = (list: WorkSearchResult[]) => list.reduce((sum, m) => sum + m.editionCount, 0);
     expect(total(out.items) + total(out.moreMatches)).toBe(total(mapped));
   });

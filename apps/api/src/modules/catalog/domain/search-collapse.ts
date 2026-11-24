@@ -42,11 +42,19 @@ export function normalizeTitle(title: string, authorNames: string[] = []): strin
   return normalized;
 }
 
+/**
+ * Author name as a comparable key: no accents or case, and the words sorted, so
+ * "Reyes, Alfonso" and "Alfonso Reyes" match. Open Library often gives one person several author keys.
+ */
+export function normalizeAuthorName(name: string): string {
+  return squash(name).split(' ').filter(Boolean).sort().join(' ');
+}
+
 const groupKey = (result: WorkSearchResult): string =>
   `${normalizeTitle(
     result.title,
     result.authors.map((a) => a.name),
-  )}|${result.authors[0]?.olAuthorKey ?? ''}`;
+  )}|${normalizeAuthorName(result.authors[0]?.name ?? '')}`;
 
 /** A missing or zero count is treated as 1 for folding. */
 const effectiveCount = (result: WorkSearchResult): number => Math.max(result.editionCount, 1);
