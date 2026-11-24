@@ -638,8 +638,11 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
           entry('OL1W', 'A Game of Thrones', 1996, 136),
         ]);
         const res = await service.getSeries('ol:A Song of Ice and Fire');
-        expect(provider.searches).toEqual([
-          { query: 'subject:"series:A Song of Ice and Fire"', page: 1 },
+        // The subject search is trusted. The series field and the title search add candidates.
+        expect(provider.searches.map((s) => s.query)).toEqual([
+          'subject:"series:A Song of Ice and Fire"',
+          'series:"A Song of Ice and Fire"',
+          'title:"A Song of Ice and Fire" author:"Juan Rulfo"',
         ]);
         expect(res.id).toBe('ol:A Song of Ice and Fire');
         expect(res.name).toBe('A Song of Ice and Fire');
@@ -647,6 +650,65 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
           ['ol:OL2W', null],
           ['ol:OL1W', null],
         ]);
+      });
+
+      it('completes a half-tagged series from the series field and the title search', async () => {
+        fresh();
+        // Like "The Stormlight Archive": 2 books carry the subject, the rest are found by text.
+        provider.addSeries('Stormlight Archive', [
+          entry('OL1W', 'The Way of Kings', 2010, 30),
+          entry('OL7W', 'Wind and Truth', 2024, 6),
+        ]);
+        provider.addQueryResults('series:"Stormlight Archive"', [
+          entry('OL1W', 'The Way of Kings', 2010, 30),
+          entry('OL5W', 'Rhythm of War', 2020, 15),
+          {
+            ...entry('OL90W', 'Stormlight Archive Series 6 Books Collection Set', 2020, 1),
+          },
+        ]);
+        provider.addQueryResults('title:"Stormlight Archive" author:"Juan Rulfo"', [
+          entry('OL2W', 'Words of Radiance', 2012, 23),
+          entry('OL3W', 'Oathbringer', 2017, 18),
+          entry('OL4W', 'Dawnshard', 2020, 12),
+          entry('OL60W', 'Oathbringer part 1', 2017, 5),
+          entry('OL61W', 'The Way of Kings, Part One', 2011, 3),
+          {
+            ...entry('OL62W', 'Someone Elses Book', 2012, 40),
+            authors: [{ olAuthorKey: 'OL9A', name: 'Other' }],
+          },
+        ]);
+        const res = await service.getSeries('ol:Stormlight Archive');
+        expect(res.works.map((w) => w.title).sort()).toEqual(
+          [
+            'Dawnshard',
+            'Oathbringer',
+            'Rhythm of War',
+            'The Way of Kings',
+            'Wind and Truth',
+            'Words of Radiance',
+          ].sort(),
+        );
+        expect(res.works.every((w) => w.position === null)).toBe(true);
+      });
+
+      it('still answers from the subject search when the other two searches fail', async () => {
+        fresh();
+        provider.addSeries('Saga', [entry('OL1W', 'First', 2001, 10)]);
+        const original = provider.searchWorks.bind(provider);
+        provider.searchWorks = (query, page) =>
+          query.startsWith('subject:') ? original(query, page) : Promise.reject(new Error('boom'));
+        const res = await service.getSeries('ol:Saga');
+        expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W']);
+      });
+
+      it('builds a series from the series field alone when no work has the subject', async () => {
+        fresh();
+        provider.addQueryResults('series:"Saga"', [
+          entry('OL1W', 'First', 2001, 12),
+          entry('OL2W', 'Second', 2002, 9),
+        ]);
+        const res = await service.getSeries('ol:Saga');
+        expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W', 'ol:OL2W']);
       });
 
       it('merges duplicates and drops the 1-edition tail', async () => {

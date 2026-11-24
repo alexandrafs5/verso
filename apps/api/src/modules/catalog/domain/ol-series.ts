@@ -42,6 +42,14 @@ export function olSeriesName(id: string): string | null {
   return name;
 }
 
-/** Provider search query for the works of a series. `"` is stripped from the name. */
+/** Provider search query on the `series` field. `"` is stripped from the name. */
+export const seriesFieldQuery = (name: string): string =>
+  `series:"${name.replace(/"/g, '').trim()}"`;
+
+/** Provider search query for books whose title holds the series name, by one author. */
+export const seriesTitleQuery = (name: string, authorName: string): string =>
+  `title:"${name.replace(/"/g, '').trim()}" author:"${authorName.replace(/"/g, '').trim()}"`;
+
+/** Provider search query for the works tagged with a series subject. `"` is stripped. */
 export const seriesSearchQuery = (name: string): string =>
   `subject:"series:${name.replace(/"/g, '').trim()}"`;

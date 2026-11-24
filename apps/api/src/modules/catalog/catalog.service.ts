@@ -40,9 +40,20 @@ import {
   parseRef,
 } from './domain/catalog-ref.js';
 import { rankEditions } from './domain/edition-rank.js';
-import { olSeriesName, seriesSearchQuery } from './domain/ol-series.js';
+import {
+  olSeriesName,
+  seriesFieldQuery,
+  seriesSearchQuery,
+  seriesTitleQuery,
+} from './domain/ol-series.js';
 import { originalLanguage } from './domain/original-language.js';
 import { collapseSearchResults } from './domain/search-collapse.js';
+import {
+  isSeriesJunkTitle,
+  mainAuthor,
+  MIN_EDITIONS_FOR_TEXT_MATCH,
+  selectSeriesWorks,
+} from './domain/series-works.js';
 
 const notFound = () => new ApiException(HttpStatus.NOT_FOUND, ErrorCode.CATALOG_NOT_FOUND);
 const invalidRef = () => new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REF);
@@ -211,14 +222,34 @@ export class CatalogService {
   }
 
   /**
-   * A series derived from Open Library subjects (SPEC 18). The works come from a subject search,
-   * first page only, with duplicates merged and the 1-edition tail dropped. Open Library has no
+   * A series derived from Open Library subjects (SPEC 18). Open Library tags series unevenly, so
+   * three first-page searches are merged: the `series:` subject (trusted), the `series` field,
+   * and the series name in titles by the main author. The union is filtered (main author, enough
+   * editions, no parts or bundles), duplicates are merged and the 1-edition tail is dropped. Only
+   * the subject search can fail the request; the other two are best effort. Open Library has no
    * series positions, so every position is null.
    */
   private async getOpenLibrarySeries(id: string, name: string): Promise<SeriesDetail> {
-    const results = await mapCatalogErrors(() =>
-      this.provider.searchWorks(seriesSearchQuery(name), 1),
-    );
+    const search = (query: string) => this.provider.searchWorks(query, 1);
+    const [tagged, byField] = await Promise.all([
+      mapCatalogErrors(() => search(seriesSearchQuery(name))),
+      search(seriesFieldQuery(name)).catch(() => []),
+    ]);
+    const seeds =
+      tagged.length > 0
+        ? tagged.filter((result) => !isSeriesJunkTitle(result.title))
+        : byField.filter(
+            (result) =>
+              result.editionCount >= MIN_EDITIONS_FOR_TEXT_MATCH &&
+              !isSeriesJunkTitle(result.title),
+          );
+    const author = mainAuthor(seeds);
+    const byTitle = author ? await search(seriesTitleQuery(name, author.name)).catch(() => []) : [];
+    const results = selectSeriesWorks({
+      tagged,
+      textMatches: [...byField, ...byTitle],
+      authorKey: author?.olAuthorKey ?? null,
+    });
     const { items } = collapseSearchResults(results, { guardVisible: true });
     if (items.length === 0) throw notFound();
     return {

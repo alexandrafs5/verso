@@ -15,7 +15,7 @@ export class InMemoryCatalogProvider implements CatalogProvider {
   unavailable = false;
 
   private readonly searchable: WorkSearchResult[] = [];
-  private readonly seriesWorks = new Map<string, WorkSearchResult[]>();
+  private readonly cannedQueries = new Map<string, WorkSearchResult[]>();
   private readonly works = new Map<string, ExternalWork>();
   private readonly editions: ExternalEdition[] = [];
   private readonly authors = new Map<string, ExternalAuthor>();
@@ -25,10 +25,15 @@ export class InMemoryCatalogProvider implements CatalogProvider {
     return this;
   }
 
-  /** Seeds the answer to the subject search `subject:"series:<name>"` (case-insensitive). */
-  addSeries(name: string, results: WorkSearchResult[]): this {
-    this.seriesWorks.set(name.trim().toLowerCase(), results);
+  /** Seeds the answer (page 1 only) to one exact query, case-insensitive. Wins over text search. */
+  addQueryResults(query: string, results: WorkSearchResult[]): this {
+    this.cannedQueries.set(query.trim().toLowerCase(), results);
     return this;
+  }
+
+  /** Seeds the answer to the subject search `subject:"series:<name>"`. */
+  addSeries(name: string, results: WorkSearchResult[]): this {
+    return this.addQueryResults(`subject:"series:${name}"`, results);
   }
 
   addWork(work: ExternalWork): this {
@@ -50,9 +55,8 @@ export class InMemoryCatalogProvider implements CatalogProvider {
     return this.run(() => {
       const needle = query.trim().toLowerCase();
       if (!needle) return [];
-      const series = /^subject:"series:(.+)"$/.exec(needle)?.[1];
-      if (series !== undefined)
-        return page === 1 ? (this.seriesWorks.get(series.trim()) ?? []) : [];
+      const canned = this.cannedQueries.get(needle);
+      if (canned !== undefined) return page === 1 ? canned : [];
       const matches = this.searchable.filter(
         (result) =>
           result.title.toLowerCase().includes(needle) ||
