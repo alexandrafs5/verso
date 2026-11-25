@@ -4,7 +4,7 @@ import { ErrorCode } from '@verso/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { ApiException } from '../../common/api-exception.js';
-import type { WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
+import type { SearchOptions, WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
 import { mapSearchDoc } from '../../infra/catalog/open-library-mappers.js';
 import { loadFixture } from '../../infra/catalog/test-fixtures.js';
 import { InMemoryCatalogProvider } from '../../infra/catalog/in-memory-catalog.provider.js';
@@ -18,12 +18,16 @@ const TAG = `cs${Date.now().toString(36)}`;
 
 /** Records the queries and pages the service sends. */
 class RecordingProvider extends InMemoryCatalogProvider {
-  readonly searches: { query: string; page: number }[] = [];
+  readonly searches: { query: string; page: number; sort?: 'editions' }[] = [];
   /** Exact query to canned results, for queries the in-memory matcher cannot answer. */
   readonly canned = new Map<string, WorkSearchResult[]>();
 
-  override searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
-    this.searches.push({ query, page });
+  override searchWorks(
+    query: string,
+    page: number,
+    opts?: SearchOptions,
+  ): Promise<WorkSearchResult[]> {
+    this.searches.push({ query, page, sort: opts?.sort });
     const canned = this.canned.get(query);
     if (canned) return Promise.resolve(canned);
     return super.searchWorks(query, page);
@@ -108,9 +112,41 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('sends the genre as a subject clause and strips quotes', async () => {
       fresh();
       await service.searchBooks({ q: 'Pedro Páramo', genre: 'Fic"tion' });
+      expect(provider.searches).toEqual([{ query: 'Pedro Páramo subject:"Fiction"', page: 1 }]);
+    });
+
+    it('sends only the subject clause, most editions first, for a genre-only search', async () => {
+      fresh();
+      await service.searchBooks({ genre: 'Fiction' });
       expect(provider.searches).toEqual([
-        { query: 'Pedro Páramo subject:"Fiction"', page: 1 },
+        { query: 'subject:"Fiction"', page: 1, sort: 'editions' },
       ]);
+    });
+
+    it('keeps the relevance order when there is text, with or without a genre', async () => {
+      fresh();
+      await service.searchBooks({ q: 'dune' });
+      await service.searchBooks({ q: 'dune', genre: 'Fiction' });
+      expect(provider.searches.map((s) => s.sort)).toEqual([undefined, undefined]);
+    });
+
+    it('keeps the edition-count order on later pages of a genre-only search', async () => {
+      fresh();
+      provider.canned.set('subject:"Fiction"', [searchResult('OL1W', 'Pedro Páramo')]);
+      const first = await service.searchBooks({ genre: 'Fiction' });
+      await service.searchBooks({ genre: 'Fiction', cursor: first.nextCursor ?? '' });
+      expect(provider.searches.map((s) => [s.page, s.sort])).toEqual([
+        [1, 'editions'],
+        [2, 'editions'],
+      ]);
+    });
+
+    it('rejects a genre that is only quotes when there is no q', async () => {
+      fresh();
+      await expect(service.searchBooks({ genre: '""' })).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+      expect(provider.searches).toEqual([]);
     });
 
     it('sets nextCursor to the next page and follows it', async () => {
@@ -254,19 +290,19 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       expect(await prisma.author.count({ where: { olAuthorKey: 'OL1A' } })).toBe(0);
     });
 
-    it('keeps at most 8 genres and 5 authors', async () => {
+    it('keeps at most 30 genres and 5 authors', async () => {
       fresh();
       const keys = ['OL1A', 'OL2A', 'OL3A', 'OL4A', 'OL5A', 'OL6A'];
       provider.addWork(
         olWork(
           keys,
-          Array.from({ length: 12 }, (_, i) => `s${i}`),
+          Array.from({ length: 40 }, (_, i) => `s${i}`),
         ),
       );
       for (const key of keys) provider.addAuthor(olAuthor(key, key));
 
       const work = await service.getWork(userId, 'ol:OL1W');
-      expect(work.genres).toHaveLength(8);
+      expect(work.genres).toHaveLength(30);
       expect(work.authors.map((a) => a.ref)).toEqual(keys.slice(0, 5).map((k) => `ol:${k}`));
     });
 
@@ -363,6 +399,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       language,
       pageCount: null,
       format: 'PAPERBACK' as const,
+      translatedFrom: null,
       coverUrl: null,
     });
     const seedWork = () =>
@@ -390,6 +427,71 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       expect((await service.getEditions(userId, 'ol:OL1W', 'es')).map((e) => e.ref)).toEqual([
         'ol:OL1M',
       ]);
+    });
+
+    it('puts well-described editions before bare stubs and keeps ties in provider order', async () => {
+      fresh();
+      seedWork();
+      provider.addEdition(ed('OL3M', null)).addEdition({
+        ...ed('OL4M', 'es'),
+        coverUrl: 'https://covers.openlibrary.org/b/id/1-M.jpg',
+        isbn13: '9788437604947',
+        publisher: 'Cátedra',
+        pageCount: 128,
+        publishYear: 1955,
+      });
+      const refs = (await service.getEditions(userId, 'ol:OL1W')).map((e) => e.ref);
+      // OL4M is complete. OL1M and OL2M score 1 (language), OL3M scores 0.
+      expect(refs).toEqual(['ol:OL4M', 'ol:OL1M', 'ol:OL2M', 'ol:OL3M']);
+    });
+
+    it('flags the original-language editions from translated_from and keeps the flag under a language filter', async () => {
+      fresh();
+      seedWork();
+      provider
+        .addEdition({ ...ed('OL5M', 'ca'), translatedFrom: 'en' })
+        .addEdition({ ...ed('OL6M', 'en'), publishYear: 1996 });
+      const flags = async (language?: string) =>
+        (await service.getEditions(userId, 'ol:OL1W', language)).map((e) => [
+          e.ref,
+          e.isOriginalLanguage,
+        ]);
+      // ed() gives OL1M "es" and OL2M "en". Only English is the original language.
+      expect(await flags()).toEqual(
+        expect.arrayContaining([
+          ['ol:OL1M', false],
+          ['ol:OL2M', true],
+          ['ol:OL5M', false],
+          ['ol:OL6M', true],
+        ]),
+      );
+      // The filter does not change the flag: the original language comes from the full list.
+      expect(await flags('ca')).toEqual([['ol:OL5M', false]]);
+      expect(await flags('en')).toEqual(
+        expect.arrayContaining([
+          ['ol:OL2M', true],
+          ['ol:OL6M', true],
+        ]),
+      );
+    });
+
+    it('derives the original language of a local work from its oldest dated edition', async () => {
+      fresh();
+      const work = await prisma.work.create({ data: { id: uuidv7(), title: `${TAG} local` } });
+      const add = (language: string, publishYear: number) =>
+        prisma.edition.create({
+          data: { id: uuidv7(), workId: work.id, title: `${TAG} e`, language, publishYear },
+        });
+      await add('en', 1994);
+      await add('es', 1955);
+      const list = await service.getEditions(userId, work.id);
+      expect(list.map((e) => [e.language, e.isOriginalLanguage])).toEqual([
+        ['es', true],
+        ['en', false],
+      ]);
+      expect(
+        (await service.getEditions(userId, work.id, 'en')).map((e) => e.isOriginalLanguage),
+      ).toEqual([false]);
     });
 
     it('uses the provider for a persisted Open Library work', async () => {
@@ -463,7 +565,75 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         deathYear: 1986,
       });
       expect(author.works.map((w) => w.title)).toEqual(['Early', 'Late', 'Unknown']);
-      expect(provider.searches).toEqual([{ query: 'author_key:OL1A', page: 1 }]);
+      // Three pages, most editions first (the fake ignores the sort, the service sends it).
+      expect(provider.searches).toEqual([
+        { query: 'author_key:OL1A', page: 1, sort: 'editions' },
+        { query: 'author_key:OL1A', page: 2, sort: 'editions' },
+        { query: 'author_key:OL1A', page: 3, sort: 'editions' },
+      ]);
+    });
+
+    it('reads several pages, drops bundles and stubs, and orders by release year', async () => {
+      fresh();
+      provider.addAuthor(olAuthor);
+      const page = (n: number): WorkSearchResult[] =>
+        n === 1
+          ? [
+              // First edition dated 2011 by mistake, typical year 2020.
+              {
+                ...searchResult('OL1W', 'Rhythm of War'),
+                firstPublishYear: 2011,
+                typicalYear: 2020,
+              },
+              {
+                ...searchResult('OL2W', 'Words of Radiance'),
+                firstPublishYear: 2012,
+                typicalYear: 2014,
+              },
+            ]
+          : n === 2
+            ? [
+                {
+                  ...searchResult('OL3W', 'The Way of Kings'),
+                  firstPublishYear: 2010,
+                  typicalYear: 2010,
+                },
+                { ...searchResult('OL4W', 'Six Books Collection Set'), editionCount: 3 },
+                { ...searchResult('OL5W', 'Study guide'), editionCount: 1 },
+              ]
+            : [{ ...searchResult('OL1W', 'Rhythm of War'), typicalYear: 2020 }];
+      provider.searchWorks = (_query, p) => Promise.resolve(page(p));
+
+      const author = await service.getAuthor('ol:OL1A');
+      expect(author.works.map((w) => w.title)).toEqual([
+        'The Way of Kings',
+        'Words of Radiance',
+        'Rhythm of War',
+      ]);
+    });
+
+    it('still answers when a later page fails, and fails when the first page fails', async () => {
+      fresh();
+      provider.addAuthor(olAuthor);
+      provider.searchWorks = (_query, p) =>
+        p === 1
+          ? Promise.resolve([searchResult('OL1W', 'First')])
+          : Promise.reject(new Error('boom'));
+      expect((await service.getAuthor('ol:OL1A')).works.map((w) => w.title)).toEqual(['First']);
+
+      provider.unavailable = true;
+      provider.searchWorks = InMemoryCatalogProvider.prototype.searchWorks.bind(provider);
+      await failsWith(service.getAuthor('ol:OL1A'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+    });
+
+    it('turns a Markdown biography into plain text', async () => {
+      fresh();
+      provider.addAuthor({
+        ...olAuthor,
+        olAuthorKey: 'OL5A',
+        bio: '**Brandon Sanderson** is [an author](https://example.org).\r\n\r\n----------\r\nSource: x',
+      });
+      expect((await service.getAuthor('ol:OL5A')).bio).toBe('Brandon Sanderson is an author.');
     });
 
     it('serves a local author with a key through the provider and returns the local id', async () => {
@@ -538,10 +708,123 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       ]);
     });
 
-    it('returns 404 for an unknown id and 400 for a non-UUID', async () => {
+    it('returns 404 for an unknown id and 400 for an id that is neither a UUID nor ol:<name>', async () => {
       fresh();
       await failsWith(service.getSeries(uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
-      await failsWith(service.getSeries('ol:OL1W'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getSeries('not-a-uuid'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getSeries('ol:'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getSeries(`ol:${'a'.repeat(121)}`), 400, ErrorCode.INVALID_REF);
+    });
+
+    describe('derived from Open Library subjects', () => {
+      const entry = (key: string, title: string, year: number, editions: number) => ({
+        ...searchResult(key, title),
+        firstPublishYear: year,
+        editionCount: editions,
+      });
+
+      it('lists the works of a series from a subject search, with null positions', async () => {
+        fresh();
+        provider.addSeries('A Song of Ice and Fire', [
+          entry('OL2W', 'A Clash of Kings', 1998, 76),
+          entry('OL1W', 'A Game of Thrones', 1996, 136),
+        ]);
+        const res = await service.getSeries('ol:A Song of Ice and Fire');
+        // The subject search is trusted. The series field and the title search add candidates.
+        expect(provider.searches.map((s) => s.query)).toEqual([
+          'subject:"series:A Song of Ice and Fire"',
+          'series:"A Song of Ice and Fire"',
+          'title:"A Song of Ice and Fire" author:"Juan Rulfo"',
+        ]);
+        expect(res.id).toBe('ol:A Song of Ice and Fire');
+        expect(res.name).toBe('A Song of Ice and Fire');
+        // Ordered by release year, whatever the order Open Library answered in.
+        expect(res.works.map((w) => [w.ref, w.position])).toEqual([
+          ['ol:OL1W', null],
+          ['ol:OL2W', null],
+        ]);
+      });
+
+      it('completes a half-tagged series from the series field and the title search', async () => {
+        fresh();
+        // Like "The Stormlight Archive": 2 books carry the subject, the rest are found by text.
+        provider.addSeries('Stormlight Archive', [
+          entry('OL1W', 'The Way of Kings', 2010, 30),
+          entry('OL7W', 'Wind and Truth', 2024, 6),
+        ]);
+        provider.addQueryResults('series:"Stormlight Archive"', [
+          entry('OL1W', 'The Way of Kings', 2010, 30),
+          entry('OL5W', 'Rhythm of War', 2020, 15),
+          {
+            ...entry('OL90W', 'Stormlight Archive Series 6 Books Collection Set', 2020, 1),
+          },
+        ]);
+        provider.addQueryResults('title:"Stormlight Archive" author:"Juan Rulfo"', [
+          entry('OL2W', 'Words of Radiance', 2012, 23),
+          entry('OL3W', 'Oathbringer', 2017, 18),
+          entry('OL4W', 'Dawnshard', 2020, 12),
+          entry('OL60W', 'Oathbringer part 1', 2017, 5),
+          entry('OL61W', 'The Way of Kings, Part One', 2011, 3),
+          {
+            ...entry('OL62W', 'Someone Elses Book', 2012, 40),
+            authors: [{ olAuthorKey: 'OL9A', name: 'Other' }],
+          },
+        ]);
+        const res = await service.getSeries('ol:Stormlight Archive');
+        expect(res.works.map((w) => w.title).sort()).toEqual(
+          [
+            'Dawnshard',
+            'Oathbringer',
+            'Rhythm of War',
+            'The Way of Kings',
+            'Wind and Truth',
+            'Words of Radiance',
+          ].sort(),
+        );
+        expect(res.works.every((w) => w.position === null)).toBe(true);
+      });
+
+      it('still answers from the subject search when the other two searches fail', async () => {
+        fresh();
+        provider.addSeries('Saga', [entry('OL1W', 'First', 2001, 10)]);
+        const original = provider.searchWorks.bind(provider);
+        provider.searchWorks = (query, page) =>
+          query.startsWith('subject:') ? original(query, page) : Promise.reject(new Error('boom'));
+        const res = await service.getSeries('ol:Saga');
+        expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W']);
+      });
+
+      it('builds a series from the series field alone when no work has the subject', async () => {
+        fresh();
+        provider.addQueryResults('series:"Saga"', [
+          entry('OL1W', 'First', 2001, 12),
+          entry('OL2W', 'Second', 2002, 9),
+        ]);
+        const res = await service.getSeries('ol:Saga');
+        expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W', 'ol:OL2W']);
+      });
+
+      it('merges duplicates and drops the 1-edition tail', async () => {
+        fresh();
+        provider.addSeries('Saga', [
+          entry('OL1W', 'First', 2001, 10),
+          entry('OL2W', 'First', 2001, 5),
+          entry('OL3W', 'Study guide', 2005, 1),
+        ]);
+        const res = await service.getSeries('ol:Saga');
+        expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W']);
+      });
+
+      it('returns 404 when the subject search finds nothing', async () => {
+        fresh();
+        await failsWith(service.getSeries('ol:Unknown'), 404, ErrorCode.CATALOG_NOT_FOUND);
+      });
+
+      it('returns 503 when Open Library is down', async () => {
+        fresh();
+        provider.unavailable = true;
+        await failsWith(service.getSeries('ol:Saga'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+      });
     });
   });
 
@@ -557,6 +840,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       language: 'es',
       pageCount: 128,
       format: 'PAPERBACK' as const,
+      translatedFrom: null,
       coverUrl: null,
     };
 

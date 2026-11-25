@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { seedGenres } from '../src/infra/prisma/genre-seed.js';
 
 // Seed scaffold (M0.4). Later milestones add: one admin, two users, a few books with
 // sessions, highlights and follows (ARCHITECTURE.md §13). Keep it idempotent.
@@ -10,7 +11,8 @@ async function main(): Promise<void> {
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
   try {
     await prisma.$queryRaw`SELECT 1`;
-    console.log('Seed: nothing to seed yet.');
+    await seedGenres(prisma);
+    console.log('Seed: genres done.');
   } finally {
     await prisma.$disconnect();
   }

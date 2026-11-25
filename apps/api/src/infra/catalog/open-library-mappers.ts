@@ -24,6 +24,7 @@ const searchDocSchema = z.object({
   cover_i: z.number().optional(),
   edition_count: z.number().optional(),
   language: z.array(z.string()).optional(),
+  publish_year: z.array(z.number()).optional(),
 });
 
 export const workSchema = z.object({
@@ -50,6 +51,8 @@ export const editionSchema = z.object({
   isbn_10: z.array(z.string()).optional(),
   isbn_13: z.array(z.string()).optional(),
   languages: z.array(z.object({ key: z.string() })).optional(),
+  translated_from: z.array(z.object({ key: z.string() })).optional(),
+  description: textSchema.optional(),
   number_of_pages: z.number().optional(),
   physical_format: z.string().optional(),
   covers: z.array(z.number()).optional(),
@@ -174,6 +177,20 @@ const nonEmpty = (value: string | undefined): string | null => {
 
 // Mappers
 
+/**
+ * A release year that ignores one stray early date: the second oldest year when there are at
+ * least 4 dated editions, else the oldest. Years outside 1000 to next year are ignored.
+ */
+export function typicalYear(years: readonly number[] | undefined): number | null {
+  const valid = (years ?? [])
+    .filter(
+      (year) => Number.isInteger(year) && year >= 1000 && year <= new Date().getFullYear() + 1,
+    )
+    .sort((a, b) => a - b);
+  if (valid.length === 0) return null;
+  return valid.length >= 4 ? (valid[1] as number) : (valid[0] as number);
+}
+
 /** Returns null when the document is not a work (for example an author or a malformed key). */
 export function mapSearchDoc(raw: unknown): WorkSearchResult | null {
   const parsed = searchDocSchema.safeParse(raw);
@@ -197,6 +214,7 @@ export function mapSearchDoc(raw: unknown): WorkSearchResult | null {
     coverUrl: coverUrl(doc.cover_i),
     editionCount: doc.edition_count ?? 0,
     languages,
+    typicalYear: typicalYear(doc.publish_year),
   };
 }
 
@@ -223,6 +241,7 @@ export function mapEdition(raw: unknown): ExternalEdition | null {
   const edition = parsed.data;
   const workKey = edition.works?.[0] ? bareKey(edition.works[0].key) : null;
   const languageKey = edition.languages?.[0]?.key;
+  const translatedKey = edition.translated_from?.[0]?.key;
 
   return {
     olEditionKey: bareKey(edition.key),
@@ -239,6 +258,8 @@ export function mapEdition(raw: unknown): ExternalEdition | null {
         : null,
     format: mapFormat(edition.physical_format),
     coverUrl: coverUrl(firstCoverId(edition.covers)),
+    translatedFrom: translatedKey ? mapLanguage(translatedKey) : null,
+    description: textValue(edition.description),
   };
 }
 

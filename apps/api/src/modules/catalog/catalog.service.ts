@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import {
   type AuthorDetail,
   type AuthorLink,
@@ -15,7 +15,11 @@ import {
   CatalogNotFoundError,
   CatalogUnavailableError,
 } from '../../infra/catalog/catalog-errors.js';
-import { CATALOG_PROVIDER, type CatalogProvider } from '../../infra/catalog/catalog-provider.js';
+import {
+  CATALOG_PROVIDER,
+  type CatalogProvider,
+  type WorkSearchResult,
+} from '../../infra/catalog/catalog-provider.js';
 import type { Author } from '../../generated/prisma/client.js';
 import { CatalogRepository, type WorkRow } from './catalog.repository.js';
 import {
@@ -27,7 +31,6 @@ import {
   localWorkToSummary,
   MAX_AUTHORS,
   searchResultToSummary,
-  sortByYear,
 } from './catalog.mappers.js';
 import {
   authorWorksQuery,
@@ -39,7 +42,26 @@ import {
   parseIsbn,
   parseRef,
 } from './domain/catalog-ref.js';
+import { plainDescription } from './domain/description-text.js';
+import { rankEditions } from './domain/edition-rank.js';
+import { sortByReleaseYear } from './domain/release-order.js';
+import {
+  olSeriesName,
+  seriesFieldQuery,
+  seriesSearchQuery,
+  seriesTitleQuery,
+} from './domain/ol-series.js';
+import { originalLanguage } from './domain/original-language.js';
 import { collapseSearchResults } from './domain/search-collapse.js';
+import {
+  isSeriesJunkTitle,
+  mainAuthor,
+  MIN_EDITIONS_FOR_TEXT_MATCH,
+  selectSeriesWorks,
+} from './domain/series-works.js';
+
+/** Pages of 20 works read for an author page. */
+const AUTHOR_WORK_PAGES = 3;
 
 const notFound = () => new ApiException(HttpStatus.NOT_FOUND, ErrorCode.CATALOG_NOT_FOUND);
 const invalidRef = () => new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REF);
@@ -63,6 +85,8 @@ const canView = (work: Pick<WorkRow, 'catalogStatus' | 'createdById'>, userId: s
 
 @Injectable()
 export class CatalogService {
+  private readonly logger = new Logger(CatalogService.name);
+
   constructor(
     @Inject(CatalogRepository) private readonly repo: CatalogRepository,
     @Inject(CATALOG_PROVIDER) private readonly provider: CatalogProvider,
@@ -76,8 +100,15 @@ export class CatalogService {
         throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_CURSOR);
       page = decoded;
     }
+    const providerQuery = buildSearchQuery(query.q, query.genre);
+    // A genre that is only quotes, with no q, leaves nothing to search for.
+    if (providerQuery === '')
+      throw new ApiException(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR);
+    // A genre alone is an exact subject match, so the works with most editions come first.
+    // With text the sort would put loosely matching popular books on top (SPEC 17).
+    const sort = query.q === undefined ? ({ sort: 'editions' } as const) : undefined;
     const results = await mapCatalogErrors(() =>
-      this.provider.searchWorks(buildSearchQuery(query.q, query.genre), page),
+      this.provider.searchWorks(providerQuery, page, sort),
     );
     // Merging happens per provider page, so the cursor and the end-of-results signal (an empty
     // provider page, SPEC 13) are unchanged. The visible guard applies on the first page only.
@@ -121,15 +152,37 @@ export class CatalogService {
       const row = await this.repo.findWorkById(parsed.id);
       if (!row || !canView(row, userId)) throw notFound();
       if (!row.olWorkKey) {
-        const editions = await this.repo.findEditionsByWork(row.id, language);
-        return editions.map(localEditionToDto);
+        // The original language is derived from the full list, then the language filter applies.
+        const editions = await this.repo.findEditionsByWork(row.id);
+        const original = originalLanguage(editions);
+        return editions
+          .filter((edition) => !language || edition.language === language)
+          .map((edition) => localEditionToDto(edition, original));
       }
       olWorkKey = row.olWorkKey;
     }
-    const editions = await mapCatalogErrors(() =>
-      this.provider.listEditions(olWorkKey, { language }),
-    );
-    return editions.map(externalEditionToDto);
+    // Always the full list (cached once), so the original language never depends on the filter.
+    const editions = await mapCatalogErrors(() => this.provider.listEditions(olWorkKey, {}));
+    const original = originalLanguage(editions);
+    // Open Library has no popularity data: well-described editions go first (SPEC 18).
+    return rankEditions(editions)
+      .filter((edition) => !language || edition.language === language)
+      .map((edition) => externalEditionToDto(edition, original));
+  }
+
+  /** A secondary provider search: a failure is logged and gives no results, it never fails the request. */
+  private async bestEffort(
+    label: string,
+    run: () => Promise<WorkSearchResult[]>,
+  ): Promise<WorkSearchResult[]> {
+    try {
+      return await run();
+    } catch (error) {
+      this.logger.warn(
+        `${label} failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return [];
+    }
   }
 
   async getAuthor(ref: string): Promise<AuthorDetail> {
@@ -151,7 +204,8 @@ export class CatalogService {
     return {
       ref: olRef(author.olAuthorKey),
       name: author.name,
-      bio: author.bio,
+      // Open Library bios carry Markdown; the cache stores them raw, so clean on the way out.
+      bio: plainDescription(author.bio),
       birthYear: author.birthYear,
       deathYear: author.deathYear,
       photoUrl: author.photoUrl,
@@ -174,15 +228,32 @@ export class CatalogService {
     };
   }
 
-  /** First page of Open Library works for an author, oldest first. */
+  /**
+   * The main works of an Open Library author (SPEC 18): the first 3 pages of the author's works with
+   * the most editions first, so a prolific author is not cut after 20 results. Bundles and split
+   * books are dropped, duplicates are merged and the 1-edition tail is dropped. Ordered by
+   * release year. Only the first page can fail the request.
+   */
   private async worksOfOlAuthor(olAuthorKey: string) {
-    const results = await mapCatalogErrors(() =>
-      this.provider.searchWorks(authorWorksQuery(olAuthorKey), 1),
-    );
-    return sortByYear(results.map(searchResultToSummary));
+    const query = authorWorksQuery(olAuthorKey);
+    const search = (page: number) => this.provider.searchWorks(query, page, { sort: 'editions' });
+    const [first, ...rest] = await Promise.all([
+      mapCatalogErrors(() => search(1)),
+      ...Array.from({ length: AUTHOR_WORK_PAGES - 1 }, (_, i) =>
+        this.bestEffort(`author works page ${i + 2}`, () => search(i + 2)),
+      ),
+    ]);
+    const unique = new Map<string, WorkSearchResult>();
+    for (const result of [...first, ...rest.flat()]) {
+      if (!isSeriesJunkTitle(result.title)) unique.set(result.olWorkKey, result);
+    }
+    const { items } = collapseSearchResults([...unique.values()], { guardVisible: true });
+    return sortByReleaseYear(items).map(searchResultToSummary);
   }
 
   async getSeries(id: string): Promise<SeriesDetail> {
+    const olName = olSeriesName(id);
+    if (olName !== null) return this.getOpenLibrarySeries(id, olName);
     if (!isUuid(id)) throw invalidRef();
     const row = await this.repo.findSeriesById(id);
     if (!row) throw notFound();
@@ -192,6 +263,52 @@ export class CatalogService {
       works: row.works.map((work) => ({
         ...localWorkToSummary(work),
         position: decimalToNumber(work.seriesPosition),
+      })),
+    };
+  }
+
+  /**
+   * A series derived from Open Library subjects (SPEC 18). Open Library tags series unevenly, so
+   * three first-page searches are merged: the `series:` subject (trusted), the `series` field,
+   * and the series name in titles by the main author. The union is filtered (main author, enough
+   * editions, no parts or bundles), duplicates are merged and the 1-edition tail is dropped. Only
+   * the subject search can fail the request; the other two are best effort. Open Library has no
+   * series positions, so every position is null.
+   */
+  private async getOpenLibrarySeries(id: string, name: string): Promise<SeriesDetail> {
+    const search = (query: string) => this.provider.searchWorks(query, 1);
+    const [tagged, byField] = await Promise.all([
+      mapCatalogErrors(() => search(seriesSearchQuery(name))),
+      this.bestEffort('series field search', () => search(seriesFieldQuery(name))),
+    ]);
+    const seeds =
+      tagged.length > 0
+        ? tagged.filter((result) => !isSeriesJunkTitle(result.title))
+        : byField.filter(
+            (result) =>
+              result.editionCount >= MIN_EDITIONS_FOR_TEXT_MATCH &&
+              !isSeriesJunkTitle(result.title),
+          );
+    const author = mainAuthor(seeds);
+    const byTitle = author
+      ? await this.bestEffort('series title search', () =>
+          search(seriesTitleQuery(name, author.name)),
+        )
+      : [];
+    const results = selectSeriesWorks({
+      tagged,
+      textMatches: [...byField, ...byTitle],
+      authorKey: author?.olAuthorKey ?? null,
+    });
+    const { items } = collapseSearchResults(results, { guardVisible: true });
+    if (items.length === 0) throw notFound();
+    return {
+      id,
+      name,
+      // Open Library has no positions and dates early editions badly: order by release year.
+      works: sortByReleaseYear(items).map((result) => ({
+        ...searchResultToSummary(result),
+        position: null,
       })),
     };
   }
@@ -206,7 +323,7 @@ export class CatalogService {
     const local = await this.repo.findWorkByOlKey(edition.olWorkKey);
     return {
       workRef: local ? local.id : olRef(edition.olWorkKey),
-      edition: externalEditionToDto(edition),
+      edition: externalEditionToDto(edition, null),
     };
   }
 

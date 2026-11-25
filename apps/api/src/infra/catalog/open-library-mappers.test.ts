@@ -6,6 +6,7 @@ import {
   editionsResponseSchema,
   mapAuthor,
   mapEdition,
+  typicalYear,
   mapFormat,
   mapLanguage,
   mapSearchDoc,
@@ -118,7 +119,32 @@ describe('search fixture', () => {
       coverUrl: null,
       editionCount: 0,
       languages: [],
+      typicalYear: null,
     });
+  });
+
+  it('keeps a typical year from the edition years, ignoring one stray early date', () => {
+    const doc = { key: '/works/OL1W', title: 'T', first_publish_year: 2011 };
+    expect(
+      mapSearchDoc({ ...doc, publish_year: [2011, 2020, 2020, 2021, 2022] })?.typicalYear,
+    ).toBe(2020);
+    expect(mapSearchDoc({ ...doc, publish_year: [2011, 2020] })?.typicalYear).toBe(2011);
+  });
+});
+
+describe('typicalYear', () => {
+  it('uses the second oldest year with 4 or more years, else the oldest', () => {
+    expect(typicalYear([2011, 2020, 2020, 2021])).toBe(2020);
+    expect(typicalYear([2022, 2010, 2010, 2015, 2030 - 10])).toBe(2010);
+    expect(typicalYear([1996, 1998, 2000])).toBe(1996);
+    expect(typicalYear([2005])).toBe(2005);
+  });
+
+  it('returns null without usable years and ignores impossible ones', () => {
+    expect(typicalYear(undefined)).toBeNull();
+    expect(typicalYear([])).toBeNull();
+    expect(typicalYear([0, -5, 12, 99999])).toBeNull();
+    expect(typicalYear([0, 1995])).toBe(1995);
   });
 });
 
@@ -173,6 +199,8 @@ describe('editions fixture', () => {
       language: 'en',
       pageCount: 139,
       format: 'EBOOK',
+      translatedFrom: null,
+      description: null,
       coverUrl: 'https://covers.openlibrary.org/b/id/15269114-M.jpg',
     });
   });
@@ -181,6 +209,7 @@ describe('editions fixture', () => {
     expect(byKey('OL47268921M')).toMatchObject({
       language: 'es',
       format: 'HARDCOVER',
+      translatedFrom: null,
       publishYear: 1984,
       pageCount: 151,
       coverUrl: null,
@@ -196,6 +225,27 @@ describe('editions fixture', () => {
     expect(byKey('OL35608794M')?.format).toBe('PAPERBACK');
     expect(byKey('OL46564967M')?.format).toBe('PAPERBACK');
     expect(byKey('OL50259580M')?.language).toBe('he');
+  });
+
+  it('maps translated_from to the original language code', () => {
+    const base = { key: '/books/OL1M', title: 'T', languages: [{ key: '/languages/cat' }] };
+    expect(
+      mapEdition({ ...base, translated_from: [{ key: '/languages/eng' }] })?.translatedFrom,
+    ).toBe('en');
+    expect(mapEdition(base)?.translatedFrom).toBeNull();
+    expect(
+      mapEdition({ ...base, translated_from: [{ key: '/languages/zzz' }] })?.translatedFrom,
+    ).toBeNull();
+  });
+
+  it('maps the edition description from a string or a text object', () => {
+    const base = { key: '/books/OL1M', title: 'T' };
+    expect(mapEdition({ ...base, description: 'Plain blurb' })?.description).toBe('Plain blurb');
+    expect(
+      mapEdition({ ...base, description: { type: '/type/text', value: 'Typed blurb' } })
+        ?.description,
+    ).toBe('Typed blurb');
+    expect(mapEdition(base)?.description).toBeNull();
   });
 
   it('returns null for an entry without a title', () => {

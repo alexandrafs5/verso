@@ -26,18 +26,34 @@ export const editionRefSchema = z
   .string()
   .refine((v) => UUID_RE.test(v) || OL_EDITION_REF_RE.test(v), { message: 'Invalid edition ref' });
 
-export const seriesIdSchema = z.string().refine((v) => UUID_RE.test(v), {
-  message: 'Invalid series id',
-});
+const MAX_OL_SERIES_ID = 3 + 120;
+
+/** A UUID (local series) or `ol:<name>` (derived from Open Library subjects, SPEC 18). */
+export const seriesIdSchema = z
+  .string()
+  .refine(
+    (v) =>
+      UUID_RE.test(v) ||
+      (v.startsWith('ol:') &&
+        v.slice(3).trim() !== '' &&
+        v.length <= MAX_OL_SERIES_ID &&
+        ![...v].some((ch) => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)),
+    { message: 'Invalid series id' },
+  );
 
 export const editionFormatSchema = z.enum(EDITION_FORMATS);
 export const workSourceSchema = z.enum(WORK_SOURCES);
 
-export const searchBooksQuerySchema = z.object({
-  q: z.string().trim().min(1).max(SEARCH_QUERY_MAX),
-  genre: z.string().trim().min(1).max(GENRE_MAX).optional(),
-  cursor: z.string().min(1).max(200).optional(),
-});
+/** `q` is optional when `genre` is set (genre-only search, SPEC 18). At least one is required. */
+export const searchBooksQuerySchema = z
+  .object({
+    q: z.string().trim().min(1).max(SEARCH_QUERY_MAX).optional(),
+    genre: z.string().trim().min(1).max(GENRE_MAX).optional(),
+    cursor: z.string().min(1).max(200).optional(),
+  })
+  .refine((v) => v.q !== undefined || v.genre !== undefined, {
+    message: 'q or genre is required',
+  });
 
 export const editionsQuerySchema = z.object({
   language: z
@@ -76,7 +92,7 @@ export const workDetailSchema = z.object({
   firstPublishYear: z.number().int().nullable(),
   coverUrl: z.string().nullable(),
   authors: z.array(authorLinkSchema),
-  genres: z.array(z.string()).max(8),
+  genres: z.array(z.string()).max(30),
   series: workSeriesSchema.nullable(),
   source: workSourceSchema,
   libraryStatus: z.null(),
@@ -93,6 +109,11 @@ export const editionDtoSchema = z.object({
   pageCount: z.number().int().nullable(),
   format: editionFormatSchema,
   coverUrl: z.string().nullable(),
+  /** True when `language` is the original language of the work (SPEC 18). */
+  isOriginalLanguage: z.boolean(),
+  /** Plain-text blurb of this edition, in its own language. Lets the page show a description
+   * in the reader's language, which Open Library has for some editions (SPEC 18). */
+  description: z.string().nullable(),
 });
 
 export const authorDetailSchema = z.object({

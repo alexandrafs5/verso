@@ -14,6 +14,7 @@ import {
   type ExternalEdition,
   type ExternalWork,
   SEARCH_PAGE_SIZE,
+  type SearchOptions,
   type WorkSearchResult,
 } from './catalog-provider.js';
 import { buildUserAgent } from './catalog-env.js';
@@ -37,7 +38,7 @@ const BASE_URL = 'https://openlibrary.org';
 const REQUEST_TIMEOUT_MS = 8000;
 const EDITIONS_LIMIT = 100;
 const SEARCH_FIELDS =
-  'key,title,author_name,author_key,first_publish_year,cover_i,edition_count,language';
+  'key,title,author_name,author_key,first_publish_year,cover_i,edition_count,language,publish_year';
 
 export const SEARCH_TTL_SECONDS = 24 * 60 * 60;
 export const DETAIL_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -69,11 +70,18 @@ export class OpenLibraryProvider implements CatalogProvider {
     this.logger = options.logger ?? new Logger(OpenLibraryProvider.name);
   }
 
-  async searchWorks(query: string, page: number): Promise<WorkSearchResult[]> {
+  async searchWorks(
+    query: string,
+    page: number,
+    opts: SearchOptions = {},
+  ): Promise<WorkSearchResult[]> {
     const q = query.trim().replace(/\s+/g, ' ');
     if (!q) return [];
     const pageNumber = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
-    const hash = createHash('sha256').update(`${q.toLowerCase()}|${pageNumber}`).digest('hex');
+    const sort = opts.sort ?? '';
+    const hash = createHash('sha256')
+      .update(`${q.toLowerCase()}|${pageNumber}|${sort}`)
+      .digest('hex');
 
     const results = await this.cached(
       `ol:search:${hash}`,
@@ -85,6 +93,7 @@ export class OpenLibraryProvider implements CatalogProvider {
           page: String(pageNumber),
           limit: String(SEARCH_PAGE_SIZE),
           fields: SEARCH_FIELDS,
+          ...(sort ? { sort } : {}),
         });
         const body = this.parse(searchResponseSchema, await this.getJson(`/search.json?${params}`));
         return body.docs.flatMap((doc) => mapSearchDoc(doc) ?? []);

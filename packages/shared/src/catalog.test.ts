@@ -23,6 +23,8 @@ const edition = {
   pageCount: 128,
   format: 'PAPERBACK',
   coverUrl: null,
+  isOriginalLanguage: true,
+  description: null,
 };
 
 describe('refs', () => {
@@ -42,9 +44,14 @@ describe('refs', () => {
     expect(authorRefSchema.safeParse('ol:OL9W').success).toBe(false);
   });
 
-  it('series id must be a UUID', () => {
+  it('series id is a UUID or ol:<name>', () => {
     expect(seriesIdSchema.safeParse(UUID).success).toBe(true);
-    expect(seriesIdSchema.safeParse('ol:OL9W').success).toBe(false);
+    expect(seriesIdSchema.safeParse('ol:A Song of Ice and Fire').success).toBe(true);
+    expect(seriesIdSchema.safeParse('ol:').success).toBe(false);
+    expect(seriesIdSchema.safeParse('ol:   ').success).toBe(false);
+    expect(seriesIdSchema.safeParse(`ol:${'a'.repeat(121)}`).success).toBe(false);
+    expect(seriesIdSchema.safeParse(`ol:a${String.fromCharCode(7)}b`).success).toBe(false);
+    expect(seriesIdSchema.safeParse('not-a-series').success).toBe(false);
   });
 });
 
@@ -62,6 +69,14 @@ describe('searchBooksQuerySchema', () => {
 
   it('rejects genre over 80 characters', () => {
     expect(searchBooksQuerySchema.safeParse({ q: 'a', genre: 'g'.repeat(81) }).success).toBe(false);
+  });
+
+  it('accepts q only, genre only and both, and rejects neither', () => {
+    expect(searchBooksQuerySchema.safeParse({ q: 'dune' }).success).toBe(true);
+    expect(searchBooksQuerySchema.parse({ genre: ' Fiction ' })).toEqual({ genre: 'Fiction' });
+    expect(searchBooksQuerySchema.safeParse({ q: 'dune', genre: 'Fiction' }).success).toBe(true);
+    expect(searchBooksQuerySchema.safeParse({}).success).toBe(false);
+    expect(searchBooksQuerySchema.safeParse({ cursor: 'abc' }).success).toBe(false);
   });
 });
 
@@ -104,7 +119,7 @@ describe('response shapes', () => {
     );
   });
 
-  it('caps genres at 8', () => {
+  it('caps genres at 30', () => {
     const base = {
       ref: UUID,
       title: 't',
@@ -117,8 +132,10 @@ describe('response shapes', () => {
       source: 'MANUAL',
       libraryStatus: null,
     };
-    expect(workDetailSchema.safeParse({ ...base, genres: Array(8).fill('g') }).success).toBe(true);
-    expect(workDetailSchema.safeParse({ ...base, genres: Array(9).fill('g') }).success).toBe(false);
+    expect(workDetailSchema.safeParse({ ...base, genres: Array(30).fill('g') }).success).toBe(true);
+    expect(workDetailSchema.safeParse({ ...base, genres: Array(31).fill('g') }).success).toBe(
+      false,
+    );
   });
 
   it('parses an ISBN result', () => {

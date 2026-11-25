@@ -5,3 +5,4 @@ export * from './generated-cover';
 export * from './auth';
 export * from './me';
 export * from './catalog';
+export * from './genres';

@@ -80,6 +80,21 @@ describe('parseSearchParams', () => {
     expect(parseSearchParams({ q: 'a', genre: 'g'.repeat(81), minLength: 1 })).toBeNull();
   });
 
+  it('accepts an empty q only with a genre', () => {
+    expect(parseSearchParams({ q: '', genre: 'Fiction', minLength: 1 })).toEqual({
+      genre: 'Fiction',
+    });
+    expect(parseSearchParams({ q: '  ', genre: ' Fiction ', minLength: 2 })).toEqual({
+      genre: 'Fiction',
+    });
+    expect(parseSearchParams({ q: '', minLength: 1 })).toBeNull();
+    expect(parseSearchParams({ q: '', genre: '  ', minLength: 1 })).toBeNull();
+  });
+
+  it('still applies the minimum length to a non-empty q with a genre', () => {
+    expect(parseSearchParams({ q: 'd', genre: 'Fiction', minLength: 2 })).toBeNull();
+  });
+
   it('treats a blank genre as no genre', () => {
     expect(parseSearchParams({ q: 'dune', genre: '  ', minLength: 1 })).toEqual({
       q: 'dune',
@@ -93,6 +108,10 @@ describe('buildSearchPath', () => {
     expect(buildSearchPath({ q: 'Pedro Páramo', genre: 'Magic realism' }, 'abc')).toBe(
       '/api/v1/search/books?q=Pedro+P%C3%A1ramo&genre=Magic+realism&cursor=abc',
     );
+  });
+
+  it('omits q for a genre-only search', () => {
+    expect(buildSearchPath({ genre: 'Fiction' })).toBe('/api/v1/search/books?genre=Fiction');
   });
 
   it('omits genre and cursor when absent', () => {

@@ -7,8 +7,11 @@ import type {
 import type { Edition } from '../../generated/prisma/client.js';
 import type { WorkRow, WorkSummaryRow } from './catalog.repository.js';
 import { olRef } from './domain/catalog-ref.js';
+import { plainDescription } from './domain/description-text.js';
+import { isSeriesSubject, seriesFromSubjects } from './domain/ol-series.js';
 
-export const MAX_GENRES = 8;
+/** Subjects kept per work. The web maps them to at most 5 chips (SPEC 18). */
+export const MAX_GENRES = 30;
 export const MAX_AUTHORS = 5;
 
 const asNumber = (value: { toString(): string } | null): number | null =>
@@ -65,18 +68,21 @@ export function externalWorkToDetail(work: ExternalWork, authors: AuthorLink[]):
     ref: olRef(work.olWorkKey),
     title: work.title,
     subtitle: work.subtitle,
-    description: work.description,
+    // Open Library descriptions carry Markdown; the cache stores them raw, so clean on the way out.
+    description: plainDescription(work.description),
     firstPublishYear: work.firstPublishYear,
     coverUrl: work.coverUrl,
     authors,
-    genres: work.subjects.slice(0, MAX_GENRES),
-    series: null,
+    // `series:` subjects feed the series line, not the genre chips.
+    genres: work.subjects.filter((subject) => !isSeriesSubject(subject)).slice(0, MAX_GENRES),
+    series: seriesFromSubjects(work.subjects),
     source: 'OPEN_LIBRARY',
     libraryStatus: null,
   };
 }
 
-export function localEditionToDto(edition: Edition): EditionDto {
+/** `original` is the original language of the whole list (`originalLanguage`), or null. */
+export function localEditionToDto(edition: Edition, original: string | null): EditionDto {
   return {
     ref: edition.id,
     title: edition.title,
@@ -88,10 +94,15 @@ export function localEditionToDto(edition: Edition): EditionDto {
     pageCount: edition.pageCount,
     format: edition.format,
     coverUrl: edition.coverUrl,
+    isOriginalLanguage: original !== null && edition.language === original,
+    description: null,
   };
 }
 
-export function externalEditionToDto(edition: ExternalEdition): EditionDto {
+export function externalEditionToDto(
+  edition: ExternalEdition,
+  original: string | null,
+): EditionDto {
   return {
     ref: olRef(edition.olEditionKey),
     title: edition.title,
@@ -103,6 +114,9 @@ export function externalEditionToDto(edition: ExternalEdition): EditionDto {
     pageCount: edition.pageCount,
     format: edition.format,
     coverUrl: edition.coverUrl,
+    isOriginalLanguage: original !== null && edition.language === original,
+    // Open Library blurbs carry Markdown; the cache stores them raw, so clean on the way out.
+    description: plainDescription(edition.description),
   };
 }
 

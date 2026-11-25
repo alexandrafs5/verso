@@ -129,7 +129,7 @@ A horizontal top bar, editorial in feel, on every signed-in screen:
 
 ### Search behavior \[F1\]
 
-Typing in the top-bar field opens a dropdown with quick results: **Books** (max 5 works) in F1, and a **Users** group (max 5) that arrives with user search in M8.5 [F2]. Enter opens the full search results page. Recent searches show when the field is focused and empty.
+Typing in the top-bar field opens a dropdown with quick results: **Books** (max 5 works) in F1, and a **Users** group (max 5) that arrives with user search in M8.5 [F2]. Enter opens the full search results page. Recent searches show when the field is focused and empty. A genre alone is a valid search: `/search?genre=<subject>` (the target of the S3 genre chips) lists books of that subject, most editions first, with an empty field and a removable chip (SPEC 18).
 
 ### Responsive
 
@@ -243,26 +243,27 @@ A split button: the large part adds the book to **Want to read**; a small chevro
 
 ### S3. Work page
 
-- **Layout:** classic editorial — large cover left (with soft shadow), info right.
-- **Info:** title (display serif), subtitle, author(s) linked to S5, series line "Book 2 of {Series}" linked to S6 (when known), genres as clickable chips (→ search filtered by genre), first published year, page count of the selected edition, synopsis (collapsed to 5 lines with "Read more").
-- **User block:** Add-to-library control; if in library: status, progress, your rating, link "Go to my book" (S8). Edition line: "Edition: Spanish · Penguin · 2019 · 320 pages · Change" (opens S4).
-- **Reviews:** public reviews from public profiles only, newest first. Each: avatar, name, rating in the viewer's scale, date, text (collapsed if long). Reviews marked with spoilers show "This review contains spoilers · Show". Empty: "No reviews yet".
+- **Layout:** classic editorial — large cover left (with soft shadow), info right. A "Back" button (arrow plus label) sits above the content on S2, S3, S5 and S6; it goes back in the browser history, or to Home when the page was opened directly.
+- **Info:** title (display serif), subtitle, author(s) linked to S5, series line "Book 2 of {Series}" linked to S6 (when known), genres as clickable chips (→ search filtered by genre; a fixed list of 23 genres in `packages/shared` maps the subjects of a work to translated chips (at most 5), and a work that matches none shows its first raw subjects, SPEC 18), first published year, page count of the selected edition, synopsis (collapsed to 5 lines with "Read more").
+- **User block:** Add-to-library control; if in library: status, progress, your rating, link "Go to my book" (S8). Added with the library in M4 and M5. Edition line: "Edition: Spanish · Penguin · 2019 · 320 pages · Change" (opens S4). The edition line ships in M3.5 as local state: choosing an edition changes the page only, nothing is saved before M4. The default edition is the first one in the original language of the book, then the first one in the interface language, then the first one (SPEC 18). The cover is the one search shows until an edition is chosen.
+- **Reviews:** public reviews from public profiles only, newest first. Each: avatar, name, rating in the viewer's scale, date, text (collapsed if long). Reviews marked with spoilers show "This review contains spoilers · Show". Empty: "No reviews yet". Added with reviews in M6; not shown before.
 - No community averages or reader counts in F1.
 
 ### S4. Edition selector (modal)
 
 - Language filter (chips) at top; list of editions: cover, language, publisher, year, page count, format (paperback, hardcover, ebook), ISBN. The current one is marked "Selected".
-- Selecting while a reading is in progress shows a note: "Your progress will be converted: p. 150 of 300 (50%) → p. 200 of 400". Confirm / Cancel.
+- Selecting while a reading is in progress shows a note: "Your progress will be converted: p. 150 of 300 (50%) → p. 200 of 400". Confirm / Cancel. Added with reading progress in M5. Before that, selecting an edition closes the modal and updates the work page.
+- The language chips appear only when the editions have two or more languages.
 
 ### S5. Author page
 
 - Photo (or initials on tobacco), name in display serif, life years, biography (collapsed, "Read more").
-- Works as a cover grid ordered by publication year; covers of books in the user's library show a small status badge.
+- Works as a cover grid ordered by release year (the API orders them; Open Library dates some first editions wrongly), about 60 main works for a prolific author; covers of books in the user's library show a small status badge. The badge is added with the library in M4.
 
 ### S6. Series page
 
-- Series name, "You've read 2 of 5".
-- Ordered list: number (1, 2, 3…), cover, title, year, the user's status or the Add-to-library control.
+- Series name, "You've read 2 of 5". Added with the library in M4.
+- Ordered list: number (1, 2, 3…), cover, title, year, the user's status or the Add-to-library control (status and control added in M4). For Open Library works the series comes from the `series:<name>` subjects (id `ol:<name>`) and the list comes from a subject search, ordered by publication year, with no numbers because Open Library has no positions (SPEC 18). Series positions ("Book 2 of 5"), and series stored in our own tables, arrive with the library in M4.
 
 ### S7. My library
 

@@ -47,6 +47,12 @@ describe('SearchPage', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('shows a Back button', () => {
+    stubFetch(() => json({}));
+    renderWithProviders(<SearchPage />);
+    expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
+  });
+
   it('renders rows linking to the encoded work ref', async () => {
     nav.search = 'q=Pedro+P%C3%A1ramo';
     stubFetch(() =>
@@ -97,6 +103,29 @@ describe('SearchPage', () => {
     expect(screen.getByText('Genre: Fiction')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Remove genre filter Fiction' }));
     expect(nav.push).toHaveBeenCalledWith('/search?q=dune');
+  });
+
+  it('searches by genre alone, with an empty field, and drops the chip to the prompt', async () => {
+    nav.search = 'genre=Fiction';
+    const fetchMock = stubFetch(() =>
+      json({ items: [work('ol:OL1W', 'Dune')], moreMatches: [], nextCursor: null }),
+    );
+    renderWithProviders(<SearchPage />);
+    await screen.findByRole('link', { name: /Dune/ });
+    const url = String(fetchMock.mock.calls[0]?.[0]);
+    expect(url).toContain('genre=Fiction');
+    expect(url).not.toContain('q=');
+    expect(screen.getByRole('searchbox', { name: 'Search books' })).toHaveValue('');
+    expect(screen.queryByText('Search for a book')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove genre filter Fiction' }));
+    expect(nav.push).toHaveBeenCalledWith('/search');
+  });
+
+  it('names the genre in the empty state of a genre-only search', async () => {
+    nav.search = 'genre=Fiction';
+    stubFetch(() => json({ items: [], moreMatches: [], nextCursor: null }));
+    renderWithProviders(<SearchPage />);
+    expect((await screen.findAllByText('No books match ‘Fiction’')).length).toBeGreaterThan(0);
   });
 
   it('keeps the genre and stores the text in recents on submit', async () => {

@@ -47,10 +47,12 @@ function errorBody(error: unknown, t: (key: 'rateLimited' | 'errorBody') => stri
   return error instanceof ApiError && error.status === 429 ? t('rateLimited') : t('errorBody');
 }
 
-export function SearchResultsList({ q, genre }: { q: string; genre?: string }) {
+/** `q` may be absent for a genre-only search (SPEC 18). */
+export function SearchResultsList({ q, genre }: { q?: string; genre?: string }) {
   const t = useTranslations('search.page');
   const ts = useTranslations('search');
-  const query = useSearchBooks({ q, genre, minLength: 1 });
+  const query = useSearchBooks({ q: q ?? '', genre, minLength: 1 });
+  const label = q ?? genre ?? '';
 
   if (query.isPending) return <SkeletonRows />;
 
@@ -71,9 +73,9 @@ export function SearchResultsList({ q, genre }: { q: string; genre?: string }) {
     return (
       <div>
         <p role="status" className="sr-only">
-          {ts('noMatch', { query: q })}
+          {ts('noMatch', { query: label })}
         </p>
-        <EmptyState heading={ts('noMatch', { query: q })} description={ts('noMatchHint')} />
+        <EmptyState heading={ts('noMatch', { query: label })} description={ts('noMatchHint')} />
         <div className="text-center">
           <ManualAddLink />
         </div>
@@ -90,7 +92,7 @@ export function SearchResultsList({ q, genre }: { q: string; genre?: string }) {
           <SearchResultRow key={work.ref} work={work} />
         ))}
       </ul>
-      <MoreMatches key={`${q}|${genre ?? ''}`} works={moreMatches} />
+      <MoreMatches key={`${q ?? ''}|${genre ?? ''}`} works={moreMatches} />
       <div role="status" className="sr-only">
         {query.isFetchingNextPage ? t('loadingMore') : t('resultsLoaded', { count: items.length })}
       </div>

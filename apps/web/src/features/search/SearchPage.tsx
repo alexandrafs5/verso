@@ -4,6 +4,7 @@ import { GENRE_MAX, SEARCH_QUERY_MAX } from '@verso/shared';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { BackButton } from '@/components/shell/BackButton';
 import { Button } from '@/components/ui/button';
 import { XIcon, SearchIcon } from '@/components/ui/icons';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,8 @@ export function SearchPage() {
   const genreInvalid = rawGenre.length > GENRE_MAX;
   const genre = rawGenre !== '' && !genreInvalid ? rawGenre : undefined;
   const q = genreInvalid ? null : validQuery(rawQ, SEARCH_QUERY_MAX);
+  // A genre alone is a valid search; the prompt shows only when neither is usable.
+  const hasSearch = q !== null || genre !== undefined;
 
   const [text, setText] = useState(rawQ);
   // Keep the field in step with the URL (back button, quick-results Enter).
@@ -40,8 +43,8 @@ export function SearchPage() {
     setText(rawQ);
   }, [rawQ]);
   useEffect(() => {
-    if (!q) inputRef.current?.focus();
-  }, [q]);
+    if (!hasSearch) inputRef.current?.focus();
+  }, [hasSearch]);
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -53,6 +56,7 @@ export function SearchPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
+      <BackButton className="mb-4" fallbackHref="/home" />
       <form role="search" aria-label={t('label')} onSubmit={onSubmit} className="flex gap-2">
         <div className="relative flex-1">
           <SearchIcon
@@ -97,8 +101,8 @@ export function SearchPage() {
       ) : null}
 
       <div className="mt-4">
-        {q ? (
-          <SearchResultsList q={q} genre={genre} />
+        {hasSearch ? (
+          <SearchResultsList q={q ?? undefined} genre={genre} />
         ) : (
           <EmptyState heading={t('page.promptHeading')} description={t('page.promptBody')} />
         )}

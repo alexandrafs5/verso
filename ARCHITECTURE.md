@@ -179,7 +179,7 @@ apps/web/src/
 │  ├─ (auth)/sign-in | sign-up | verify-email | forgot-password | reset-password
 │  ├─ onboarding/[step]/
 │  ├─ (app)/                               authenticated shell: top bar (desktop), bottom tabs (< 768px)
-│  │  ├─ home/  search/  works/[ref]/  authors/[id]/  series/[id]/
+│  │  ├─ home/  search/  works/[ref]/  authors/[ref]/  series/[id]/
 │  │  ├─ library/  library/[userBookId]/  books/new/
 │  │  ├─ stats/  notifications/  settings/[section]/
 │  │  ├─ import/goodreads/  admin/manual-books/
@@ -421,7 +421,13 @@ Implementations: `OpenLibraryProvider`, `PgBossJobQueue`, `BrevoEmailProvider` (
 
 ### Open Library integration
 
-- Search: `search.json` (fields limited to what we display), in Open Library relevance order (SPEC 17 tried `sort=editions` and dropped it: it floods the top with loosely matching popular books). One result per work: near-duplicates of a page (same normalized title and first author) are merged, and merged groups with 1 edition are returned in `moreMatches` instead of `items` (SPEC 17). Merging is per provider page and nothing is persisted.
+- Search: `search.json` (fields limited to what we display), in Open Library relevance order (SPEC 17 tried `sort=editions` and dropped it: it floods the top with loosely matching popular books). The one exception is a search by genre alone (SPEC 18): an exact subject match has no relevance to rank by, so it sorts by edition count. One result per work: near-duplicates of a page (same normalized title and first author) are merged, and merged groups with 1 edition are returned in `moreMatches` instead of `items` (SPEC 17). Merging is per provider page and nothing is persisted.
+- Genres: the S3 chips come from a fixed list of 23 in `packages/shared/src/genres.ts` (slug, English name, Open Library subject). A work's raw subjects map to chips by subject or name, case-insensitive, and unmapped subjects show no chip. The same list seeds the `Genre` table (`seedGenres`). Free-text subjects map by keyword (most specific genre first, at most 5 chips), with up to 2 raw subjects as a fallback, and the API keeps up to 30 subjects per work. Chips link to `/search?genre=<subject>` (SPEC 18).
+- Series: Open Library has no series field, but its work subjects carry `series:<name>` tags. The work page derives `series` from them (id `ol:<name>`, position `null`, `series:` subjects removed from the genres). `GET /v1/series/ol:<name>` merges three first-page searches, because the tags are uneven: `subject:"series:<name>"` (trusted), the `series` field, and the series name in titles by the main author. The union keeps a text match only with the main author, at least 5 editions and a title that is not a bundle or a split book. Duplicates are merged, the 1-edition tail is dropped and the works are ordered by release year. Only the subject search can fail the request. UUID ids keep reading the local `Series` table (SPEC 18).
+- Original language: Open Library has no such field either. Each edition carries `isOriginalLanguage`, derived from the `translated_from` of the list (most frequent value), else the language of the oldest dated edition. The web picks the default edition from it (SPEC 18).
+- Author works: `getAuthor` reads 3 pages (60 works) of `author_key:<key>` sorted by edition count, drops bundles and split books, merges duplicates and orders by release year (`typicalYear`, from the edition years, which ignores one stray early date, then `firstPublishYear`). Series from subjects use the same order (SPEC 18).
+- Descriptions and bios: converted to plain text in the API. Open Library has no translation, so the page shows an edition blurb in the UI language when one exists (`EditionDto.description`), else the work description.
+- Editions: Open Library gives no popularity data, so `GET /v1/works/{ref}/editions` ranks provider editions by completeness (cover, ISBN, page count, publisher, year, language), keeping the provider order for ties (SPEC 18).
 - Work: `/works/{key}.json`; editions: `/works/{key}/editions.json`; ISBN: `/isbn/{isbn}.json`; authors: `/authors/{key}.json`.
 - Covers: use **cover-ID URLs** (`covers.openlibrary.org/b/id/{id}-M.jpg`), not ISBN-based cover lookups, which are rate-limited.
 - All calls send `User-Agent: Verso/1.0 (<OPEN_LIBRARY_CONTACT>)`, time out at 8 s, and are cached in `ExternalCache` (search 1 day, works/editions/ISBN/authors 30 days). `OPEN_LIBRARY_CONTACT` is required in production.
@@ -467,13 +473,13 @@ Conventions:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips) |
+| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips). At least one of `q` and `genre` is required: `genre` alone searches the subject only, most editions first (SPEC 18) |
 | GET | `/v1/search/users?q=` | Users (private ones show a lock) |
 | GET | `/v1/works/{ref}` | Work page data |
 | GET | `/v1/works/{ref}/editions?language=` | Edition selector |
 | GET | `/v1/works/{ref}/reviews?cursor=` | Public reviews from public profiles, newest first |
 | GET | `/v1/authors/{ref}` | Author page with works |
-| GET | `/v1/series/{id}` | Series page |
+| GET | `/v1/series/{id}` | Series page. `id` is a UUID (local series) or `ol:<name>` (derived from Open Library subjects) |
 | GET | `/v1/isbn/{isbn}` | Barcode scan → work ref |
 | POST | `/v1/books/manual` | Create manual book (private, review PENDING) |
 | POST | `/v1/books/manual/cover-upload-url` | Signed upload URL |

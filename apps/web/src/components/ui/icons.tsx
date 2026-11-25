@@ -160,6 +160,14 @@ export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function ArrowLeftIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+    </Icon>
+  );
+}
+
 export function SignOutIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon {...props}>

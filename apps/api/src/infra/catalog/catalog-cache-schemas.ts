@@ -16,6 +16,8 @@ export const workSearchResultSchema: z.ZodType<WorkSearchResult> = z.object({
   coverUrl: z.string().nullable(),
   editionCount: z.number(),
   languages: z.array(z.string()),
+  // Rows cached before SPEC 18 lack this field.
+  typicalYear: z.number().nullable().optional(),
 });
 
 export const externalWorkSchema: z.ZodType<ExternalWork> = z.object({
@@ -41,6 +43,9 @@ export const externalEditionSchema: z.ZodType<ExternalEdition> = z.object({
   pageCount: z.number().nullable(),
   format: z.enum(['PAPERBACK', 'HARDCOVER', 'EBOOK', 'OTHER']),
   coverUrl: z.string().nullable(),
+  // Rows cached before SPEC 18 lack this field.
+  translatedFrom: z.string().nullable().default(null),
+  description: z.string().nullable().optional(),
 });
 
 export const externalAuthorSchema: z.ZodType<ExternalAuthor> = z.object({
