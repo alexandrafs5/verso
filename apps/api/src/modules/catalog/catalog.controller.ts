@@ -30,9 +30,10 @@ export class CatalogController {
   @Get('search/books')
   @RateLimit(RateLimitBucket.SEARCH)
   searchBooks(
+    @CurrentUser() user: AuthUser,
     @Query(new ZodValidationPipe(searchBooksQuerySchema)) query: SearchBooksQuery,
   ): Promise<SearchBooksResponse> {
-    return this.catalog.searchBooks(query);
+    return this.catalog.searchBooks(user.id, query);
   }
 
   @Get('works/:ref')
@@ -50,13 +51,13 @@ export class CatalogController {
   }
 
   @Get('authors/:ref')
-  getAuthor(@Param('ref') ref: string): Promise<AuthorDetail> {
-    return this.catalog.getAuthor(ref);
+  getAuthor(@CurrentUser() user: AuthUser, @Param('ref') ref: string): Promise<AuthorDetail> {
+    return this.catalog.getAuthor(user.id, ref);
   }
 
   @Get('series/:id')
-  getSeries(@Param('id') id: string): Promise<SeriesDetail> {
-    return this.catalog.getSeries(id);
+  getSeries(@CurrentUser() user: AuthUser, @Param('id') id: string): Promise<SeriesDetail> {
+    return this.catalog.getSeries(user.id, id);
   }
 
   @Get('isbn/:isbn')

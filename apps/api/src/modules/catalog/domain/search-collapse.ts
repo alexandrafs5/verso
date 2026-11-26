@@ -8,9 +8,12 @@ export type CollapseOptions = {
   guardVisible: boolean;
 };
 
+/** A row of the results: its representative work, plus every work key merged into it. */
+export type CollapsedWork = WorkSearchResult & { mergedKeys: string[] };
+
 export type CollapsedSearch = {
-  items: WorkSearchResult[];
-  moreMatches: WorkSearchResult[];
+  items: CollapsedWork[];
+  moreMatches: CollapsedWork[];
 };
 
 const squash = (text: string): string =>
@@ -76,7 +79,7 @@ export function collapseSearchResults(
     else groups.set(key, [result]);
   }
 
-  const merged = [...groups.values()].map((members): WorkSearchResult => {
+  const merged = [...groups.values()].map((members): CollapsedWork => {
     // Ties go to the first member in provider order.
     const representative = members.reduce((best, m) =>
       m.editionCount > best.editionCount ? m : best,
@@ -86,6 +89,7 @@ export function collapseSearchResults(
       coverUrl:
         representative.coverUrl ?? members.find((m) => m.coverUrl !== null)?.coverUrl ?? null,
       editionCount: members.reduce((sum, m) => sum + m.editionCount, 0),
+      mergedKeys: members.map((m) => m.olWorkKey),
     };
   });
 

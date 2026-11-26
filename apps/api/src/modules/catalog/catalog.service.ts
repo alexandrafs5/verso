@@ -9,8 +9,10 @@ import {
   type SearchBooksResponse,
   type SeriesDetail,
   type WorkDetail,
+  type WorkSummary,
 } from '@verso/shared';
 import { ApiException } from '../../common/api-exception.js';
+import { LibraryStatusService } from '../library/library-status.service.js';
 import {
   CatalogNotFoundError,
   CatalogUnavailableError,
@@ -21,7 +23,7 @@ import {
   type WorkSearchResult,
 } from '../../infra/catalog/catalog-provider.js';
 import type { Author } from '../../generated/prisma/client.js';
-import { CatalogRepository, type WorkRow } from './catalog.repository.js';
+import { CatalogRepository, type WorkRow, type WorkSummaryRow } from './catalog.repository.js';
 import {
   decimalToNumber,
   externalEditionToDto,
@@ -52,7 +54,7 @@ import {
   seriesTitleQuery,
 } from './domain/ol-series.js';
 import { originalLanguage } from './domain/original-language.js';
-import { collapseSearchResults } from './domain/search-collapse.js';
+import { type CollapsedWork, collapseSearchResults } from './domain/search-collapse.js';
 import {
   isSeriesJunkTitle,
   mainAuthor,
@@ -90,9 +92,10 @@ export class CatalogService {
   constructor(
     @Inject(CatalogRepository) private readonly repo: CatalogRepository,
     @Inject(CATALOG_PROVIDER) private readonly provider: CatalogProvider,
+    @Inject(LibraryStatusService) private readonly library: LibraryStatusService,
   ) {}
 
-  async searchBooks(query: SearchBooksQuery): Promise<SearchBooksResponse> {
+  async searchBooks(userId: string, query: SearchBooksQuery): Promise<SearchBooksResponse> {
     let page = 1;
     if (query.cursor !== undefined) {
       const decoded = decodeCursor(query.cursor);
@@ -115,9 +118,11 @@ export class CatalogService {
     const { items, moreMatches } = collapseSearchResults(results, {
       guardVisible: query.cursor === undefined,
     });
+    // One lookup for both lists.
+    const rows = await this.toLibraryRows(userId, [...items, ...moreMatches]);
     return {
-      items: items.map(searchResultToSummary),
-      moreMatches: moreMatches.map(searchResultToSummary),
+      items: rows.slice(0, items.length),
+      moreMatches: rows.slice(items.length),
       nextCursor: results.length > 0 ? encodeCursor(page + 1) : null,
     };
   }
@@ -129,16 +134,47 @@ export class CatalogService {
     if (parsed.kind === 'local') {
       const row = await this.repo.findWorkById(parsed.id);
       if (!row || !canView(row, userId)) throw notFound();
-      return localWorkToDetail(row);
+      return this.localDetail(userId, row);
     }
 
     // A work persisted earlier wins over Open Library, and the web gets its local id.
     const local = await this.repo.findWorkByOlKey(parsed.key);
-    if (local && canView(local, userId)) return localWorkToDetail(local);
+    if (local && canView(local, userId)) return this.localDetail(userId, local);
 
     const work = await mapCatalogErrors(() => this.provider.getWork(parsed.key));
     const authors = await this.resolveAuthors(work.authorKeys);
     return externalWorkToDetail(work, authors);
+  }
+
+  private async localDetail(userId: string, row: WorkRow): Promise<WorkDetail> {
+    const matches = await this.library.find(userId, { workIds: [row.id] });
+    return { ...localWorkToDetail(row), libraryStatus: matches.forWork(row.id) };
+  }
+
+  /**
+   * Search rows with the viewer's status. A row whose work, or a duplicate merged into it, is in
+   * the library links to that saved work (SPEC 20).
+   */
+  private async toLibraryRows(userId: string, works: CollapsedWork[]): Promise<WorkSummary[]> {
+    const matches = await this.library.find(userId, {
+      olWorkKeys: works.flatMap((work) => work.mergedKeys),
+    });
+    return works.map((work) => {
+      const summary = searchResultToSummary(work);
+      const match = matches.forMergedRow(work.olWorkKey, work.mergedKeys);
+      return match
+        ? { ...summary, ref: match.workId, libraryStatus: match.libraryStatus }
+        : summary;
+    });
+  }
+
+  /** Summaries of local works, matched to the library by work id. */
+  private async toLocalSummaries(userId: string, rows: WorkSummaryRow[]): Promise<WorkSummary[]> {
+    const matches = await this.library.find(userId, { workIds: rows.map((row) => row.id) });
+    return rows.map((row) => ({
+      ...localWorkToSummary(row),
+      libraryStatus: matches.forWork(row.id),
+    }));
   }
 
   async getEditions(userId: string, ref: string, language?: string): Promise<EditionDto[]> {
@@ -185,21 +221,21 @@ export class CatalogService {
     }
   }
 
-  async getAuthor(ref: string): Promise<AuthorDetail> {
+  async getAuthor(userId: string, ref: string): Promise<AuthorDetail> {
     const parsed = parseRef(ref, 'A');
     if (!parsed) throw invalidRef();
 
     if (parsed.kind === 'local') {
       const row = await this.repo.findAuthorById(parsed.id);
       if (!row) throw notFound();
-      return this.localAuthorDetail(row);
+      return this.localAuthorDetail(userId, row);
     }
     const local = await this.repo.findAuthorByOlKey(parsed.key);
-    if (local) return this.localAuthorDetail(local);
+    if (local) return this.localAuthorDetail(userId, local);
 
     const [author, works] = await Promise.all([
       mapCatalogErrors(() => this.provider.getAuthor(parsed.key)),
-      this.worksOfOlAuthor(parsed.key),
+      this.worksOfOlAuthor(userId, parsed.key),
     ]);
     return {
       ref: olRef(author.olAuthorKey),
@@ -213,10 +249,10 @@ export class CatalogService {
     };
   }
 
-  private async localAuthorDetail(local: Author): Promise<AuthorDetail> {
+  private async localAuthorDetail(userId: string, local: Author): Promise<AuthorDetail> {
     const works = local.olAuthorKey
-      ? await this.worksOfOlAuthor(local.olAuthorKey)
-      : (await this.repo.findPublicWorksByAuthor(local.id)).map(localWorkToSummary);
+      ? await this.worksOfOlAuthor(userId, local.olAuthorKey)
+      : await this.toLocalSummaries(userId, await this.repo.findPublicWorksByAuthor(local.id));
     return {
       ref: local.id,
       name: local.name,
@@ -234,7 +270,7 @@ export class CatalogService {
    * books are dropped, duplicates are merged and the 1-edition tail is dropped. Ordered by
    * release year. Only the first page can fail the request.
    */
-  private async worksOfOlAuthor(olAuthorKey: string) {
+  private async worksOfOlAuthor(userId: string, olAuthorKey: string) {
     const query = authorWorksQuery(olAuthorKey);
     const search = (page: number) => this.provider.searchWorks(query, page, { sort: 'editions' });
     const [first, ...rest] = await Promise.all([
@@ -248,21 +284,22 @@ export class CatalogService {
       if (!isSeriesJunkTitle(result.title)) unique.set(result.olWorkKey, result);
     }
     const { items } = collapseSearchResults([...unique.values()], { guardVisible: true });
-    return sortByReleaseYear(items).map(searchResultToSummary);
+    return this.toLibraryRows(userId, sortByReleaseYear(items));
   }
 
-  async getSeries(id: string): Promise<SeriesDetail> {
+  async getSeries(userId: string, id: string): Promise<SeriesDetail> {
     const olName = olSeriesName(id);
-    if (olName !== null) return this.getOpenLibrarySeries(id, olName);
+    if (olName !== null) return this.getOpenLibrarySeries(userId, id, olName);
     if (!isUuid(id)) throw invalidRef();
     const row = await this.repo.findSeriesById(id);
     if (!row) throw notFound();
+    const summaries = await this.toLocalSummaries(userId, row.works);
     return {
       id: row.id,
       name: row.name,
-      works: row.works.map((work) => ({
-        ...localWorkToSummary(work),
-        position: decimalToNumber(work.seriesPosition),
+      works: summaries.map((summary, index) => ({
+        ...summary,
+        position: decimalToNumber(row.works[index]?.seriesPosition ?? null),
       })),
     };
   }
@@ -275,7 +312,11 @@ export class CatalogService {
    * the subject search can fail the request; the other two are best effort. Open Library has no
    * series positions, so every position is null.
    */
-  private async getOpenLibrarySeries(id: string, name: string): Promise<SeriesDetail> {
+  private async getOpenLibrarySeries(
+    userId: string,
+    id: string,
+    name: string,
+  ): Promise<SeriesDetail> {
     const search = (query: string) => this.provider.searchWorks(query, 1);
     const [tagged, byField] = await Promise.all([
       mapCatalogErrors(() => search(seriesSearchQuery(name))),
@@ -302,15 +343,9 @@ export class CatalogService {
     });
     const { items } = collapseSearchResults(results, { guardVisible: true });
     if (items.length === 0) throw notFound();
-    return {
-      id,
-      name,
-      // Open Library has no positions and dates early editions badly: order by release year.
-      works: sortByReleaseYear(items).map((result) => ({
-        ...searchResultToSummary(result),
-        position: null,
-      })),
-    };
+    // Open Library has no positions and dates early editions badly: order by release year.
+    const works = await this.toLibraryRows(userId, sortByReleaseYear(items));
+    return { id, name, works: works.map((work) => ({ ...work, position: null })) };
   }
 
   async lookupIsbn(isbn: string): Promise<IsbnResult> {
