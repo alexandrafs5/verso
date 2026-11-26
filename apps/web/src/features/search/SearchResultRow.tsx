@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { BookCover } from '@/components/verso';
 import { focusRing } from '@/components/shell/nav';
+import { LibraryControl } from '@/features/library/LibraryControl';
 import { cn } from '@/lib/utils';
 
 export function workHref(ref: string): string {
@@ -21,11 +22,11 @@ export function SearchResultRow({ work }: { work: WorkSummary }) {
   ].filter((part): part is string => part !== null);
 
   return (
-    <li>
+    <li className="md:flex md:items-center md:gap-4">
       <Link
         href={workHref(work.ref)}
         className={cn(
-          'flex gap-4 rounded-(--radius-card) px-2 py-3 hover:bg-surface md:px-3',
+          'flex gap-4 rounded-(--radius-card) px-2 py-3 hover:bg-surface md:min-w-0 md:flex-1 md:px-3',
           focusRing,
         )}
       >
@@ -47,6 +48,10 @@ export function SearchResultRow({ work }: { work: WorkSummary }) {
           {meta.length > 0 ? <p className="mt-1 text-sm text-muted">{meta.join(' · ')}</p> : null}
         </div>
       </Link>
+      {/* Beside the link, never inside it. Under the text on phones (past the cover). */}
+      <div className="pb-3 pl-22 md:shrink-0 md:pr-3 md:pb-0 md:pl-0">
+        <LibraryControl workRef={work.ref} title={work.title} libraryStatus={work.libraryStatus} />
+      </div>
     </li>
   );
 }

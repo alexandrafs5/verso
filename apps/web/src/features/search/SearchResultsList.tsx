@@ -30,12 +30,18 @@ function SkeletonRows() {
   return (
     <ul aria-hidden="true" className="divide-y divide-border">
       {Array.from({ length: 6 }, (_, i) => (
-        <li key={i} className="flex gap-4 px-2 py-3 md:px-3">
-          <Skeleton className="aspect-[2/3] w-16 shrink-0" />
-          <div className="flex-1 space-y-2 pt-1">
-            <Skeleton className="h-5 w-2/3" />
-            <Skeleton className="h-4 w-1/3" />
-            <Skeleton className="h-4 w-1/4" />
+        <li key={i} className="md:flex md:items-center md:gap-4">
+          <div className="flex gap-4 px-2 py-3 md:flex-1 md:px-3">
+            <Skeleton className="aspect-[2/3] w-16 shrink-0" />
+            <div className="flex-1 space-y-2 pt-1">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-4 w-1/4" />
+            </div>
+          </div>
+          {/* The add to library control. */}
+          <div className="pb-3 pl-22 md:pr-3 md:pb-0 md:pl-0">
+            <Skeleton className="h-11 w-52 md:h-10" />
           </div>
         </li>
       ))}
@@ -88,8 +94,9 @@ export function SearchResultsList({ q, genre }: { q?: string; genre?: string }) 
   return (
     <div>
       <ul className="divide-y divide-border">
-        {items.map((work) => (
-          <SearchResultRow key={work.ref} work={work} />
+        {items.map((work, index) => (
+          // Not the ref: adding a book changes it, and the row must keep its focus.
+          <SearchResultRow key={`${index}-${work.title}`} work={work} />
         ))}
       </ul>
       <MoreMatches key={`${q ?? ''}|${genre ?? ''}`} works={moreMatches} />

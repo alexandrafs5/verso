@@ -183,6 +183,7 @@
   },
   "series": {
     "worksHeading": "Books in this series",
+    "readProgress": "You’ve read {count} of {total}",
     "worksEmpty": "No books found in this series",
     "worksEmptyHint": "This series has no books yet.",
     "coverAlt": "Cover of {title}",

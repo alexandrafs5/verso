@@ -95,15 +95,54 @@ describe('SeriesPage', () => {
     expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
   });
 
-  it('shows no read count, library control or status', async () => {
-    open(json(series()));
-    await screen.findByRole('heading', { level: 1 });
-    expect(screen.queryByText(/You’ve read|You've read|Want to read|Add to library/)).toBeNull();
+  const saved = (status: string, readCount: number) => ({
+    libraryStatus: { userBookId: ID, status, readCount, editionRef: 'ol:OL1M' },
   });
 
-  it('shows an empty state for a series with no works', async () => {
+  it('shows a control on every row, never inside the row link', async () => {
+    open(json(series()));
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByText('You’ve read 0 of 4')).toBeVisible();
+    expect(screen.getAllByRole('button', { name: /^Want to read: / })).toHaveLength(4);
+    expect(document.querySelector('a button')).toBeNull();
+  });
+
+  it('counts the books with a finished reading, whatever their status', async () => {
+    open(
+      json(
+        series([
+          { ...entry('ol:OL1W', 'First', 1, 2001), ...saved('READ', 1) },
+          // A reread in progress still counts.
+          { ...entry('ol:OL2W', 'Second', 2, 2002), ...saved('READING', 2) },
+          { ...entry('ol:OL3W', 'Third', 3, 2003), ...saved('READING', 0) },
+          entry('ol:OL4W', 'Fourth', 4, 2004),
+        ]),
+      ),
+    );
+    expect(await screen.findByText('You’ve read 2 of 4')).toBeVisible();
+    expect(screen.getAllByRole('button', { name: 'Reading' })).toHaveLength(2);
+    expect(screen.getByText('×2')).toBeInTheDocument();
+  });
+
+  it('updates the status and the count after an add', async () => {
+    const fetchMock = mockApi({
+      [`GET /api/v1/series/${ID}`]: () => json(series([entry('ol:OL1W', 'First', 1, 2001)])),
+      'POST /api/v1/library': () => json({ ...saved('READ', 1).libraryStatus, workRef: ID }, 201),
+    });
+    renderWithProviders(<SeriesPage seriesId={ID} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose a status for First' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Read' }));
+
+    expect(await screen.findByText('You’ve read 1 of 1')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Read' })).toBeDisabled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows an empty state without a count for a series with no works', async () => {
     open(json({ id: ID, name: 'The Saga', works: [] }));
     expect(await screen.findByText('No books found in this series')).toBeVisible();
+    expect(screen.queryByText(/You’ve read/)).not.toBeInTheDocument();
   });
 
   it('shows the not-found state for a 404 and for an invalid id', async () => {

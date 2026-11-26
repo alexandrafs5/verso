@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { workHref } from '@/features/catalog/hrefs';
+import { LibraryControl } from '@/features/library/LibraryControl';
 import { cn } from '@/lib/utils';
 import { useSeries } from './use-series';
 
@@ -21,14 +22,21 @@ function SeriesSkeleton() {
       <BackButton className="mb-4" />
       <div aria-hidden="true" className="space-y-6">
         <Skeleton className="h-10 w-1/2" />
+        {/* "You've read N of M". */}
+        <Skeleton className="h-5 w-40" />
         <ul className="divide-y divide-border">
           {Array.from({ length: 5 }, (_, i) => (
-            <li key={i} className="flex items-center gap-4 py-3">
-              <Skeleton className="h-6 w-6" />
-              <Skeleton className="aspect-[2/3] w-16 shrink-0" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-5 w-2/3" />
-                <Skeleton className="h-4 w-1/4" />
+            <li key={i} className="md:flex md:items-center md:gap-4">
+              <div className="flex items-center gap-4 px-2 py-3 md:flex-1 md:px-3">
+                <Skeleton className="h-6 w-8 shrink-0" />
+                <Skeleton className="aspect-[2/3] w-16 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-1/4" />
+                </div>
+              </div>
+              <div className="pb-3 pl-34 md:pr-3 md:pb-0 md:pl-0">
+                <Skeleton className="h-11 w-52 md:h-10" />
               </div>
             </li>
           ))}
@@ -47,12 +55,13 @@ function SeriesWorks({ works }: { works: SeriesDetail['works'] }) {
 
   return (
     <ol className="divide-y divide-border">
-      {works.map((work) => (
-        <li key={work.ref}>
+      {works.map((work, index) => (
+        // Not the ref: adding a book changes it, and the row must keep its focus.
+        <li key={`${index}-${work.title}`} className="md:flex md:items-center md:gap-4">
           <Link
             href={workHref(work.ref)}
             className={cn(
-              'flex items-center gap-4 rounded-(--radius-card) px-2 py-3 hover:bg-surface md:px-3',
+              'flex items-center gap-4 rounded-(--radius-card) px-2 py-3 hover:bg-surface md:min-w-0 md:flex-1 md:px-3',
               focusRing,
             )}
           >
@@ -76,6 +85,14 @@ function SeriesWorks({ works }: { works: SeriesDetail['works'] }) {
               )}
             </span>
           </Link>
+          {/* Beside the link, never inside it. Under the text on phones (past the cover). */}
+          <div className="pb-3 pl-34 md:shrink-0 md:pr-3 md:pb-0 md:pl-0">
+            <LibraryControl
+              workRef={work.ref}
+              title={work.title}
+              libraryStatus={work.libraryStatus}
+            />
+          </div>
         </li>
       ))}
     </ol>
@@ -121,6 +138,16 @@ function SeriesView({ seriesId }: { seriesId: string }) {
       <h1 className="font-serif text-3xl leading-tight break-words md:text-4xl">
         {series.data.name}
       </h1>
+      {series.data.works.length > 0 ? (
+        <p className="mt-2 text-muted">
+          {t('readProgress', {
+            // A reread in progress still counts: the book has been read once.
+            count: series.data.works.filter((work) => (work.libraryStatus?.readCount ?? 0) > 0)
+              .length,
+            total: series.data.works.length,
+          })}
+        </p>
+      ) : null}
       <section aria-label={t('worksHeading')} className="mt-6">
         <SeriesWorks works={series.data.works} />
       </section>
