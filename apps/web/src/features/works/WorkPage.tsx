@@ -84,9 +84,13 @@ function WorkView({ workRef }: { workRef: string }) {
   const data = work.data;
   const editionList = editions.data ?? [];
   // The edition picked here, else the saved one (SPEC 20), else the default (SPEC 18).
-  const chosenRef = selectedRef ?? data.libraryStatus?.editionRef;
-  const chosen = editionList.find((item) => item.ref === chosenRef);
-  const edition = chosen ?? pickDefaultEdition(editionList, locale);
+  const defaultEdition = pickDefaultEdition(editionList, locale);
+  const picked = editionList.find((item) => item.ref === selectedRef);
+  const saved = editionList.find((item) => item.ref === data.libraryStatus?.editionRef);
+  const edition = picked ?? saved ?? defaultEdition;
+  // The work cover is what search shows, so it stays until the user picks an edition. Saving the
+  // default edition is not a pick: adding a book must not change its cover.
+  const coverEdition = picked ?? (saved?.ref === defaultEdition?.ref ? undefined : saved);
   const authors = data.authors.map((author) => author.name).join(', ');
 
   return (
@@ -97,8 +101,7 @@ function WorkView({ workRef }: { workRef: string }) {
           size="lg"
           title={data.title}
           author={authors || undefined}
-          // The work cover is what search shows, so it stays until an edition is picked or saved.
-          coverUrl={chosen?.coverUrl ?? data.coverUrl}
+          coverUrl={coverEdition?.coverUrl ?? data.coverUrl}
           coverAlt={t('coverAlt', { title: data.title })}
           tone={pickCoverTone(data.title)}
           className="mx-auto w-48 md:mx-0 md:w-64 [&_img]:shadow-(--shadow-high)"

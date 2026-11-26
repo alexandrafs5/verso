@@ -262,7 +262,47 @@ describe('WorkPage', () => {
       expect(bodyOf(post?.[1])).toEqual({ workRef: 'ol:OL1W', status: 'WANT_TO_READ' });
     });
 
-    it('opens on the saved edition and its cover', async () => {
+    it('keeps the cover and the edition when adding without picking one', async () => {
+      mockApi({
+        'GET /api/v1/works/ol%3AOL1W': () =>
+          json(work({ coverUrl: 'https://covers.example/work.jpg' })),
+        'GET /api/v1/works/ol%3AOL1W/editions': () => twoEditions(),
+        'POST /api/v1/library': () =>
+          json({ ...saved, editionRef: 'ol:OL1M', workRef: SERIES_ID }, 201),
+      });
+      renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+      await screen.findByText(/Edition: Spanish/);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Want to read: Pedro Páramo' }));
+
+      expect(await screen.findByRole('button', { name: 'Want to read' })).toBeDisabled();
+      expect(screen.getByText(/Edition: Spanish/)).toBeVisible();
+      expect(screen.getByRole('img', { name: 'Cover of Pedro Páramo' })).toHaveAttribute(
+        'src',
+        'https://covers.example/work.jpg',
+      );
+    });
+
+    it('keeps the work cover for a saved book on the default edition', async () => {
+      routes({
+        work: json(
+          work({
+            coverUrl: 'https://covers.example/work.jpg',
+            libraryStatus: { ...saved, editionRef: 'ol:OL1M' },
+          }),
+        ),
+        editions: twoEditions(),
+      });
+      renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+
+      expect(await screen.findByText(/Edition: Spanish/)).toBeVisible();
+      expect(screen.getByRole('img', { name: 'Cover of Pedro Páramo' })).toHaveAttribute(
+        'src',
+        'https://covers.example/work.jpg',
+      );
+    });
+
+    it('opens on a saved edition other than the default, with its cover', async () => {
       routes({
         work: json(work({ coverUrl: 'https://covers.example/work.jpg', libraryStatus: saved })),
         editions: twoEditions(),

@@ -223,7 +223,7 @@ Manual works do not change.
 Per screen:
 
 - **S2:** the control is on every row, also under "Show more matches". From tablet width it sits at the right end of the row. On phones it sits under the book text. The row link and the control are siblings. No control is inside a link.
-- **S3:** the control sits in the info column, above the edition line. Adding sends the selected edition, or no edition while editions are loading or failed. For a saved book, S3 selects `libraryStatus.editionRef` and shows that edition's cover. If that edition is not in the list, the default applies. Picking another edition stays local.
+- **S3:** the control sits in the info column, above the edition line. Adding sends the selected edition, or no edition while editions are loading or failed. For a saved book, S3 selects `libraryStatus.editionRef`. The cover changes to that edition's cover only when it is not the default edition, so adding the default edition keeps the work cover (amended after manual testing, 2026-11-26). If the saved edition is not in the list, the default applies. Picking another edition stays local.
 - **S5:** a book in the library has a text badge on a corner of its cover: the status, plus "×N" from 2 finished readings. New component `components/verso/StatusBadge.tsx`. The badge is part of the link name.
 - **S6:** the same control and layout as S2. The header shows "You've read N of M". N counts listed works with `readCount` of 1 or more. M counts the listed works. It shows when N is 0, and is hidden when the list is empty.
 
@@ -316,7 +316,7 @@ Docs and checks:
 
 ### UI states: S3 work page
 
-- [ ] **Normal:** the control is above the edition line; a saved book opens on its saved edition.
+- [ ] **Normal:** the control is above the edition line; a saved book opens on its saved edition; adding without picking an edition keeps the cover and the edition line.
 - [ ] **Loading:** the skeleton reserves the control space.
 - [ ] **Empty:** a work with no editions still shows the control, and adding shows the no-edition toast.
 - [ ] **Error:** an editions error keeps the control usable.
