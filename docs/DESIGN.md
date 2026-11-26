@@ -306,7 +306,7 @@ The most important screen.
 - **Charts** (palette: wine, tobacco, brass; thin, minimal axes): pages per month (bars); books per year (bars, All time); genres (horizontal bars, top 8); top authors (ranked list with cover thumbnails); reading pace over time (line).
 - **Reading calendar:** GitHub-style heatmap of days with sessions, brass intensity by pages read; hover shows date and pages.
 - **Records:** longest book, fastest read (pages/day), highest-rated book.
-- Rules shown as helper text: abandoned books don't count; books marked read without dates count in totals only ("12 books with unknown dates").
+- Rules shown as helper text: abandoned books don't count; books marked read without a finish date count in totals only ("12 books with unknown dates").
 - &#91;F2\] "Your Wrapped" cards for current and past years.
 - Empty: "Your stats appear after your first session".
 

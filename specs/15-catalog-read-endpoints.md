@@ -6,10 +6,11 @@
 > **Objective:** Serve search, work, editions, author, series and ISBN lookup under `/api/v1` from the `CatalogProvider` and the catalog tables, with a Zod contract in `packages/shared`.
 > **Amended by SPEC 17:** `GET /v1/search/books` merges near-duplicate works per page (Open Library relevance order) and returns the 1-edition tail in `moreMatches` next to `items`. The cursor is unchanged.
 > **Amended by SPEC 18:** `q` is optional when `genre` is set, so a genre alone searches the subject (`subject:"<genre>"`) and lists the works with the most editions first. At least one of the two is required. The genre chip mapping and `Genre` seed are built in M3.5.
+> **Amended by SPEC 19:** `libraryStatus` is filled in M4.2, not M4.1, and its schema (`null` only) changes then.
 
 ## Why this spec exists
 
-M3.4 and M3.5 (search UI, work, author and series pages) read only through these endpoints. The contract has to hold when M4 adds `UserBook` and when M3.5 maps genre chips, so fields that cannot be filled yet exist now as nullable. Changing the schema later would break both apps (CLAUDE.md: the shared schema is the contract).
+M3.4 and M3.5 (search UI, work, author and series pages) read only through these endpoints. The contract has to hold when M4 adds `UserBook` and when M3.5 maps genre chips, so fields that cannot be filled yet exist now as nullable. A later schema change has to update both apps together (CLAUDE.md: the shared schema is the contract).
 
 ## Scope
 
@@ -35,7 +36,7 @@ M3.4 and M3.5 (search UI, work, author and series pages) read only through these
 
 - `GET /v1/works/{ref}/reviews` (M8.6) and `GET /v1/search/users` (M8.5).
 - Persisting works, editions or authors on read. Reads never write to catalog tables (CLAUDE.md hard rule). Persisting happens on add to library (M4.2).
-- The viewer's library status. `UserBook` arrives in M4.1, so `libraryStatus` is always `null` here.
+- The viewer's library status. `libraryStatus` is always `null` here. M4.2 fills it and changes the schema (SPEC 19).
 - Genre tables seeding and chip-to-subject mapping (M3.5, moved from M3.4 by SPEC 16). `genre` here is a raw subject string.
 - Any series lookup from Open Library. Series is local data.
 - Merge redirects. A local work with `mergedIntoId` is returned as is, until M10.2 defines the behavior.
@@ -62,7 +63,7 @@ type WorkSummary = {
   firstPublishYear: number | null;
   coverUrl: string | null;
   editionCount: number | null; // null for local works
-  libraryStatus: null;         // always null until M4.1
+  libraryStatus: null;         // always null until M4.2
 };
 
 type WorkDetail = {
@@ -189,7 +190,7 @@ UI states: N/A, this spec touches no screen or component.
 
 ## Decisions
 
-- **Yes:** `libraryStatus` and `series` exist now as nullable. M4.1 fills them without changing the schema.
+- **Yes:** `libraryStatus` and `series` exist now as nullable. M4.2 fills `libraryStatus` and changes its schema, which is `null` only (amended by SPEC 19).
 - **No:** omit those fields. It would force a contract change in M4.
 - **Yes:** author works through `searchWorks("author_key:…")`. It reuses the cache and fixtures and needs no provider change.
 - **No:** `listAuthorWorks` on `CatalogProvider`. More surface for a page that needs only the first 20 works in F1.
