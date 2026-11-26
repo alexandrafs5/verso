@@ -7,6 +7,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { type ReactNode, useState, useTransition } from 'react';
 import { LOCALES } from '@verso/i18n';
+import { TAG_COLORS } from '@verso/shared';
 import { Button } from '@/components/ui/button';
 import { setLocale } from '@/i18n/actions';
 import {
@@ -29,16 +30,6 @@ import {
 } from '@/components/verso';
 
 const TONES: CoverTone[] = ['wine', 'tobacco', 'forest', 'navy', 'oxblood', 'slate'];
-const TAG_COLORS: TagColor[] = [
-  'WINE',
-  'TOBACCO',
-  'BRASS',
-  'FOREST',
-  'NAVY',
-  'OXBLOOD',
-  'SLATE',
-  'SAND',
-];
 const RATING_STYLES: RatingStyle[] = [
   'STARS_WHOLE',
   'STARS_HALF',

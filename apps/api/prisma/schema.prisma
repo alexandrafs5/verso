@@ -343,6 +343,8 @@ model UserBook {
 }
 
 // One read-through of a UserBook. The partial index allows only one open reading per book.
+// Careful: because of that index the client accepts `userBookId` alone as a unique key, but a book
+// has many readings. Never use findUnique/update/delete by `userBookId`; filter by `state` instead.
 model Reading {
   id          String       @id
   userBookId  String

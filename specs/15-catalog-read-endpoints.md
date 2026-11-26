@@ -6,10 +6,11 @@
 > **Objective:** Serve search, work, editions, author, series and ISBN lookup under `/api/v1` from the `CatalogProvider` and the catalog tables, with a Zod contract in `packages/shared`.
 > **Amended by SPEC 17:** `GET /v1/search/books` merges near-duplicate works per page (Open Library relevance order) and returns the 1-edition tail in `moreMatches` next to `items`. The cursor is unchanged.
 > **Amended by SPEC 18:** `q` is optional when `genre` is set, so a genre alone searches the subject (`subject:"<genre>"`) and lists the works with the most editions first. At least one of the two is required. The genre chip mapping and `Genre` seed are built in M3.5.
+> **Amended by SPEC 19:** `libraryStatus` is filled in M4.2, not M4.1, and its schema (`null` only) changes then.
 
 ## Why this spec exists
 
-M3.4 and M3.5 (search UI, work, author and series pages) read only through these endpoints. The contract has to hold when M4 adds `UserBook` and when M3.5 maps genre chips, so fields that cannot be filled yet exist now as nullable. Changing the schema later would break both apps (CLAUDE.md: the shared schema is the contract).
+M3.4 and M3.5 (search UI, work, author and series pages) read only through these endpoints. The contract has to hold when M4 adds `UserBook` and when M3.5 maps genre chips, so fields that cannot be filled yet exist now as nullable. A later schema change has to update both apps together (CLAUDE.md: the shared schema is the contract).
 
 ## Scope
 

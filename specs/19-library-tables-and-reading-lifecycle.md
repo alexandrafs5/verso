@@ -1,6 +1,6 @@
 # SPEC 19 — Library tables and reading lifecycle (M4.1)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 03, SPEC 07, SPEC 14, SPEC 15
 > **Date:** 2026-11-26
 > **Objective:** Add the `UserBook`, `Reading`, `Tag` and `UserBookTag` tables and a pure, fully unit-tested `ReadingLifecycle` class that decides every status and reading change.
@@ -168,6 +168,8 @@ type ReadingData = {
 type ReadingSnapshot = ReadingData & { hasSessions: boolean };
 type LibraryState = { status: BookStatus; readings: ReadingSnapshot[] };
 
+type ReadingDates = { startedOn?: LocalDate | null; finishedOn?: LocalDate | null };
+
 type LifecycleChange =
   | { type: 'SET_STATUS'; status: BookStatus }
   | { type: 'CREATE_READING'; reading: ReadingData }
@@ -190,7 +192,7 @@ Methods of `ReadingLifecycle`. Each returns `LifecycleChange[]`:
 - `reread(state, today)`
 - `changeStatus(state, target, today)`
 
-The class never mutates its input and never reads the clock. The caller passes `today`. The service applies the changes in order, in one transaction (M4.2, M4.3).
+The class never mutates its input and never reads the clock. The caller passes `today`. The service applies the changes in order, in one transaction (M4.2 for `add`, M4.3 for the rest).
 
 ### Lifecycle rules
 
@@ -198,7 +200,8 @@ Terms:
 
 - **Latest reading:** the reading with the highest `number`.
 - **New reading:** `number` is the highest existing number plus one, or 1. `currentPage` is null and `percentBp` is 0.
-- **Empty reading:** `startedOn` and `finishedOn` are null, `currentPage` is null or 0, `percentBp` is 0 and `hasSessions` is false.
+- **Progress:** `currentPage` above 0 or `percentBp` above 0.
+- **Empty reading:** `startedOn` and `finishedOn` are null, there is no progress and `hasSessions` is false.
 
 **Add** returns `SET_STATUS` plus these reading changes:
 
@@ -231,9 +234,9 @@ Terms:
 | `READ` | `READING` | Same as `reread` |
 | `READING` | `READ` | Same as `finish` |
 | `READING` | `ABANDONED` | Same as `abandon` |
-| `READING` | `WANT_TO_READ` | Open reading without sessions is deleted. With sessions it becomes `ABANDONED` |
+| `READING` | `WANT_TO_READ` | Open reading without sessions and without progress is deleted. Otherwise it becomes `ABANDONED` |
 | `WANT_TO_READ` or `ABANDONED` | `READ` | See "To Read" below |
-| `WANT_TO_READ` or `READ` | `ABANDONED` | If the latest reading is `ABANDONED`, none. Otherwise a new `ABANDONED` reading with no dates |
+| `WANT_TO_READ` or `READ` | `ABANDONED` | None if the latest reading is `ABANDONED`, and it is empty or no `FINISHED` reading exists. Otherwise a new `ABANDONED` reading with no dates |
 | `READ` or `ABANDONED` | `WANT_TO_READ` | None. History stays |
 
 **To Read** with no open reading. The first matching row wins:
@@ -262,56 +265,59 @@ Terms:
 6. Add `changeStatus` and its tests. Verify: `pnpm --filter api test`.
 7. Update `ARCHITECTURE.md` (§5.3 rows for `UserBook`, `Reading` and `Tag`; §6.1 diagram and rules), the SPEC 15 note and `ROADMAP.md`. Run `pnpm lint && pnpm typecheck && pnpm test`.
 
+Steps 3, 4 and 7 need Postgres running (`docker compose up -d`).
+
 ## Acceptance criteria
 
 Shared types:
 
-- [ ] `bookStatusSchema` accepts the four statuses and rejects any other string.
-- [ ] `tagColorSchema` accepts the eight colors and rejects any other string.
-- [ ] `apps/web` defines no `BookStatus` or `TagColor` union of its own.
+- [x] `bookStatusSchema` accepts the four statuses and rejects any other string.
+- [x] `tagColorSchema` accepts the eight colors and rejects any other string.
+- [x] `apps/web` defines no `BookStatus` or `TagColor` union of its own.
 
 Database:
 
-- [ ] `pnpm db:migrate` applies cleanly on an empty database and on the current dev database.
-- [ ] The migration creates four tables and four enums. No column of an existing table changes.
-- [ ] A second `pnpm db:migrate` creates no new migration and reports no drift.
-- [ ] A second `UserBook` with the same (`userId`, `workId`) fails.
-- [ ] A second `IN_PROGRESS` reading for one `UserBook` fails.
-- [ ] One `UserBook` holds several `FINISHED` and `ABANDONED` readings plus one `IN_PROGRESS` reading.
-- [ ] Two readings with the same (`userBookId`, `number`) fail.
-- [ ] One user cannot hold tags named "Favorites" and "favorites". Two users can hold the same name.
-- [ ] A duplicate (`userBookId`, `tagId`) fails.
-- [ ] `rating` -1 and 101 fail. `rating` 0, 100 and null succeed.
-- [ ] `percentBp` -1 and 10001 fail. `currentPage` -1 fails.
-- [ ] Deleting a `Work` or an `Edition` that a `UserBook` uses fails.
-- [ ] Deleting a `UserBook` deletes its readings and tag links, and keeps the tags and the work.
-- [ ] Deleting a `Tag` deletes its links and keeps the books.
-- [ ] Deleting a user deletes their `UserBook`, `Reading`, `Tag` and `UserBookTag` rows, and keeps the works.
-- [ ] `UserBook` defaults: `hiddenFromProfile` false, `annotationVisibility` INHERIT, `progressStyle` null, `archivedAt` null. `Reading.percentBp` defaults to 0.
+- [x] `pnpm db:migrate` applies cleanly on an empty database and on the current dev database.
+- [x] The migration creates four tables and four enums. No column of an existing table changes.
+- [x] A second `pnpm db:migrate` creates no new migration and reports no drift.
+- [x] A second `UserBook` with the same (`userId`, `workId`) fails.
+- [x] A second `IN_PROGRESS` reading for one `UserBook` fails.
+- [x] One `UserBook` holds several `FINISHED` and `ABANDONED` readings plus one `IN_PROGRESS` reading.
+- [x] Two readings with the same (`userBookId`, `number`) fail.
+- [x] One user cannot hold tags named "Favorites" and "favorites". Two users can hold the same name.
+- [x] A duplicate (`userBookId`, `tagId`) fails.
+- [x] `rating` -1 and 101 fail. `rating` 0, 100 and null succeed.
+- [x] `percentBp` -1 and 10001 fail. `currentPage` -1 fails.
+- [x] Deleting a `Work` or an `Edition` that a `UserBook` uses fails.
+- [x] Deleting a `UserBook` deletes its readings and tag links, and keeps the tags and the work.
+- [x] Deleting a `Tag` deletes its links and keeps the books.
+- [x] Deleting a user deletes their `UserBook`, `Reading`, `Tag` and `UserBookTag` rows, and keeps the works.
+- [x] `UserBook` defaults: `hiddenFromProfile` false, `annotationVisibility` INHERIT, `progressStyle` null, `archivedAt` null. `Reading.percentBp` defaults to 0.
 
 Domain:
 
-- [ ] A test covers each of the four statuses in `add`, including `READ` with and without dates.
-- [ ] A test covers each named action from its valid status.
-- [ ] Each named action throws `INVALID_TRANSITION` from each of the other three statuses.
-- [ ] A test covers each of the 16 status pairs in `changeStatus`.
-- [ ] A test covers each row of the "To Read" table.
-- [ ] `READ` to `ABANDONED` to `READ` leaves the same number of `FINISHED` readings.
-- [ ] `READING` to `WANT_TO_READ` deletes a reading without sessions and abandons a reading with sessions.
-- [ ] A test covers each consistency rule.
-- [ ] New readings get the highest number plus one.
-- [ ] No method mutates its input.
-- [ ] `reading-lifecycle.ts` imports nothing from `@nestjs/*`, Prisma or the generated client.
+- [x] A test covers each of the four statuses in `add`, including `READ` with and without dates.
+- [x] A test covers each named action from its valid status.
+- [x] Each named action throws `INVALID_TRANSITION` from each of the other three statuses.
+- [x] A test covers each of the 16 status pairs in `changeStatus`.
+- [x] A test covers each row of the "To Read" table.
+- [x] `READ` to `ABANDONED` to `READ` leaves the same number of `FINISHED` readings.
+- [x] From a `READ` book, no chain of status changes that avoids `READING` adds a `FINISHED` reading.
+- [x] `READING` to `WANT_TO_READ` deletes a reading without sessions or progress, and abandons any other.
+- [x] A test covers each consistency rule.
+- [x] New readings get the highest number plus one.
+- [x] No method mutates its input.
+- [x] `reading-lifecycle.ts` imports nothing from `@nestjs/*`, Prisma or the generated client.
 
 Docs and checks:
 
-- [ ] `ARCHITECTURE.md` §6.1 shows add as `ABANDONED`, every status transition and the rules above.
-- [ ] `ARCHITECTURE.md` §5.3 mentions the unique reading number, the `citext` tag name and the CHECK constraints.
-- [ ] SPEC 15 says that M4.2 fills `libraryStatus` and changes the schema.
-- [ ] M4.1 is ticked in `ROADMAP.md`, and the M4.2 line mentions `libraryStatus`.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] `ARCHITECTURE.md` §6.1 shows add as `ABANDONED`, every status transition and the rules above.
+- [x] `ARCHITECTURE.md` §5.3 mentions the unique reading number, the `citext` tag name and the CHECK constraints.
+- [x] SPEC 15 says that M4.2 fills `libraryStatus` and changes the schema.
+- [x] M4.1 is ticked in `ROADMAP.md`, and the M4.2 line mentions `libraryStatus`.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
 
-UI states: N/A, this spec changes no screen or component behavior. The only web change is a type import.
+UI states: N/A, this spec changes no screen or component behavior. The only web changes are shared type and constant imports.
 
 ## Decisions
 
@@ -321,14 +327,20 @@ UI states: N/A, this spec changes no screen or component behavior. The only web 
 - **Yes:** marking a book Read without an open reading records an unknown finish date. The book was probably read in the past, and a fake date would distort stats.
 - **No:** a finished reading dated today on every change to Read. Toggling the status would inflate "Read ×N".
 - **Yes:** an empty abandoned reading is deleted on the way back to Read. It avoids a false second read.
-- **Yes:** `READING` to `WANT_TO_READ` abandons a reading that has sessions. Sessions and streak history survive, and abandoned readings never count in stats.
+- **Yes:** on a book already read, a change to Abandoned reuses the latest abandoned reading only if it is empty. Reusing one with data would turn it into one more read on the way back (found in review, 2026-11-26).
+- **Yes:** after that new empty reading, `resume` continues the empty one. The earlier abandoned reading stays in the history with its progress.
+- **Yes:** a change that passes through `READING` is a reread, so `READ` to `READING` to `READ` adds a read.
+- **Yes:** `READING` to `WANT_TO_READ` abandons a reading that has sessions or progress. History survives, and abandoned readings never count in stats.
+- **No:** deleting every reading without sessions. A resumed reading would lose its progress, and sessions do not exist before M5.2.
+- **Yes:** `resume` leaves a missing `startedOn` null. The date is unknown, and M5.4 lets the user edit it.
+- **Yes:** a converted reading can have `startedOn` and no `finishedOn`. Time-based stats key on `finishedOn`.
 - **No:** keeping that reading open. A Want to read book must not have an open reading.
 - **Yes:** `start` from `WANT_TO_READ` always creates a new reading, as §6.1 already says.
 - **Yes:** a new open reading starts today, including add as Reading.
 - **Yes:** a wrong-state named action throws, and a same-status change does nothing. Client bugs stay visible, and a repeated selection is harmless.
 - **Yes:** the lifecycle sets `percentBp` to 10000 on every finished reading. `currentPage` is left alone because the class does not know the page count.
 - **Yes:** an inconsistent input state throws instead of being repaired. Silent repair would hide a service bug.
-- **Yes:** `ReadingLifecycle` stays in `reading/domain`. From M4.3 the `library` module calls it through the exported `reading` service.
+- **Yes:** `ReadingLifecycle` stays in `reading/domain`. From M4.2 the `library` module calls it through the exported `reading` service.
 - **No:** moving the class to `library/domain`. ARCHITECTURE already places it in `reading`.
 - **Yes:** changes identify a reading by `number`, which is unique per book. The domain never handles database ids.
 - **Yes:** Prisma `partialIndexes` preview feature, so the schema declares the index.
@@ -346,6 +358,7 @@ UI states: N/A, this spec changes no screen or component behavior. The only web 
 | ---- | ---------- |
 | `partialIndexes` is a preview feature and may report drift on every migrate | An acceptance criterion checks a second migrate. If it fails, stop and ask before switching to raw SQL |
 | Prisma does not track CHECK constraints | Integration tests fail if a later migration drops one |
+| The client accepts `userBookId` alone as a unique key of `Reading`, so `findUnique`, `update` or `delete` by it can hit any reading of the book | A schema comment forbids it. M4.2 and M4.3 filter by `state` with `findFirst` |
 | The restricted deletes break test cleanup that removes all works | Tests delete only the rows they create, in dependency order |
 | A later screen needs a transition rule that differs | The rules live in one pure class with tests |
 

@@ -144,12 +144,24 @@ describe('Library schema (real Postgres)', () => {
     );
   });
 
-  it('restricts deleting a work or edition that a UserBook uses', async () => {
+  it('restricts deleting an edition that a UserBook uses', async () => {
     const entry = await userBook();
-    await expect(prisma.edition.delete({ where: { id: entry.editionId } })).rejects.toThrow();
-    await expect(prisma.work.delete({ where: { id: entry.workId } })).rejects.toThrow();
+    await expect(prisma.edition.delete({ where: { id: entry.editionId } })).rejects.toThrow(
+      /UserBook_editionId_fkey/,
+    );
     expect(await prisma.userBook.count({ where: { id: entry.id } })).toBe(1);
-    expect(await prisma.edition.count({ where: { id: entry.editionId } })).toBe(1);
+  });
+
+  // The edition belongs to another work, so only the work reference can block the delete.
+  // The database allows that mismatch; the service rejects it (M4.2).
+  it('restricts deleting a work that a UserBook uses', async () => {
+    const { editionId } = await book();
+    const entry = await userBook({ editionId });
+    await expect(prisma.work.delete({ where: { id: entry.workId } })).rejects.toThrow(
+      /UserBook_workId_fkey/,
+    );
+    expect(await prisma.work.count({ where: { id: entry.workId } })).toBe(1);
+    expect(await prisma.userBook.count({ where: { id: entry.id } })).toBe(1);
   });
 
   it('deleting a UserBook removes readings and tag links but keeps tags and the work', async () => {

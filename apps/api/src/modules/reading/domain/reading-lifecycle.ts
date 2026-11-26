@@ -186,8 +186,8 @@ function openNewReading(state: LibraryState, today: LocalDate): LifecycleChange[
 }
 
 /**
- * Read without an open reading: the finish date is unknown, and toggling the status back and
- * forth must not add reads.
+ * Read without an open reading: the finish date is unknown, and toggling a Read book through
+ * statuses other than Reading must not add reads. Going through Reading is a reread.
  */
 function markRead({ status, readings }: LibraryState): LifecycleChange[] {
   const changes = [setStatus('READ')];
@@ -212,24 +212,35 @@ function markRead({ status, readings }: LibraryState): LifecycleChange[] {
   return [...changes, createReading(readings, { state: 'FINISHED', percentBp: COMPLETE_BP })];
 }
 
-/** Abandoned without an open reading: reuses the latest abandoned reading or records one. */
+/**
+ * Abandoned without an open reading: reuses the latest abandoned reading or records an empty one.
+ * On a book already read, only an empty one is reused: reusing a reading with data would let the
+ * way back to Read turn it into one more read.
+ */
 function markAbandoned({ readings }: LibraryState): LifecycleChange[] {
   const changes = [setStatus('ABANDONED')];
-  if (latestReading(readings)?.state === 'ABANDONED') return changes;
+  const latest = latestReading(readings);
+  const hasFinished = readings.some((reading) => reading.state === 'FINISHED');
+  if (latest?.state === 'ABANDONED' && (isEmpty(latest) || !hasFinished)) return changes;
   return [...changes, createReading(readings, { state: 'ABANDONED' })];
 }
 
-/** An open reading is discarded, unless it has sessions to keep. Closed readings stay. */
+/** An open reading is discarded, unless it has sessions or progress to keep. Closed ones stay. */
 function markWantToRead(state: LibraryState): LifecycleChange[] {
   const changes = [setStatus('WANT_TO_READ')];
   if (state.status !== 'READING') return changes;
-  const { number, hasSessions } = openReading(state);
+  const reading = openReading(state);
+  const { number } = reading;
   return [
     ...changes,
-    hasSessions
+    reading.hasSessions || hasProgress(reading)
       ? { type: 'UPDATE_READING', number, patch: { state: 'ABANDONED' } }
       : { type: 'DELETE_READING', number },
   ];
+}
+
+function hasProgress({ currentPage, percentBp }: ReadingSnapshot): boolean {
+  return (currentPage ?? 0) > 0 || percentBp > 0;
 }
 
 /** No dates, no progress and no sessions: deleting it loses nothing. */
@@ -237,8 +248,7 @@ function isEmpty(reading: ReadingSnapshot): boolean {
   return (
     reading.startedOn === null &&
     reading.finishedOn === null &&
-    (reading.currentPage ?? 0) === 0 &&
-    reading.percentBp === 0 &&
+    !hasProgress(reading) &&
     !reading.hasSessions
   );
 }

@@ -382,19 +382,75 @@ describe('ReadingLifecycle.changeStatus', () => {
     expect(finishedCount(move(SAMPLES.READ, 'WANT_TO_READ', 'READ'))).toBe(1);
   });
 
-  it('reuses the latest abandoned reading', () => {
-    const state = library('WANT_TO_READ', abandoned(1, { percentBp: 3000 }));
-    expect(ReadingLifecycle.changeStatus(state, 'ABANDONED', TODAY)).toEqual([
-      setStatus('ABANDONED'),
-    ]);
+  /** A book read once, whose reread was abandoned with progress, then marked Read again. */
+  const readWithAbandonedReread = library('READ', finished(1), abandoned(2, { percentBp: 3000 }));
+
+  it.each<BookStatus[]>([
+    ['ABANDONED', 'READ'],
+    ['ABANDONED', 'WANT_TO_READ', 'READ'],
+    ['WANT_TO_READ', 'ABANDONED', 'READ'],
+  ])('does not add a read after an abandoned reread (%s, %s)', (...targets) => {
+    const after = move(readWithAbandonedReread, ...targets);
+    expect(after).toEqual(readWithAbandonedReread);
   });
 
-  it('abandons a reading with sessions instead of deleting it', () => {
-    const state = library('READING', open(1, { hasSessions: true }));
+  it('never adds a read to a Read book through any chain that avoids Reading', () => {
+    const others = BOOK_STATUSES.filter((status) => status !== 'READING');
+    for (const start of [SAMPLES.READ, readWithAbandonedReread]) {
+      let states = [start];
+      for (let depth = 0; depth < 5; depth += 1) {
+        states = states.flatMap((state) => others.map((target) => move(state, target)));
+        for (const state of states) expect(finishedCount(move(state, 'READ'))).toBe(1);
+      }
+    }
+  });
+
+  it('counts a pass through Reading as a reread', () => {
+    expect(finishedCount(move(SAMPLES.READ, 'READING', 'READ'))).toBe(2);
+  });
+
+  it.each(['WANT_TO_READ', 'READ'] as const)(
+    'reuses the latest abandoned reading of a %s book never finished or still empty',
+    (status) => {
+      const neverFinished = library('WANT_TO_READ', abandoned(1, { percentBp: 3000 }));
+      const stillEmpty = library(status, finished(1), abandoned(2));
+      for (const state of [neverFinished, stillEmpty]) {
+        expect(ReadingLifecycle.changeStatus(state, 'ABANDONED', TODAY)).toEqual([
+          setStatus('ABANDONED'),
+        ]);
+      }
+    },
+  );
+
+  it.each(['WANT_TO_READ', 'READ'] as const)(
+    'records a new abandoned reading for a %s book already read',
+    (status) => {
+      const state = library(status, finished(1), abandoned(2, { percentBp: 3000 }));
+      expect(ReadingLifecycle.changeStatus(state, 'ABANDONED', TODAY)).toEqual([
+        setStatus('ABANDONED'),
+        created(3, 'ABANDONED'),
+      ]);
+    },
+  );
+
+  it.each<[string, Partial<ReadingSnapshot>]>([
+    ['sessions', { hasSessions: true }],
+    ['a page', { currentPage: 12 }],
+    ['a percentage', { percentBp: 500 }],
+  ])('abandons a reading with %s instead of deleting it', (_label, extra) => {
+    const state = library('READING', open(1, extra));
     expect(ReadingLifecycle.changeStatus(state, 'WANT_TO_READ', TODAY)).toEqual([
       setStatus('WANT_TO_READ'),
       { type: 'UPDATE_READING', number: 1, patch: { state: 'ABANDONED' } },
     ]);
+  });
+
+  it('deletes a reading that only has a start date or page 0', () => {
+    const state = library('READING', open(1, { currentPage: 0 }));
+    expect(ReadingLifecycle.changeStatus(state, 'WANT_TO_READ', TODAY)[1]).toEqual({
+      type: 'DELETE_READING',
+      number: 1,
+    });
   });
 
   it('starts a new reading from Want to read, even after an abandoned one', () => {

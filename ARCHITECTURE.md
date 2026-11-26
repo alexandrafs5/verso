@@ -1,6 +1,6 @@
 # Verso — Software Architecture
 
-> Status: approved for F1 · Last updated: 2026-11-20
+> Status: approved for F1 · Last updated: 2026-11-26
 > Companion docs: `docs/DESIGN.md` (screens, visual identity), `ROADMAP.md` (task order), `CLAUDE.md` (rules for AI-assisted coding).
 
 Verso is a personal-first reading platform. This document describes **how it is built**: stack, repository layout, data model, backend modules and classes, API, background jobs, security, testing and deployment.
@@ -269,7 +269,7 @@ Conventions: primary keys are UUID v7 strings (`id`); timestamps are `timestampt
 
 | Table | Key columns |
 | --- | --- |
-| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `progressStyle` (PAGES, PERCENT, nullable: null means "use `User.progressStyle`"; set when the user switches the toggle in the Log progress modal, see DESIGN S9), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`); CHECK `rating`; deleting a `Work` or `Edition` in use is restricted; the service checks that the edition belongs to the work |
+| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `progressStyle` (PAGES, PERCENT, nullable: null means "use `User.progressStyle`"; set when the user switches the toggle in the Log progress modal, see DESIGN S9), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`); CHECK `rating`; deleting a `Work` or `Edition` in use is restricted; the service checks that the edition belongs to the work (M4.2) |
 | `Reading` | `userBookId`, `number` (1, 2, …), `state` (IN_PROGRESS, FINISHED, ABANDONED), `startedOn` (date, nullable), `finishedOn` (date, nullable), `currentPage` (nullable), `percentBp` (int 0–10000, basis points); unique (`userBookId`, `number`); partial unique index: one IN_PROGRESS per `userBookId` (Prisma `partialIndexes` preview feature); CHECK `percentBp` and `currentPage` |
 | `ReadingSession` | `readingId`, `userId` (denormalized for streak and stats queries), `localDate` (date in the user's time zone at write time), `fromPage`, `toPage`, `fromPercentBp`, `toPercentBp`, `pagesRead` (int, derived) |
 | `Tag` | `userId`, `name` (citext, so unique ignoring case), `color` (WINE, TOBACCO, BRASS, FOREST, NAVY, OXBLOOD, SLATE, SAND); unique (`userId`, `name`) |
@@ -348,7 +348,7 @@ stateDiagram-v2
   ABANDONED --> READING: resume (same Reading, from saved page)
   ABANDONED --> READING: start over (new Reading from 0)
   READ --> READING: reread (new Reading #n+1)
-  READING --> WANT_TO_READ: manual change (Reading discarded if no sessions, else ABANDONED)
+  READING --> WANT_TO_READ: manual change (Reading discarded if no sessions or progress, else ABANDONED)
   READ --> WANT_TO_READ: manual change (history stays)
   ABANDONED --> WANT_TO_READ: manual change (history stays)
   WANT_TO_READ --> READ: manual change (unknown finish date)
@@ -362,14 +362,16 @@ Status changes (SPEC 19):
 - Every status reaches every other status. Choosing the current status changes nothing. A change that matches a named action (start, finish, abandon, resume, reread) behaves like it.
 - A named action called from any other status is an error, and so is an inconsistent stored state (a READING book without exactly one open reading, an open reading on any other status, an ABANDONED book whose latest reading is not abandoned, a READ book without a finished reading).
 - To Read without an open reading, first match wins: an empty abandoned latest reading (no dates, progress or sessions) is deleted when a finished one exists; a WANT_TO_READ book that already has a finished reading changes status only; an abandoned latest reading becomes FINISHED with no finish date; a book without readings gets a FINISHED reading with no dates.
-- To ABANDONED without an open reading: the latest reading is reused if abandoned, else an ABANDONED reading with no dates is created.
-- Every reading that becomes FINISHED gets `percentBp` 10000. A new reading takes the highest number plus one.
+- To ABANDONED without an open reading: the latest reading is reused if it is abandoned, and it is empty or no finished one exists. Otherwise an ABANDONED reading with no dates is created. So a READ book toggled through statuses other than READING never gains a read.
+- Every reading that becomes FINISHED gets `percentBp` 10000. A new reading takes the highest number plus one and no progress.
+- A new IN_PROGRESS reading (add as Reading, start, start over, reread) has `startedOn` = today. Abandon and resume keep progress and `startedOn`, even when it is unknown.
+- Dates given when adding a book apply only to add as Read.
 
 Rules:
 
 - Logging progress that reaches the last page or 100% returns `suggestFinish: true`; the UI asks "Did you finish it?" and calls `finish`.
 - "Read ×N" = count of FINISHED readings.
-- Books marked READ with no dates count in totals but not in time-based stats.
+- Books marked READ with no finish date count in totals but not in time-based stats.
 - ABANDONED readings never count in stats.
 - Rating and review are per UserBook (one each, editable), not per reading.
 - Changing the edition during an in-progress reading converts progress through `Progress.convertTo`.
