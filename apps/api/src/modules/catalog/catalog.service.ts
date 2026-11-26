@@ -20,6 +20,7 @@ import {
 import {
   CATALOG_PROVIDER,
   type CatalogProvider,
+  type ExternalWork,
   type WorkSearchResult,
 } from '../../infra/catalog/catalog-provider.js';
 import type { Author } from '../../generated/prisma/client.js';
@@ -32,6 +33,7 @@ import {
   localWorkToDetail,
   localWorkToSummary,
   MAX_AUTHORS,
+  overlayProviderWork,
   searchResultToSummary,
 } from './catalog.mappers.js';
 import {
@@ -146,9 +148,35 @@ export class CatalogService {
     return externalWorkToDetail(work, authors);
   }
 
+  /** A saved work, with the viewer's status. Open Library works keep their provider data. */
   private async localDetail(userId: string, row: WorkRow): Promise<WorkDetail> {
-    const matches = await this.library.find(userId, { workIds: [row.id] });
-    return { ...localWorkToDetail(row), libraryStatus: matches.forWork(row.id) };
+    const [detail, matches] = await Promise.all([
+      row.olWorkKey
+        ? this.withProviderData(row.id, row.olWorkKey, localWorkToDetail(row))
+        : localWorkToDetail(row),
+      this.library.find(userId, { workIds: [row.id] }),
+    ]);
+    return { ...detail, libraryStatus: matches.forWork(row.id) };
+  }
+
+  /** Never fails the request: without the provider the page shows the local data. */
+  private async withProviderData(
+    workId: string,
+    olWorkKey: string,
+    detail: WorkDetail,
+  ): Promise<WorkDetail> {
+    let external: ExternalWork | null = null;
+    try {
+      external = await this.provider.getWork(olWorkKey);
+    } catch (error) {
+      this.logger.warn(
+        `saved work ${olWorkKey} without provider data: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+    const savedCover = external?.coverUrl ? null : await this.repo.findSavedCoverUrl(workId);
+    return overlayProviderWork(detail, external, savedCover);
   }
 
   /**

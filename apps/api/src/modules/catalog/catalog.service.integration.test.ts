@@ -4,7 +4,11 @@ import { type BookStatus, ErrorCode } from '@verso/shared';
 import { v7 as uuidv7 } from 'uuid';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ApiException } from '../../common/api-exception.js';
-import type { SearchOptions, WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
+import type {
+  ExternalWork,
+  SearchOptions,
+  WorkSearchResult,
+} from '../../infra/catalog/catalog-provider.js';
 import { mapSearchDoc } from '../../infra/catalog/open-library-mappers.js';
 import { loadFixture } from '../../infra/catalog/test-fixtures.js';
 import { InMemoryCatalogProvider } from '../../infra/catalog/in-memory-catalog.provider.js';
@@ -467,6 +471,93 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         mine.status,
       );
       expect((await service.getSeries(otherId, series.id)).works[0]?.libraryStatus).toBeNull();
+    });
+  });
+
+  describe('saved Open Library works', () => {
+    const cover = 'https://covers.openlibrary.org/b/id/9-M.jpg';
+    let counter = 0;
+
+    const saved = async () => {
+      const key = `OL${Date.now()}${counter++}7W`;
+      const genre = await prisma.genre.create({
+        data: { id: uuidv7(), slug: `${TAG}-saved${counter}`, name: 'Fiction' },
+      });
+      const work = await prisma.work.create({
+        data: {
+          id: uuidv7(),
+          title: `${TAG} saved`,
+          description: 'Local text.',
+          olWorkKey: key,
+          genres: { create: { genreId: genre.id } },
+        },
+      });
+      return { key, work };
+    };
+    const external = (key: string, extra: Partial<ExternalWork> = {}): ExternalWork => ({
+      olWorkKey: key,
+      title: 'Provider title',
+      subtitle: null,
+      description: 'Provider text.',
+      firstPublishYear: 1955,
+      coverUrl: cover,
+      authorKeys: [],
+      subjects: ['Ghosts', 'series:Comala', 'Mexican fiction'],
+      ...extra,
+    });
+    const addEdition = (workId: string, coverUrl: string | null, createdAt: string) =>
+      prisma.edition.create({
+        data: {
+          id: uuidv7(),
+          workId,
+          title: `${TAG} ed`,
+          coverUrl,
+          createdAt: new Date(createdAt),
+        },
+      });
+
+    it('keeps the local text and takes cover, genres and series from the provider', async () => {
+      fresh();
+      const { key, work } = await saved();
+      provider.addWork(external(key));
+
+      expect(await service.getWork(userId, work.id)).toMatchObject({
+        ref: work.id,
+        title: `${TAG} saved`,
+        description: 'Local text.',
+        coverUrl: cover,
+        genres: ['Ghosts', 'Mexican fiction'],
+        series: { id: 'ol:Comala', name: 'Comala', position: null },
+      });
+    });
+
+    it('falls back to local genres and to the earliest saved cover', async () => {
+      fresh();
+      const { key, work } = await saved();
+      provider.addWork(external(key, { coverUrl: null, subjects: [] }));
+      await addEdition(work.id, null, '2025-01-01T00:00:00Z');
+      await addEdition(work.id, 'https://example.org/late.jpg', '2026-01-01T00:00:00Z');
+      await addEdition(work.id, 'https://example.org/early.jpg', '2025-06-01T00:00:00Z');
+
+      expect(await service.getWork(userId, work.id)).toMatchObject({
+        coverUrl: 'https://example.org/early.jpg',
+        genres: ['Fiction'],
+        series: null,
+      });
+    });
+
+    it('answers with local data when the provider fails', async () => {
+      fresh();
+      const { key, work } = await saved();
+      await addEdition(work.id, cover, '2025-01-01T00:00:00Z');
+      provider.unavailable = true;
+
+      expect(await service.getWork(userId, `ol:${key}`)).toMatchObject({
+        ref: work.id,
+        coverUrl: cover,
+        genres: ['Fiction'],
+        series: null,
+      });
     });
   });
 

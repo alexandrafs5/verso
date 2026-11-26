@@ -41,6 +41,16 @@ export class CatalogRepository {
     });
   }
 
+  /** The cover of the earliest saved edition that has one. */
+  async findSavedCoverUrl(workId: string): Promise<string | null> {
+    const edition = await this.prisma.edition.findFirst({
+      where: { workId, coverUrl: { not: null } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { coverUrl: true },
+    });
+    return edition?.coverUrl ?? null;
+  }
+
   findAuthorById(id: string): Promise<Author | null> {
     return this.prisma.author.findUnique({ where: { id } });
   }
