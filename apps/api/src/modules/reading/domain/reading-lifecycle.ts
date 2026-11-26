@@ -122,6 +122,28 @@ export class ReadingLifecycle {
     return openNewReading(state, today);
   }
 
+  /** A free status change, as in the status dropdown. The current status changes nothing. */
+  static changeStatus(
+    state: LibraryState,
+    target: BookStatus,
+    today: LocalDate,
+  ): LifecycleChange[] {
+    assertConsistent(state);
+    if (target === state.status) return [];
+    switch (target) {
+      case 'READING':
+        if (state.status === 'ABANDONED') return ReadingLifecycle.resume(state);
+        if (state.status === 'READ') return ReadingLifecycle.reread(state, today);
+        return ReadingLifecycle.start(state, today);
+      case 'READ':
+        return state.status === 'READING' ? ReadingLifecycle.finish(state, today) : markRead(state);
+      case 'ABANDONED':
+        return state.status === 'READING' ? ReadingLifecycle.abandon(state) : markAbandoned(state);
+      case 'WANT_TO_READ':
+        return markWantToRead(state);
+    }
+  }
+
   /** Rejects a broken input state first, then a named action called from the wrong status. */
   private static check(state: LibraryState, from: BookStatus): void {
     assertConsistent(state);
@@ -161,6 +183,64 @@ function openNewReading(state: LibraryState, today: LocalDate): LifecycleChange[
     setStatus('READING'),
     createReading(state.readings, { state: 'IN_PROGRESS', startedOn: today }),
   ];
+}
+
+/**
+ * Read without an open reading: the finish date is unknown, and toggling the status back and
+ * forth must not add reads.
+ */
+function markRead({ status, readings }: LibraryState): LifecycleChange[] {
+  const changes = [setStatus('READ')];
+  const latest = latestReading(readings);
+  const abandoned = latest?.state === 'ABANDONED' ? latest : undefined;
+  const hasFinished = readings.some((reading) => reading.state === 'FINISHED');
+
+  if (abandoned && hasFinished && isEmpty(abandoned)) {
+    return [...changes, { type: 'DELETE_READING', number: abandoned.number }];
+  }
+  if (status === 'WANT_TO_READ' && hasFinished) return changes;
+  if (abandoned) {
+    return [
+      ...changes,
+      {
+        type: 'UPDATE_READING',
+        number: abandoned.number,
+        patch: { state: 'FINISHED', percentBp: COMPLETE_BP },
+      },
+    ];
+  }
+  return [...changes, createReading(readings, { state: 'FINISHED', percentBp: COMPLETE_BP })];
+}
+
+/** Abandoned without an open reading: reuses the latest abandoned reading or records one. */
+function markAbandoned({ readings }: LibraryState): LifecycleChange[] {
+  const changes = [setStatus('ABANDONED')];
+  if (latestReading(readings)?.state === 'ABANDONED') return changes;
+  return [...changes, createReading(readings, { state: 'ABANDONED' })];
+}
+
+/** An open reading is discarded, unless it has sessions to keep. Closed readings stay. */
+function markWantToRead(state: LibraryState): LifecycleChange[] {
+  const changes = [setStatus('WANT_TO_READ')];
+  if (state.status !== 'READING') return changes;
+  const { number, hasSessions } = openReading(state);
+  return [
+    ...changes,
+    hasSessions
+      ? { type: 'UPDATE_READING', number, patch: { state: 'ABANDONED' } }
+      : { type: 'DELETE_READING', number },
+  ];
+}
+
+/** No dates, no progress and no sessions: deleting it loses nothing. */
+function isEmpty(reading: ReadingSnapshot): boolean {
+  return (
+    reading.startedOn === null &&
+    reading.finishedOn === null &&
+    (reading.currentPage ?? 0) === 0 &&
+    reading.percentBp === 0 &&
+    !reading.hasSessions
+  );
 }
 
 /** 0 when there are no readings. */
