@@ -1,8 +1,11 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { json, mockApi, problem, renderWithProviders } from '../onboarding/test-utils';
+import { bodyOf, json, mockApi, problem, renderWithProviders } from '../onboarding/test-utils';
 import { WorkPage } from './WorkPage';
+
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+vi.mock('sonner', () => ({ toast }));
 
 const nav = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: nav.push }) }));
@@ -194,11 +197,103 @@ describe('WorkPage', () => {
     expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
   });
 
-  it('renders no library, status, rating or reviews controls', async () => {
+  it('renders no rating or reviews controls', async () => {
     routes();
     renderWithProviders(<WorkPage workRef="ol:OL1W" />);
     await screen.findByRole('heading', { level: 1 });
-    expect(screen.queryByText(/Want to read|Add to library|Reviews|No reviews/i)).toBeNull();
+    expect(screen.queryByText(/Reviews|No reviews|Your rating/i)).toBeNull();
+  });
+
+  describe('add to library', () => {
+    const saved = {
+      userBookId: SERIES_ID,
+      status: 'WANT_TO_READ',
+      readCount: 0,
+      editionRef: 'ol:OL2M',
+    };
+    const twoEditions = () =>
+      json([
+        edition({ coverUrl: 'https://covers.example/1.jpg' }),
+        edition({
+          ref: 'ol:OL2M',
+          language: 'fr',
+          publisher: 'Gallimard',
+          coverUrl: 'https://covers.example/2.jpg',
+        }),
+      ]);
+
+    it('adds the shown edition and shows the status without reading the work again', async () => {
+      const fetchMock = mockApi({
+        'GET /api/v1/works/ol%3AOL1W': () => json(work()),
+        'GET /api/v1/works/ol%3AOL1W/editions': () => json([edition()]),
+        'POST /api/v1/library': () =>
+          json({ ...saved, editionRef: 'ol:OL1M', workRef: SERIES_ID }, 201),
+      });
+      renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+      await screen.findByText(/^Edition:/);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Want to read: Pedro Páramo' }));
+
+      expect(await screen.findByRole('button', { name: 'Want to read' })).toBeDisabled();
+      const post = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST');
+      expect(bodyOf(post?.[1])).toEqual({
+        workRef: 'ol:OL1W',
+        editionRef: 'ol:OL1M',
+        status: 'WANT_TO_READ',
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    it('sends no edition when the editions failed, and shows the no-edition toast', async () => {
+      const fetchMock = mockApi({
+        'GET /api/v1/works/ol%3AOL1W': () => json(work()),
+        'GET /api/v1/works/ol%3AOL1W/editions': () => problem(500, 'INTERNAL_ERROR'),
+        'POST /api/v1/library': () => problem(422, 'NO_EDITION_AVAILABLE'),
+      });
+      renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+      await screen.findByText('We couldn’t load the editions.');
+
+      await userEvent.click(screen.getByRole('button', { name: 'Want to read: Pedro Páramo' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('This book has no edition to add yet'),
+      );
+      const post = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST');
+      expect(bodyOf(post?.[1])).toEqual({ workRef: 'ol:OL1W', status: 'WANT_TO_READ' });
+    });
+
+    it('opens on the saved edition and its cover', async () => {
+      routes({
+        work: json(work({ coverUrl: 'https://covers.example/work.jpg', libraryStatus: saved })),
+        editions: twoEditions(),
+      });
+      renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+
+      expect(await screen.findByText(/Edition: French · Gallimard/)).toBeVisible();
+      expect(screen.getByRole('img', { name: 'Cover of Pedro Páramo' })).toHaveAttribute(
+        'src',
+        'https://covers.example/2.jpg',
+      );
+    });
+
+    it('falls back to the default when the saved edition is not listed', async () => {
+      routes({
+        work: json(
+          work({
+            coverUrl: 'https://covers.example/work.jpg',
+            libraryStatus: { ...saved, editionRef: 'ol:OL99M' },
+          }),
+        ),
+        editions: twoEditions(),
+      });
+      renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+
+      expect(await screen.findByText(/Edition: Spanish/)).toBeVisible();
+      expect(screen.getByRole('img', { name: 'Cover of Pedro Páramo' })).toHaveAttribute(
+        'src',
+        'https://covers.example/work.jpg',
+      );
+    });
   });
 
   it('shows the not-found state for a 404 and for an invalid ref', async () => {

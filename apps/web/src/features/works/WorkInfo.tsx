@@ -18,11 +18,19 @@ type WorkInfoProps = {
   description: string | null;
   /** Page count of the selected edition, or null when unknown. */
   pageCount: number | null;
+  /** The add to library control, above the edition line (SPEC 20). */
+  librarySlot?: ReactNode;
   /** The edition line, rendered by the page once editions are loaded. */
   editionSlot?: ReactNode;
 };
 
-export function WorkInfo({ work, description, pageCount, editionSlot }: WorkInfoProps) {
+export function WorkInfo({
+  work,
+  description,
+  pageCount,
+  librarySlot,
+  editionSlot,
+}: WorkInfoProps) {
   const t = useTranslations('work');
   const meta = [
     work.firstPublishYear === null ? null : t('firstPublished', { year: work.firstPublishYear }),
@@ -64,6 +72,8 @@ export function WorkInfo({ work, description, pageCount, editionSlot }: WorkInfo
       <GenreChips genres={work.genres} />
 
       {meta.length > 0 ? <p className="text-sm text-muted">{meta.join(' · ')}</p> : null}
+
+      {librarySlot}
 
       {editionSlot}
 

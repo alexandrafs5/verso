@@ -40,7 +40,9 @@ function isRetryable(method: string, error: ApiError): boolean {
   // The app answered with its own 503 (storage is not configured): waiting will not help.
   if (error.code === 'STORAGE_UNAVAILABLE') return false;
   if (method === 'GET') return [0, 502, 503, 504].includes(error.status);
-  // Non-GET: only when the request surely never reached the app.
+  // Non-GET: only when the request surely never reached the app. CATALOG_UNAVAILABLE is the app's
+  // own answer.
+  if (error.code === 'CATALOG_UNAVAILABLE') return false;
   return error.status === 502 || error.status === 503;
 }
 
