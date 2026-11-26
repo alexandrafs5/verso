@@ -6,3 +6,4 @@ export * from './auth';
 export * from './me';
 export * from './catalog';
 export * from './genres';
+export * from './library';

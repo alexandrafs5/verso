@@ -1,7 +1,7 @@
-// Local types for the Verso components. BookStatus moves to packages/shared in M4.1.
-export type { CoverTone, RatingStyle } from '@verso/shared';
+import type { BookStatus } from '@verso/shared';
 
-export type BookStatus = 'READING' | 'READ' | 'WANT_TO_READ' | 'ABANDONED';
+// Local types for the Verso components. Domain types come from packages/shared.
+export type { BookStatus, CoverTone, RatingStyle, TagColor } from '@verso/shared';
 
 // Menu order for status pickers.
 export const BOOK_STATUS_ORDER: readonly BookStatus[] = [
@@ -10,8 +10,5 @@ export const BOOK_STATUS_ORDER: readonly BookStatus[] = [
   'READ',
   'ABANDONED',
 ];
-
-export type TagColor =
-  'WINE' | 'TOBACCO' | 'BRASS' | 'FOREST' | 'NAVY' | 'OXBLOOD' | 'SLATE' | 'SAND';
 
 export type Visibility = 'PUBLIC' | 'PRIVATE';
