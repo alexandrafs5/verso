@@ -4,6 +4,7 @@
 > **Depends on:** SPEC 03, SPEC 05, SPEC 13, SPEC 14, SPEC 15, SPEC 16, SPEC 17
 > **Date:** 2026-11-24
 > **Objective:** Build the S3 work page, the S4 edition selector modal, the S5 author page and the S6 series page on the catalog read endpoints, plus the S3 genre chips that link to a genre-only search, series derived from Open Library subjects, and a default edition in the original language of the book.
+> **Amended by SPEC 20:** S2, S3, S5 and S6 show the library control or status, and S3 opens on the saved edition. Series are still derived, not stored: positions and stored series move to the end of F1 or F1.5.
 
 ## Why this spec exists
 
