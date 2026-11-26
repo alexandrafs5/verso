@@ -10,6 +10,7 @@ import { StorageModule } from './infra/storage/storage.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CatalogModule } from './modules/catalog/catalog.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { LibraryModule } from './modules/library/library.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
@@ -38,6 +39,7 @@ import { UsersModule } from './modules/users/users.module.js';
     AuthModule,
     UsersModule,
     CatalogModule,
+    LibraryModule,
     HealthModule,
   ],
   providers: [
