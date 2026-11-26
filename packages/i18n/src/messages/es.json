@@ -30,7 +30,20 @@
   },
   "library": {
     "add": "Añadir a la biblioteca",
-    "chooseStatus": "Elige un estado"
+    "chooseStatus": "Elige un estado",
+    "wantToReadFor": "Quiero leer: {title}",
+    "chooseStatusFor": "Elige un estado para {title}",
+    "added": "Libro añadido a «{status}»",
+    "readCountShort": "×{count}",
+    "readCount": "{count, plural, one {Leído # vez} other {Leído # veces}}",
+    "errors": {
+      "alreadyInLibrary": "Este libro ya está en tu biblioteca",
+      "noEdition": "Este libro todavía no tiene una edición para añadir",
+      "editionNotInWork": "Esa edición no pertenece a este libro. Recarga e inténtalo de nuevo.",
+      "notFound": "No encontramos este libro",
+      "unavailable": "Open Library no responde. Inténtalo de nuevo.",
+      "generic": "No pudimos añadir el libro. Inténtalo de nuevo."
+    }
   },
   "shell": {
     "wordmark": "Verso",
@@ -170,6 +183,7 @@
   },
   "series": {
     "worksHeading": "Libros de esta serie",
+    "readProgress": "Has leído {count} de {total}",
     "worksEmpty": "No encontramos libros en esta serie",
     "worksEmptyHint": "Esta serie todavía no tiene libros.",
     "coverAlt": "Portada de {title}",

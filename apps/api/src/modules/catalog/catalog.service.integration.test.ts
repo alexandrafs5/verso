@@ -1,20 +1,34 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ErrorCode } from '@verso/shared';
+import { type BookStatus, ErrorCode } from '@verso/shared';
 import { v7 as uuidv7 } from 'uuid';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ApiException } from '../../common/api-exception.js';
-import type { SearchOptions, WorkSearchResult } from '../../infra/catalog/catalog-provider.js';
+import type {
+  ExternalWork,
+  SearchOptions,
+  WorkSearchResult,
+} from '../../infra/catalog/catalog-provider.js';
 import { mapSearchDoc } from '../../infra/catalog/open-library-mappers.js';
 import { loadFixture } from '../../infra/catalog/test-fixtures.js';
 import { InMemoryCatalogProvider } from '../../infra/catalog/in-memory-catalog.provider.js';
 import { PrismaModule } from '../../infra/prisma/prisma.module.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
+import { LibraryStatusRepository } from '../library/library-status.repository.js';
+import { LibraryStatusService } from '../library/library-status.service.js';
+import { ReadingRepository } from '../reading/reading.repository.js';
+import { ReadingService } from '../reading/reading.service.js';
 import { CatalogRepository } from './catalog.repository.js';
 import { CatalogService } from './catalog.service.js';
 import { encodeCursor } from './domain/catalog-ref.js';
 
 const TAG = `cs${Date.now().toString(36)}`;
+
+const libraryStatus = (prisma: PrismaService) =>
+  new LibraryStatusService(
+    new LibraryStatusRepository(prisma),
+    new ReadingService(new ReadingRepository(prisma)),
+  );
 
 /** Records the queries and pages the service sends. */
 class RecordingProvider extends InMemoryCatalogProvider {
@@ -75,6 +89,8 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
   });
 
   afterEach(async () => {
+    // Library rows first: they block deleting works.
+    await prisma.userBook.deleteMany({ where: { userId: { in: [userId, otherId] } } });
     await prisma.work.deleteMany({ where: { title: { startsWith: TAG } } });
     await prisma.author.deleteMany({ where: { name: { startsWith: TAG } } });
     await prisma.genre.deleteMany({ where: { slug: { startsWith: TAG } } });
@@ -88,14 +104,14 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
   const fresh = () => {
     provider = new RecordingProvider();
-    service = new CatalogService(new CatalogRepository(prisma), provider);
+    service = new CatalogService(new CatalogRepository(prisma), provider, libraryStatus(prisma));
   };
 
   describe('searchBooks', () => {
     it('maps results to summaries with ol refs and a null library status', async () => {
       fresh();
       provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
-      const res = await service.searchBooks({ q: 'Pedro' });
+      const res = await service.searchBooks(userId, { q: 'Pedro' });
       expect(res.items).toEqual([
         {
           ref: 'ol:OL1W',
@@ -111,13 +127,13 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
     it('sends the genre as a subject clause and strips quotes', async () => {
       fresh();
-      await service.searchBooks({ q: 'Pedro Páramo', genre: 'Fic"tion' });
+      await service.searchBooks(userId, { q: 'Pedro Páramo', genre: 'Fic"tion' });
       expect(provider.searches).toEqual([{ query: 'Pedro Páramo subject:"Fiction"', page: 1 }]);
     });
 
     it('sends only the subject clause, most editions first, for a genre-only search', async () => {
       fresh();
-      await service.searchBooks({ genre: 'Fiction' });
+      await service.searchBooks(userId, { genre: 'Fiction' });
       expect(provider.searches).toEqual([
         { query: 'subject:"Fiction"', page: 1, sort: 'editions' },
       ]);
@@ -125,16 +141,16 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
     it('keeps the relevance order when there is text, with or without a genre', async () => {
       fresh();
-      await service.searchBooks({ q: 'dune' });
-      await service.searchBooks({ q: 'dune', genre: 'Fiction' });
+      await service.searchBooks(userId, { q: 'dune' });
+      await service.searchBooks(userId, { q: 'dune', genre: 'Fiction' });
       expect(provider.searches.map((s) => s.sort)).toEqual([undefined, undefined]);
     });
 
     it('keeps the edition-count order on later pages of a genre-only search', async () => {
       fresh();
       provider.canned.set('subject:"Fiction"', [searchResult('OL1W', 'Pedro Páramo')]);
-      const first = await service.searchBooks({ genre: 'Fiction' });
-      await service.searchBooks({ genre: 'Fiction', cursor: first.nextCursor ?? '' });
+      const first = await service.searchBooks(userId, { genre: 'Fiction' });
+      await service.searchBooks(userId, { genre: 'Fiction', cursor: first.nextCursor ?? '' });
       expect(provider.searches.map((s) => [s.page, s.sort])).toEqual([
         [1, 'editions'],
         [2, 'editions'],
@@ -143,7 +159,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
     it('rejects a genre that is only quotes when there is no q', async () => {
       fresh();
-      await expect(service.searchBooks({ genre: '""' })).rejects.toMatchObject({
+      await expect(service.searchBooks(userId, { genre: '""' })).rejects.toMatchObject({
         code: 'VALIDATION_ERROR',
       });
       expect(provider.searches).toEqual([]);
@@ -152,10 +168,10 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('sets nextCursor to the next page and follows it', async () => {
       fresh();
       provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
-      const first = await service.searchBooks({ q: 'Pedro' });
+      const first = await service.searchBooks(userId, { q: 'Pedro' });
       expect(first.nextCursor).toBe(encodeCursor(2));
 
-      await service.searchBooks({ q: 'Pedro', cursor: first.nextCursor ?? '' });
+      await service.searchBooks(userId, { q: 'Pedro', cursor: first.nextCursor ?? '' });
       expect(provider.searches.map((s) => s.page)).toEqual([1, 2]);
     });
 
@@ -163,7 +179,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       fresh();
       provider.addSearchResult(searchResult('OL1W', 'Pedro Páramo'));
       provider.addSearchResult(searchResult('OL2W', 'Pedro Páramo II'));
-      const res = await service.searchBooks({ q: 'Pedro' });
+      const res = await service.searchBooks(userId, { q: 'Pedro' });
       expect(res.items.map((i) => i.ref)).toEqual(['ol:OL1W', 'ol:OL2W']);
     });
 
@@ -181,7 +197,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
           { ...searchResult('OL2W', 'Pedro Paramo'), editionCount: 3 },
           tail(7),
         ]);
-        const res = await service.searchBooks({ q: 'Pedro' });
+        const res = await service.searchBooks(userId, { q: 'Pedro' });
         expect(res.items.map((i) => [i.ref, i.editionCount])).toEqual([['ol:OL1W', 15]]);
         expect(res.moreMatches.map((i) => i.ref)).toEqual(['ol:OL7W']);
         expect(res.nextCursor).toBe(encodeCursor(2));
@@ -190,7 +206,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       it('keeps every result in items when the first page has only 1-edition works', async () => {
         fresh();
         provider.canned.set('Tail', [tail(7), tail(8)]);
-        const res = await service.searchBooks({ q: 'Tail' });
+        const res = await service.searchBooks(userId, { q: 'Tail' });
         expect(res.items).toHaveLength(2);
         expect(res.moreMatches).toEqual([]);
       });
@@ -198,7 +214,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       it('folds 1-edition works on a later page, even when items ends up empty', async () => {
         fresh();
         provider.canned.set('Tail', [tail(7), tail(8)]);
-        const res = await service.searchBooks({ q: 'Tail', cursor: encodeCursor(2) });
+        const res = await service.searchBooks(userId, { q: 'Tail', cursor: encodeCursor(2) });
         expect(res.items).toEqual([]);
         expect(res.moreMatches.map((i) => i.ref)).toEqual(['ol:OL7W', 'ol:OL8W']);
         expect(res.nextCursor).toBe(encodeCursor(3));
@@ -211,7 +227,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
           'pedro paramo',
           docs.flatMap((doc) => mapSearchDoc(doc) ?? []),
         );
-        const res = await service.searchBooks({ q: 'pedro paramo' });
+        const res = await service.searchBooks(userId, { q: 'pedro paramo' });
         const rulfo = res.items.filter(
           (i) => i.title === 'Pedro Páramo' && i.authors[0]?.ref === 'ol:OL199285A',
         );
@@ -224,21 +240,21 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
       it('returns two empty lists and no cursor for an empty provider page', async () => {
         fresh();
-        const res = await service.searchBooks({ q: 'nothing', cursor: encodeCursor(5) });
+        const res = await service.searchBooks(userId, { q: 'nothing', cursor: encodeCursor(5) });
         expect(res).toEqual({ items: [], moreMatches: [], nextCursor: null });
       });
     });
 
     it('returns a null nextCursor on an empty page', async () => {
       fresh();
-      const res = await service.searchBooks({ q: 'nothing' });
+      const res = await service.searchBooks(userId, { q: 'nothing' });
       expect(res).toEqual({ items: [], moreMatches: [], nextCursor: null });
     });
 
     it('rejects a malformed cursor without calling the provider', async () => {
       fresh();
       await failsWith(
-        service.searchBooks({ q: 'a', cursor: 'garbage' }),
+        service.searchBooks(userId, { q: 'a', cursor: 'garbage' }),
         400,
         ErrorCode.INVALID_CURSOR,
       );
@@ -248,7 +264,300 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
     it('maps an outage to 503 CATALOG_UNAVAILABLE', async () => {
       fresh();
       provider.unavailable = true;
-      await failsWith(service.searchBooks({ q: 'a' }), 503, ErrorCode.CATALOG_UNAVAILABLE);
+      await failsWith(service.searchBooks(userId, { q: 'a' }), 503, ErrorCode.CATALOG_UNAVAILABLE);
+    });
+  });
+
+  describe('library status', () => {
+    let counter = 0;
+    /** Open Library keys no other test file uses. */
+    const uniqueKey = (suffix: 'W' | 'M' | 'A') => `OL${Date.now()}${counter++}${suffix}`;
+
+    /** A saved work with one edition, in the library of `owner`. */
+    const inLibrary = async (
+      owner: string,
+      options: {
+        olWorkKey?: string | null;
+        status?: BookStatus;
+        readings?: ('FINISHED' | 'ABANDONED' | 'IN_PROGRESS')[];
+        archived?: boolean;
+        addedAt?: Date;
+        authorId?: string;
+        seriesId?: string;
+      } = {},
+    ) => {
+      const work = await prisma.work.create({
+        data: {
+          id: uuidv7(),
+          title: `${TAG} book ${counter++}`,
+          olWorkKey: options.olWorkKey === undefined ? uniqueKey('W') : options.olWorkKey,
+          seriesId: options.seriesId,
+          ...(options.authorId ? { authors: { create: { authorId: options.authorId } } } : {}),
+        },
+      });
+      const edition = await prisma.edition.create({
+        data: { id: uuidv7(), workId: work.id, title: `${TAG} ed`, olEditionKey: uniqueKey('M') },
+      });
+      const book = await prisma.userBook.create({
+        data: {
+          id: uuidv7(),
+          userId: owner,
+          workId: work.id,
+          editionId: edition.id,
+          status: options.status ?? 'WANT_TO_READ',
+          archivedAt: options.archived ? new Date() : null,
+          addedAt: options.addedAt,
+          readings: {
+            create: (options.readings ?? []).map((state, index) => ({
+              id: uuidv7(),
+              number: index + 1,
+              state,
+            })),
+          },
+        },
+      });
+      const status = {
+        userBookId: book.id,
+        status: book.status,
+        readCount: (options.readings ?? []).filter((state) => state === 'FINISHED').length,
+        editionRef: `ol:${edition.olEditionKey}`,
+      };
+      return { work, edition, book, status, key: work.olWorkKey ?? '' };
+    };
+
+    const row = (key: string, title: string, editions = 12): WorkSearchResult => ({
+      ...searchResult(key, title),
+      editionCount: editions,
+    });
+
+    it('fills search rows and folded rows with the viewer books only', async () => {
+      fresh();
+      const mine = await inLibrary(userId, {
+        status: 'READ',
+        readings: ['FINISHED', 'ABANDONED', 'FINISHED'],
+      });
+      const folded = await inLibrary(userId, { status: 'READING', readings: ['IN_PROGRESS'] });
+      const theirs = await inLibrary(otherId);
+      const archived = await inLibrary(userId, { archived: true });
+      provider.canned.set('q', [
+        row(mine.key, 'Mine'),
+        row(theirs.key, 'Theirs'),
+        row(archived.key, 'Archived'),
+        row(folded.key, 'Folded', 1),
+      ]);
+
+      const res = await service.searchBooks(userId, { q: 'q' });
+
+      expect(res.items.map((i) => [i.title, i.ref, i.libraryStatus])).toEqual([
+        ['Mine', mine.work.id, mine.status],
+        ['Theirs', `ol:${theirs.key}`, null],
+        ['Archived', `ol:${archived.key}`, null],
+      ]);
+      expect(res.moreMatches.map((i) => [i.ref, i.libraryStatus])).toEqual([
+        [folded.work.id, folded.status],
+      ]);
+      expect(mine.status.readCount).toBe(2);
+    });
+
+    it('uses a local edition id when the edition has no Open Library key', async () => {
+      fresh();
+      const mine = await inLibrary(userId);
+      await prisma.edition.update({
+        where: { id: mine.edition.id },
+        data: { olEditionKey: null },
+      });
+      const res = await service.getWork(userId, mine.work.id);
+      expect(res.libraryStatus?.editionRef).toBe(mine.edition.id);
+    });
+
+    it('shows the status of a saved duplicate merged into a row, and links to it', async () => {
+      fresh();
+      const saved = await inLibrary(userId);
+      const popular = uniqueKey('W');
+      provider.canned.set('q', [row(popular, 'Same Book', 50), row(saved.key, 'Same book', 2)]);
+
+      const res = await service.searchBooks(userId, { q: 'q' });
+
+      expect(res.items).toHaveLength(1);
+      expect(res.items[0]).toMatchObject({
+        ref: saved.work.id,
+        title: 'Same Book',
+        editionCount: 52,
+        libraryStatus: saved.status,
+      });
+    });
+
+    it('prefers the shown work when several merged works are saved', async () => {
+      fresh();
+      const shown = await inLibrary(userId, { addedAt: new Date('2025-01-01T00:00:00Z') });
+      const other = await inLibrary(userId, { addedAt: new Date('2026-01-01T00:00:00Z') });
+      provider.canned.set('q', [row(shown.key, 'Same Book', 50), row(other.key, 'Same book', 2)]);
+
+      const res = await service.searchBooks(userId, { q: 'q' });
+
+      expect(res.items[0]?.ref).toBe(shown.work.id);
+    });
+
+    it('runs one books query and one read-count query per search', async () => {
+      fresh();
+      const repo = new LibraryStatusRepository(prisma);
+      const readingRepo = new ReadingRepository(prisma);
+      const books = vi.spyOn(repo, 'findActive');
+      const counts = vi.spyOn(readingRepo, 'countFinished');
+      const spied = new CatalogService(
+        new CatalogRepository(prisma),
+        provider,
+        new LibraryStatusService(repo, new ReadingService(readingRepo)),
+      );
+      const first = await inLibrary(userId);
+      const second = await inLibrary(userId);
+      provider.canned.set('q', [row(first.key, 'One'), row(second.key, 'Two', 1)]);
+
+      await spied.searchBooks(userId, { q: 'q' });
+
+      expect(books).toHaveBeenCalledTimes(1);
+      expect(counts).toHaveBeenCalledTimes(1);
+    });
+
+    it('gives a saved work its status by id and by ol ref, and null to others', async () => {
+      fresh();
+      const mine = await inLibrary(userId);
+
+      expect((await service.getWork(userId, mine.work.id)).libraryStatus).toEqual(mine.status);
+      expect((await service.getWork(userId, `ol:${mine.key}`)).libraryStatus).toEqual(mine.status);
+      expect((await service.getWork(otherId, mine.work.id)).libraryStatus).toBeNull();
+    });
+
+    it('fills the works of a provider author and of a provider series', async () => {
+      fresh();
+      const mine = await inLibrary(userId);
+      const authorKey = uniqueKey('A');
+      provider.addAuthor({
+        olAuthorKey: authorKey,
+        name: 'Juan Rulfo',
+        bio: null,
+        birthYear: null,
+        deathYear: null,
+        photoUrl: null,
+      });
+      provider.canned.set(`author_key:${authorKey}`, [row(mine.key, 'Mine')]);
+      provider.addSeries(`${TAG} saga`, [row(mine.key, 'Mine')]);
+
+      const author = await service.getAuthor(userId, `ol:${authorKey}`);
+      const series = await service.getSeries(userId, `ol:${TAG} saga`);
+
+      expect(author.works[0]).toMatchObject({ ref: mine.work.id, libraryStatus: mine.status });
+      expect(series.works[0]).toMatchObject({
+        ref: mine.work.id,
+        position: null,
+        libraryStatus: mine.status,
+      });
+    });
+
+    it('fills the works of a local author and of a local series by work id', async () => {
+      fresh();
+      const author = await prisma.author.create({ data: { id: uuidv7(), name: `${TAG} local` } });
+      const series = await prisma.series.create({ data: { id: uuidv7(), name: `${TAG} local` } });
+      const mine = await inLibrary(userId, {
+        olWorkKey: null,
+        authorId: author.id,
+        seriesId: series.id,
+      });
+
+      expect((await service.getAuthor(userId, author.id)).works[0]?.libraryStatus).toEqual(
+        mine.status,
+      );
+      expect((await service.getSeries(userId, series.id)).works[0]?.libraryStatus).toEqual(
+        mine.status,
+      );
+      expect((await service.getSeries(otherId, series.id)).works[0]?.libraryStatus).toBeNull();
+    });
+  });
+
+  describe('saved Open Library works', () => {
+    const cover = 'https://covers.openlibrary.org/b/id/9-M.jpg';
+    let counter = 0;
+
+    const saved = async () => {
+      const key = `OL${Date.now()}${counter++}7W`;
+      const genre = await prisma.genre.create({
+        data: { id: uuidv7(), slug: `${TAG}-saved${counter}`, name: 'Fiction' },
+      });
+      const work = await prisma.work.create({
+        data: {
+          id: uuidv7(),
+          title: `${TAG} saved`,
+          description: 'Local text.',
+          olWorkKey: key,
+          genres: { create: { genreId: genre.id } },
+        },
+      });
+      return { key, work };
+    };
+    const external = (key: string, extra: Partial<ExternalWork> = {}): ExternalWork => ({
+      olWorkKey: key,
+      title: 'Provider title',
+      subtitle: null,
+      description: 'Provider text.',
+      firstPublishYear: 1955,
+      coverUrl: cover,
+      authorKeys: [],
+      subjects: ['Ghosts', 'series:Comala', 'Mexican fiction'],
+      ...extra,
+    });
+    const addEdition = (workId: string, coverUrl: string | null, createdAt: string) =>
+      prisma.edition.create({
+        data: {
+          id: uuidv7(),
+          workId,
+          title: `${TAG} ed`,
+          coverUrl,
+          createdAt: new Date(createdAt),
+        },
+      });
+
+    it('keeps the local text and takes cover, genres and series from the provider', async () => {
+      fresh();
+      const { key, work } = await saved();
+      provider.addWork(external(key));
+
+      expect(await service.getWork(userId, work.id)).toMatchObject({
+        ref: work.id,
+        title: `${TAG} saved`,
+        description: 'Local text.',
+        coverUrl: cover,
+        genres: ['Ghosts', 'Mexican fiction'],
+        series: { id: 'ol:Comala', name: 'Comala', position: null },
+      });
+    });
+
+    it('falls back to local genres and to the earliest saved cover', async () => {
+      fresh();
+      const { key, work } = await saved();
+      provider.addWork(external(key, { coverUrl: null, subjects: [] }));
+      await addEdition(work.id, null, '2025-01-01T00:00:00Z');
+      await addEdition(work.id, 'https://example.org/late.jpg', '2026-01-01T00:00:00Z');
+      await addEdition(work.id, 'https://example.org/early.jpg', '2025-06-01T00:00:00Z');
+
+      expect(await service.getWork(userId, work.id)).toMatchObject({
+        coverUrl: 'https://example.org/early.jpg',
+        genres: ['Fiction'],
+        series: null,
+      });
+    });
+
+    it('answers with local data when the provider fails', async () => {
+      fresh();
+      const { key, work } = await saved();
+      await addEdition(work.id, cover, '2025-01-01T00:00:00Z');
+      provider.unavailable = true;
+
+      expect(await service.getWork(userId, `ol:${key}`)).toMatchObject({
+        ref: work.id,
+        coverUrl: cover,
+        genres: ['Fiction'],
+        series: null,
+      });
     });
   });
 
@@ -556,7 +865,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         { ...searchResult('OL1W', 'Early'), firstPublishYear: 1953 },
       ]);
 
-      const author = await service.getAuthor('ol:OL1A');
+      const author = await service.getAuthor(userId, 'ol:OL1A');
       expect(author).toMatchObject({
         ref: 'ol:OL1A',
         name: 'Juan Rulfo',
@@ -604,7 +913,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
             : [{ ...searchResult('OL1W', 'Rhythm of War'), typicalYear: 2020 }];
       provider.searchWorks = (_query, p) => Promise.resolve(page(p));
 
-      const author = await service.getAuthor('ol:OL1A');
+      const author = await service.getAuthor(userId, 'ol:OL1A');
       expect(author.works.map((w) => w.title)).toEqual([
         'The Way of Kings',
         'Words of Radiance',
@@ -619,11 +928,13 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         p === 1
           ? Promise.resolve([searchResult('OL1W', 'First')])
           : Promise.reject(new Error('boom'));
-      expect((await service.getAuthor('ol:OL1A')).works.map((w) => w.title)).toEqual(['First']);
+      expect((await service.getAuthor(userId, 'ol:OL1A')).works.map((w) => w.title)).toEqual([
+        'First',
+      ]);
 
       provider.unavailable = true;
       provider.searchWorks = InMemoryCatalogProvider.prototype.searchWorks.bind(provider);
-      await failsWith(service.getAuthor('ol:OL1A'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+      await failsWith(service.getAuthor(userId, 'ol:OL1A'), 503, ErrorCode.CATALOG_UNAVAILABLE);
     });
 
     it('turns a Markdown biography into plain text', async () => {
@@ -633,7 +944,9 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         olAuthorKey: 'OL5A',
         bio: '**Brandon Sanderson** is [an author](https://example.org).\r\n\r\n----------\r\nSource: x',
       });
-      expect((await service.getAuthor('ol:OL5A')).bio).toBe('Brandon Sanderson is an author.');
+      expect((await service.getAuthor(userId, 'ol:OL5A')).bio).toBe(
+        'Brandon Sanderson is an author.',
+      );
     });
 
     it('serves a local author with a key through the provider and returns the local id', async () => {
@@ -643,10 +956,10 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       });
       provider.canned.set('author_key:OL7A', [searchResult('OL1W', 'Pedro Páramo')]);
 
-      const byId = await service.getAuthor(local.id);
+      const byId = await service.getAuthor(userId, local.id);
       expect(byId.ref).toBe(local.id);
       expect(byId.works.map((w) => w.title)).toEqual(['Pedro Páramo']);
-      expect((await service.getAuthor('ol:OL7A')).ref).toBe(local.id);
+      expect((await service.getAuthor(userId, 'ol:OL7A')).ref).toBe(local.id);
     });
 
     it('serves a local author without a key from WorkAuthor, public works only', async () => {
@@ -664,19 +977,19 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       await make('public', 'PUBLIC');
       await make('private', 'PRIVATE');
 
-      const res = await service.getAuthor(local.id);
+      const res = await service.getAuthor(userId, local.id);
       expect(res.works.map((w) => w.title)).toEqual([`${TAG} public`]);
       expect(provider.searches).toEqual([]);
     });
 
     it('maps unknown authors, bad refs and outages', async () => {
       fresh();
-      await failsWith(service.getAuthor('ol:OL404A'), 404, ErrorCode.CATALOG_NOT_FOUND);
-      await failsWith(service.getAuthor(uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
-      await failsWith(service.getAuthor('ol:OL1W'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getAuthor(userId, 'ol:OL404A'), 404, ErrorCode.CATALOG_NOT_FOUND);
+      await failsWith(service.getAuthor(userId, uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
+      await failsWith(service.getAuthor(userId, 'ol:OL1W'), 400, ErrorCode.INVALID_REF);
       provider.addAuthor(olAuthor);
       provider.unavailable = true;
-      await failsWith(service.getAuthor('ol:OL1A'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+      await failsWith(service.getAuthor(userId, 'ol:OL1A'), 503, ErrorCode.CATALOG_UNAVAILABLE);
     });
   });
 
@@ -699,7 +1012,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
       await make('none', null, 'PUBLIC');
       await make('hidden', 1, 'PRIVATE');
 
-      const res = await service.getSeries(series.id);
+      const res = await service.getSeries(userId, series.id);
       expect(res.name).toBe(`${TAG} s`);
       expect(res.works.map((w) => [w.title.replace(`${TAG} `, ''), w.position])).toEqual([
         ['half', 1.5],
@@ -710,10 +1023,14 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
 
     it('returns 404 for an unknown id and 400 for an id that is neither a UUID nor ol:<name>', async () => {
       fresh();
-      await failsWith(service.getSeries(uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
-      await failsWith(service.getSeries('not-a-uuid'), 400, ErrorCode.INVALID_REF);
-      await failsWith(service.getSeries('ol:'), 400, ErrorCode.INVALID_REF);
-      await failsWith(service.getSeries(`ol:${'a'.repeat(121)}`), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getSeries(userId, uuidv7()), 404, ErrorCode.CATALOG_NOT_FOUND);
+      await failsWith(service.getSeries(userId, 'not-a-uuid'), 400, ErrorCode.INVALID_REF);
+      await failsWith(service.getSeries(userId, 'ol:'), 400, ErrorCode.INVALID_REF);
+      await failsWith(
+        service.getSeries(userId, `ol:${'a'.repeat(121)}`),
+        400,
+        ErrorCode.INVALID_REF,
+      );
     });
 
     describe('derived from Open Library subjects', () => {
@@ -729,7 +1046,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
           entry('OL2W', 'A Clash of Kings', 1998, 76),
           entry('OL1W', 'A Game of Thrones', 1996, 136),
         ]);
-        const res = await service.getSeries('ol:A Song of Ice and Fire');
+        const res = await service.getSeries(userId, 'ol:A Song of Ice and Fire');
         // The subject search is trusted. The series field and the title search add candidates.
         expect(provider.searches.map((s) => s.query)).toEqual([
           'subject:"series:A Song of Ice and Fire"',
@@ -770,7 +1087,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
             authors: [{ olAuthorKey: 'OL9A', name: 'Other' }],
           },
         ]);
-        const res = await service.getSeries('ol:Stormlight Archive');
+        const res = await service.getSeries(userId, 'ol:Stormlight Archive');
         expect(res.works.map((w) => w.title).sort()).toEqual(
           [
             'Dawnshard',
@@ -790,7 +1107,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
         const original = provider.searchWorks.bind(provider);
         provider.searchWorks = (query, page) =>
           query.startsWith('subject:') ? original(query, page) : Promise.reject(new Error('boom'));
-        const res = await service.getSeries('ol:Saga');
+        const res = await service.getSeries(userId, 'ol:Saga');
         expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W']);
       });
 
@@ -800,7 +1117,7 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
           entry('OL1W', 'First', 2001, 12),
           entry('OL2W', 'Second', 2002, 9),
         ]);
-        const res = await service.getSeries('ol:Saga');
+        const res = await service.getSeries(userId, 'ol:Saga');
         expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W', 'ol:OL2W']);
       });
 
@@ -811,19 +1128,19 @@ describe('CatalogService search and work (real Postgres, fake provider)', () => 
           entry('OL2W', 'First', 2001, 5),
           entry('OL3W', 'Study guide', 2005, 1),
         ]);
-        const res = await service.getSeries('ol:Saga');
+        const res = await service.getSeries(userId, 'ol:Saga');
         expect(res.works.map((w) => w.ref)).toEqual(['ol:OL1W']);
       });
 
       it('returns 404 when the subject search finds nothing', async () => {
         fresh();
-        await failsWith(service.getSeries('ol:Unknown'), 404, ErrorCode.CATALOG_NOT_FOUND);
+        await failsWith(service.getSeries(userId, 'ol:Unknown'), 404, ErrorCode.CATALOG_NOT_FOUND);
       });
 
       it('returns 503 when Open Library is down', async () => {
         fresh();
         provider.unavailable = true;
-        await failsWith(service.getSeries('ol:Saga'), 503, ErrorCode.CATALOG_UNAVAILABLE);
+        await failsWith(service.getSeries(userId, 'ol:Saga'), 503, ErrorCode.CATALOG_UNAVAILABLE);
       });
     });
   });

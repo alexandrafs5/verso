@@ -57,11 +57,13 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 ### M4. Library
 
 - [x] **M4.1** UserBook (including nullable `progressStyle`, see M5.3), Reading, Tag, UserBookTag tables; `ReadingLifecycle` with full unit tests (state diagram in §6.1).
-- [ ] **M4.2** Add to library (persists work + edition + authors lazily); AddToLibraryButton wired everywhere; fills `libraryStatus` in catalog responses; checks that the edition belongs to the work and validates reading dates (SPEC 19; date edits also in M5.4).
+- [x] **M4.2** Add to library (persists work + edition + authors lazily); AddToLibraryButton wired everywhere; fills `libraryStatus` in catalog responses; checks that the edition belongs to the work and validates reading dates (SPEC 19; date edits also in M5.4).
 - [ ] **M4.3** Status changes and lifecycle endpoints (finish, reread, abandon, resume, start over).
 - [ ] **M4.4** S7 library: status tabs with counts, tag chips filter, sort, grid/list, hover overlay.
 - [ ] **M4.5** Tags CRUD with colors; Settings → Tags.
 - [ ] **M4.6** Archive, restore, delete permanently (dialog from S8); Settings → Data → archived books.
+
+Deferred to the end of F1 or F1.5 (SPEC 20): series positions ("Book 2 of 5") and series stored in our own tables.
 
 **Done when:** you can add books in any status, organize them with tags, and archive or delete them.
 

@@ -157,6 +157,14 @@ describe('collapseSearchResults: merging', () => {
     expect(out.items[0]?.coverUrl).toBe('a');
   });
 
+  it('keeps the key of every merged work, in provider order', () => {
+    const out = collapseSearchResults(
+      [result('OL1W', 'Pedro Páramo', 5), result('OL2W', 'Pedro Paramo', 20)],
+      first,
+    );
+    expect(out.items[0]).toMatchObject({ olWorkKey: 'OL2W', mergedKeys: ['OL1W', 'OL2W'] });
+  });
+
   it('puts a group at the position of its first member and does not sort again', () => {
     const out = collapseSearchResults(
       [

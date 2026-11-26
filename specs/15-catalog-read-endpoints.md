@@ -7,6 +7,7 @@
 > **Amended by SPEC 17:** `GET /v1/search/books` merges near-duplicate works per page (Open Library relevance order) and returns the 1-edition tail in `moreMatches` next to `items`. The cursor is unchanged.
 > **Amended by SPEC 18:** `q` is optional when `genre` is set, so a genre alone searches the subject (`subject:"<genre>"`) and lists the works with the most editions first. At least one of the two is required. The genre chip mapping and `Genre` seed are built in M3.5.
 > **Amended by SPEC 19:** `libraryStatus` is filled in M4.2, not M4.1, and its schema (`null` only) changes then.
+> **Amended by SPEC 20:** `libraryStatus` is filled with the viewer's book. A row matched to the library takes the local work id as its `ref`, and a saved Open Library work keeps the provider cover, genres and series ("local row wins" now applies to the other fields only).
 
 ## Why this spec exists
 

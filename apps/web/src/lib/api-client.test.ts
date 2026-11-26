@@ -124,6 +124,28 @@ describe('api.get retries and waking state', () => {
     expect(getSnapshot()).toBe('idle');
   });
 
+  it('sends a POST once when the app answers CATALOG_UNAVAILABLE', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        {
+          type: 'about:blank',
+          title: 'Unavailable',
+          status: 503,
+          code: ErrorCode.CATALOG_UNAVAILABLE,
+        },
+        503,
+        'application/problem+json',
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(api.post('/api/v1/library', schema, {})).rejects.toMatchObject({
+      status: 503,
+      code: ErrorCode.CATALOG_UNAVAILABLE,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('backs off 1 s, 2 s, 4 s, then 8 s capped', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(problem503()));

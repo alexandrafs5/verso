@@ -31,8 +31,9 @@ export function MoreMatches({ works }: { works: WorkSummary[] }) {
           : t('showMoreMatches', { count: works.length })}
       </Button>
       <ul id={listId} hidden={!expanded} className="mt-2 divide-y divide-border">
-        {works.map((work) => (
-          <SearchResultRow key={work.ref} work={work} />
+        {works.map((work, index) => (
+          // Not the ref: adding a book changes it, and the row must keep its focus.
+          <SearchResultRow key={`${index}-${work.title}`} work={work} />
         ))}
       </ul>
     </div>

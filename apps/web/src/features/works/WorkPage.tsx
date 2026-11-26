@@ -1,6 +1,6 @@
 'use client';
 
-import { pickCoverTone } from '@verso/shared';
+import { pickCoverTone, pickDefaultEdition } from '@verso/shared';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
@@ -10,9 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
+import { LibraryControl } from '@/features/library/LibraryControl';
 import { EditionLine } from './EditionLine';
 import { EditionSelectorDialog } from './EditionSelectorDialog';
-import { pickDefaultEdition, pickDescription } from './edition-utils';
+import { pickDescription } from './edition-utils';
 import { useWork } from './use-work';
 import { useWorkEditions } from './use-work-editions';
 import { WorkInfo } from './WorkInfo';
@@ -30,6 +31,8 @@ function WorkSkeleton() {
           <Skeleton className="h-10 w-3/4" />
           <Skeleton className="h-5 w-1/3" />
           <Skeleton className="h-5 w-1/2" />
+          {/* The add to library control. */}
+          <Skeleton className="h-11 w-52 md:h-10" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-2/3" />
@@ -45,7 +48,7 @@ function WorkView({ workRef }: { workRef: string }) {
   const router = useRouter();
   const work = useWork(workRef);
   const editions = useWorkEditions(workRef);
-  // Local UI state: the selection is not persisted and resets with the page (SPEC 18).
+  // Local UI state: picking an edition is not persisted and resets with the page (SPEC 18).
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const changeRef = useRef<HTMLButtonElement>(null);
@@ -79,10 +82,15 @@ function WorkView({ workRef }: { workRef: string }) {
   }
 
   const data = work.data;
-  // Default: the first edition in the UI language, else the first one (SPEC 18).
   const editionList = editions.data ?? [];
-  const edition =
-    editionList.find((item) => item.ref === selectedRef) ?? pickDefaultEdition(editionList, locale);
+  // The edition picked here, else the saved one (SPEC 20), else the default (SPEC 18).
+  const defaultEdition = pickDefaultEdition(editionList, locale);
+  const picked = editionList.find((item) => item.ref === selectedRef);
+  const saved = editionList.find((item) => item.ref === data.libraryStatus?.editionRef);
+  const edition = picked ?? saved ?? defaultEdition;
+  // The work cover is what search shows, so it stays until the user picks an edition. Saving the
+  // default edition is not a pick: adding a book must not change its cover.
+  const coverEdition = picked ?? (saved?.ref === defaultEdition?.ref ? undefined : saved);
   const authors = data.authors.map((author) => author.name).join(', ');
 
   return (
@@ -93,8 +101,7 @@ function WorkView({ workRef }: { workRef: string }) {
           size="lg"
           title={data.title}
           author={authors || undefined}
-          // The work cover is what search shows, so it stays until the user picks an edition.
-          coverUrl={selectedRef && edition ? (edition.coverUrl ?? data.coverUrl) : data.coverUrl}
+          coverUrl={coverEdition?.coverUrl ?? data.coverUrl}
           coverAlt={t('coverAlt', { title: data.title })}
           tone={pickCoverTone(data.title)}
           className="mx-auto w-48 md:mx-0 md:w-64 [&_img]:shadow-(--shadow-high)"
@@ -103,6 +110,15 @@ function WorkView({ workRef }: { workRef: string }) {
           work={data}
           description={pickDescription(data.description, editionList, locale)}
           pageCount={edition?.pageCount ?? null}
+          librarySlot={
+            <LibraryControl
+              workRef={data.ref}
+              aliases={[workRef]}
+              title={data.title}
+              libraryStatus={data.libraryStatus}
+              editionRef={edition?.ref}
+            />
+          }
           editionSlot={
             edition ? (
               <EditionLine

@@ -1,30 +1,12 @@
 import { z } from 'zod';
+import { libraryStatusSchema } from './library';
+import { authorRefSchema, editionRefSchema, UUID_RE, workRefSchema } from './refs';
 
 export const EDITION_FORMATS = ['PAPERBACK', 'HARDCOVER', 'EBOOK', 'OTHER'] as const;
 export const WORK_SOURCES = ['OPEN_LIBRARY', 'MANUAL'] as const;
 
 export const SEARCH_QUERY_MAX = 200;
 export const GENRE_MAX = 80;
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const OL_WORK_REF_RE = /^ol:OL\d+W$/;
-const OL_AUTHOR_REF_RE = /^ol:OL\d+A$/;
-const OL_EDITION_REF_RE = /^ol:OL\d+M$/;
-
-/** Local UUID or "ol:OL123W". */
-export const workRefSchema = z
-  .string()
-  .refine((v) => UUID_RE.test(v) || OL_WORK_REF_RE.test(v), { message: 'Invalid work ref' });
-
-/** Local UUID or "ol:OL123A". */
-export const authorRefSchema = z
-  .string()
-  .refine((v) => UUID_RE.test(v) || OL_AUTHOR_REF_RE.test(v), { message: 'Invalid author ref' });
-
-/** Local UUID or "ol:OL123M". */
-export const editionRefSchema = z
-  .string()
-  .refine((v) => UUID_RE.test(v) || OL_EDITION_REF_RE.test(v), { message: 'Invalid edition ref' });
 
 const MAX_OL_SERIES_ID = 3 + 120;
 
@@ -75,7 +57,7 @@ export const workSummarySchema = z.object({
   firstPublishYear: z.number().int().nullable(),
   coverUrl: z.string().nullable(),
   editionCount: z.number().int().nullable(),
-  libraryStatus: z.null(),
+  libraryStatus: libraryStatusSchema.nullable(),
 });
 
 export const workSeriesSchema = z.object({
@@ -95,7 +77,7 @@ export const workDetailSchema = z.object({
   genres: z.array(z.string()).max(30),
   series: workSeriesSchema.nullable(),
   source: workSourceSchema,
-  libraryStatus: z.null(),
+  libraryStatus: libraryStatusSchema.nullable(),
 });
 
 export const editionDtoSchema = z.object({

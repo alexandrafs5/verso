@@ -7,6 +7,7 @@ export { LockToggle } from './LockToggle';
 export { ProgressBar } from './ProgressBar';
 export { RatingDisplay } from './RatingDisplay';
 export { RatingInput } from './RatingInput';
+export { StatusBadge } from './StatusBadge';
 export { StatusDropdown } from './StatusDropdown';
 export { TagChip } from './TagChip';
 export {

@@ -105,10 +105,41 @@ describe('AuthorPage', () => {
     expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
   });
 
-  it('shows no status badge or add-to-library control on covers', async () => {
+  it('shows no status badge on books outside the library, and no add control', async () => {
     open(json(author()));
     await screen.findByRole('heading', { level: 1 });
     expect(screen.queryByText(/Want to read|Reading|Read\b|Add to library/)).toBeNull();
+  });
+
+  it('puts a status badge, part of the link name, on books in the library', async () => {
+    const saved = (status: string, readCount: number) => ({
+      libraryStatus: {
+        userBookId: '0190f0f0-1234-7abc-8def-0123456789ab',
+        status,
+        readCount,
+        editionRef: 'ol:OL1M',
+      },
+    });
+    open(
+      json(
+        author({
+          works: [
+            { ...summary('ol:OL1W', 'Pedro Páramo', 1955), ...saved('READ', 2) },
+            { ...summary('ol:OL2W', 'El llano en llamas', 1953), ...saved('READING', 1) },
+            summary('ol:OL3W', 'Undated', null),
+          ],
+        }),
+      ),
+    );
+    await screen.findByRole('heading', { level: 1 });
+
+    const links = within(screen.getByRole('list')).getAllByRole('link');
+    expect(links[0]).toHaveAccessibleName(/Read.*Read 2 times/);
+    expect(within(links[0] as HTMLElement).getByText('×2')).toHaveAttribute('aria-hidden', 'true');
+    expect(links[1]).toHaveAccessibleName(/Reading/);
+    expect(within(links[1] as HTMLElement).queryByText(/×/)).not.toBeInTheDocument();
+    expect(links[2]).not.toHaveAccessibleName(/Reading|Read\b/);
+    expect(screen.queryByRole('button', { name: /Want to read/ })).not.toBeInTheDocument();
   });
 
   it('shows the not-found state for a 404', async () => {

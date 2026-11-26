@@ -63,6 +63,29 @@ export function localWorkToDetail(row: WorkRow): WorkDetail {
   };
 }
 
+/**
+ * Open Library data on top of a saved work (SPEC 20). A local row has no cover, no derived series
+ * and only mapped genres, so those come from the provider when it answers (`external` is null when
+ * it does not), with the local value as the fallback. Everything else stays local.
+ */
+export function overlayProviderWork(
+  local: WorkDetail,
+  external: ExternalWork | null,
+  savedCoverUrl: string | null,
+): WorkDetail {
+  const subjects = external ? genreSubjects(external) : [];
+  return {
+    ...local,
+    coverUrl: external?.coverUrl ?? savedCoverUrl,
+    genres: subjects.length > 0 ? subjects : local.genres,
+    series: (external ? seriesFromSubjects(external.subjects) : null) ?? local.series,
+  };
+}
+
+/** `series:` subjects feed the series line, not the genre chips. */
+export const genreSubjects = (work: ExternalWork): string[] =>
+  work.subjects.filter((subject) => !isSeriesSubject(subject)).slice(0, MAX_GENRES);
+
 export function externalWorkToDetail(work: ExternalWork, authors: AuthorLink[]): WorkDetail {
   return {
     ref: olRef(work.olWorkKey),
@@ -73,8 +96,7 @@ export function externalWorkToDetail(work: ExternalWork, authors: AuthorLink[]):
     firstPublishYear: work.firstPublishYear,
     coverUrl: work.coverUrl,
     authors,
-    // `series:` subjects feed the series line, not the genre chips.
-    genres: work.subjects.filter((subject) => !isSeriesSubject(subject)).slice(0, MAX_GENRES),
+    genres: genreSubjects(work),
     series: seriesFromSubjects(work.subjects),
     source: 'OPEN_LIBRARY',
     libraryStatus: null,

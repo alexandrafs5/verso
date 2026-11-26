@@ -66,7 +66,7 @@ describe('Users module: /v1/me endpoints (integration)', () => {
     return cookie ? req.set('Cookie', cookie) : req;
   };
   const send = (method: 'patch' | 'put' | 'post', path: string, cookie?: string) => {
-    const req = request(server)[method](`/api${path}`);
+    const req = request(server)[method](`/api${path}`).set('Origin', ORIGIN);
     return cookie ? req.set('Cookie', cookie) : req;
   };
 

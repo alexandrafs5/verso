@@ -269,7 +269,7 @@ Conventions: primary keys are UUID v7 strings (`id`); timestamps are `timestampt
 
 | Table | Key columns |
 | --- | --- |
-| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `progressStyle` (PAGES, PERCENT, nullable: null means "use `User.progressStyle`"; set when the user switches the toggle in the Log progress modal, see DESIGN S9), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`); CHECK `rating`; deleting a `Work` or `Edition` in use is restricted; the service checks that the edition belongs to the work (M4.2) |
+| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `progressStyle` (PAGES, PERCENT, nullable: null means "use `User.progressStyle`"; set when the user switches the toggle in the Log progress modal, see DESIGN S9), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`); CHECK `rating`; deleting a `Work` or `Edition` in use is restricted; saving a book checks that the edition belongs to the work (`CatalogService`, SPEC 20) |
 | `Reading` | `userBookId`, `number` (1, 2, …), `state` (IN_PROGRESS, FINISHED, ABANDONED), `startedOn` (date, nullable), `finishedOn` (date, nullable), `currentPage` (nullable), `percentBp` (int 0–10000, basis points); unique (`userBookId`, `number`); partial unique index: one IN_PROGRESS per `userBookId` (Prisma `partialIndexes` preview feature); CHECK `percentBp` and `currentPage` |
 | `ReadingSession` | `readingId`, `userId` (denormalized for streak and stats queries), `localDate` (date in the user's time zone at write time), `fromPage`, `toPage`, `fromPercentBp`, `toPercentBp`, `pagesRead` (int, derived) |
 | `Tag` | `userId`, `name` (citext, so unique ignoring case), `color` (WINE, TOBACCO, BRASS, FOREST, NAVY, OXBLOOD, SLATE, SAND); unique (`userId`, `name`) |
@@ -396,9 +396,9 @@ Computed with SQL over `ReadingSession` and `Reading` (no precomputed tables), c
 | --- | --- | --- |
 | `auth` | Mounts Better Auth at `/api/auth/*`; `SessionGuard` (sets `req.user`), `AdminGuard`, `@CurrentUser()` decorator; sends verification and reset emails through `EmailProvider` | users, infra/email |
 | `users` | Me, settings, onboarding, username availability, avatar upload URL, delete account | infra/storage |
-| `catalog` | Book and author search, work and edition reads (cached), ISBN resolution, authors, series, persisting works and editions when added, manual book creation | infra/catalog |
+| `catalog` | Book and author search, work and edition reads (cached), ISBN resolution, authors, series, the viewer's `libraryStatus` on those reads, persisting works and editions when added, manual book creation | infra/catalog, library (`LibraryStatusModule` only) |
 | `library` | UserBooks, status changes (via `ReadingLifecycle`), tags, favorites, goals, archive and delete, Home aggregate | catalog, reading |
-| `reading` | Readings, sessions, progress, streak | library |
+| `reading` | Readings, sessions, progress, streak | — (`library` depends on it) |
 | `annotations` | Highlights, bookmarks, notes, visibility toggles | social (visibility) |
 | `reviews` | Create, update, delete review; work-page review list | social (access) |
 | `stats` | Stats and calendar queries | reading, library |
@@ -411,6 +411,8 @@ Computed with SQL over `ReadingSession` and `Reading` (no precomputed tables), c
 | `health` | `GET /health` (also the wake-up target) | — |
 
 Side effects between modules use NestJS `EventEmitter2` events (e.g. `follow.requested` → notifications), so modules don't call each other in circles.
+
+The catalog needs library data and the library needs the catalog (SPEC 20). `modules/library` therefore exports two modules: `LibraryStatusModule` (read only, depends on `reading`), which `catalog` imports, and `LibraryModule`, which imports `catalog` and `reading`. `reading` imports no feature module, so there is no cycle. A service that writes across modules opens one transaction and passes the transaction client (`infra/prisma/transaction.ts`) to the other module's service.
 
 ### Infrastructure interfaces
 
@@ -450,7 +452,8 @@ Implementations: `OpenLibraryProvider`, `PgBossJobQueue`, `BrevoEmailProvider` (
 - The cache is fail-open: a cache read or write error is logged and the call goes to Open Library. Cached payloads are the mapped Verso types and are validated on read; an invalid one is a miss. Misses (ISBN not found) and errors are not cached.
 - Errors are typed: `CatalogNotFoundError` (404 or malformed key) and `CatalogUnavailableError` (timeout, network, 429, 5xx, unexpected shape). The ISBN lookup returns `null` instead of throwing on 404. M3.3 maps both to problem+json codes.
 - Search results skip docs whose key is not a work (`OL…W`), so a page can have fewer than 20 results and still not be the last. An empty page means there are no more results.
-- Work references in the API are either a local UUID or `ol:OL123W`. Pages can render an Open Library work that isn't in our database yet; it is persisted (work + chosen edition + authors) only when a user adds it.
+- Work references in the API are either a local UUID or `ol:OL123W`. Pages can render an Open Library work that isn't in our database yet; it is persisted (work + chosen edition + authors + mapped genres, never a series) only when a user adds it. Existing rows are never overwritten, and an edition whose ISBN-13 is already saved is stored without it (SPEC 20).
+- Saved works: `GET /v1/works/{ref}` takes title, subtitle, description, year and authors from the local row, and cover, genres and series from the provider, with the local values as the fallback. A provider failure never fails that request. In search, author and series results, a row whose work (or a duplicate merged into it) is in the viewer's library takes the local work id as its `ref` (SPEC 20).
 
 ---
 
@@ -489,7 +492,7 @@ Conventions:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's status if in library; response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips). At least one of `q` and `genre` is required: `genre` alone searches the subject only, most editions first (SPEC 18) |
+| GET | `/v1/search/books?q=&genre=` | Works, one per book, with edition count and the viewer's `libraryStatus` (`{ userBookId, status, readCount, editionRef }` or null; also on work, author and series reads); response is `{ items, moreMatches, nextCursor }`, where `moreMatches` is the folded 1-edition tail; `genre` filters by subject (S3 genre chips). At least one of `q` and `genre` is required: `genre` alone searches the subject only, most editions first (SPEC 18) |
 | GET | `/v1/search/users?q=` | Users (private ones show a lock) |
 | GET | `/v1/works/{ref}` | Work page data |
 | GET | `/v1/works/{ref}/editions?language=` | Edition selector |
@@ -506,7 +509,7 @@ Conventions:
 | --- | --- | --- |
 | GET | `/v1/home` | Aggregated Home payload |
 | GET | `/v1/library?status=&tags=&sort=&cursor=` | Library list |
-| POST | `/v1/library` | Add `{ workRef, editionRef?, status }` |
+| POST | `/v1/library` | Add `{ workRef, editionRef?, status, startedOn?, finishedOn? }`; dates only with `READ` and not after today in the user's time zone. Without `editionRef`: original language, else the user's language, else the first ranked edition. 201 `{ userBookId, workRef, status, readCount, editionRef }`; 409 `BOOK_ALREADY_IN_LIBRARY` (also when archived), 422 `NO_EDITION_AVAILABLE` or `EDITION_NOT_IN_WORK`, 400 `READING_DATE_IN_FUTURE` (SPEC 20) |
 | GET | `/v1/library/{id}` | Book detail |
 | PATCH | `/v1/library/{id}` | Status, rating, edition, hidden, annotation visibility |
 | POST | `/v1/library/{id}/finish` · `/reread` · `/abandon` · `/resume` · `/start-over` | Lifecycle actions |
@@ -574,7 +577,7 @@ pg-boss settings: polling interval 10 s (keeps Neon compute low), retry limit 3,
 
 ## 10. Security
 
-- **Sessions:** Better Auth database sessions in an `HttpOnly; Secure; SameSite=Lax` cookie on the web origin; Better Auth's origin checks for CSRF on state-changing auth routes; our API also checks `Origin` against `WEB_ORIGIN` for non-GET requests.
+- **Sessions:** Better Auth database sessions in an `HttpOnly; Secure; SameSite=Lax` cookie on the web origin; Better Auth's origin checks for CSRF on state-changing auth routes; our API also checks `Origin` against `WEB_ORIGIN`: a global `OriginGuard` answers 403 `ORIGIN_NOT_ALLOWED` to any request under `/api` other than GET, HEAD or OPTIONS whose `Origin` is missing or different. `/api/auth/*` keeps the Better Auth check, and routes outside `/api` are not affected.
 - **Passwords:** Better Auth hashing (scrypt); minimum 8 characters; email verification required before social features; reset links expire in 1 hour.
 - **Authorization:** every service method that reads another user's data goes through `ProfileAccessPolicy` / `VisibilityResolver`; ownership checks on every mutation (`userBook.userId === currentUser.id`). Integration tests cover each access rule.
 - **Rate limiting:** auth routes (`/api/auth/*`) use Better Auth's built-in rate limiter (in-memory, single instance): 10 per 60 s per IP per path, `get-session` exempt, switch and max through `AUTH_RATE_LIMIT_ENABLED` / `AUTH_RATE_LIMIT_MAX`. `/v1` limits use `@nestjs/throttler`, counted per user (`UserThrottlerGuard`, after `SessionGuard`), 60 s window, 429 problem+json `RATE_LIMITED` with `Retry-After`: search 60/min, catalog reads (works, editions, authors, series, ISBN) 120/min, writes (any non-GET without its own bucket) 120/min, username availability 30/min, avatar upload URL 10/min. Other plain reads are unlimited. A controller opts in with `@UseGuards(SessionGuard, UserThrottlerGuard)` and moves a route to a bucket with `@RateLimit(...)` (`common/rate-limit`). Counters are in-memory (single instance).

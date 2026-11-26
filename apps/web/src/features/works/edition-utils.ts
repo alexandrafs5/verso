@@ -1,23 +1,6 @@
 import type { EditionDto } from '@verso/shared';
 
 /**
- * Default edition for the page (SPEC 18): the first one in the original language of the book,
- * else the first one in the UI language, else the first one. The API lists well-described
- * editions first, so "first" is the best described one.
- */
-export function pickDefaultEdition(
-  editions: readonly EditionDto[],
-  locale: string,
-): EditionDto | null {
-  return (
-    editions.find((edition) => edition.isOriginalLanguage) ??
-    editions.find((edition) => edition.language === locale) ??
-    editions[0] ??
-    null
-  );
-}
-
-/**
  * The description to show (SPEC 18). Open Library has one description per work, usually English,
  * and no translation. Some editions carry a blurb in their own language, so outside English the
  * best described edition in the UI language wins, then the work description. In English the work

@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { json, problem, renderWithProviders } from '../onboarding/test-utils';
@@ -72,8 +72,70 @@ describe('SearchPage', () => {
       'href',
       '/books/new',
     );
-    expect(screen.queryByRole('button', { name: /want to read/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Want to read: Pedro Páramo' })).toBeVisible();
+    // The control sits beside the row link, never inside it.
+    expect(document.querySelector('a button')).toBeNull();
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
+
+  it('adds from a row, then shows the status and links the saved work without a request', async () => {
+    nav.search = 'q=pedro';
+    const saved = '0190f0f0-1234-7abc-8def-0123456789ac';
+    const fetchMock = stubFetch((url) =>
+      url === '/api/v1/library'
+        ? json(
+            {
+              userBookId: '0190f0f0-1234-7abc-8def-0123456789ab',
+              workRef: saved,
+              status: 'WANT_TO_READ',
+              readCount: 0,
+              editionRef: 'ol:OL1M',
+            },
+            201,
+          )
+        : json({
+            items: [work('ol:OL1W', 'Pedro Páramo'), work('ol:OL2W', 'Other')],
+            moreMatches: [],
+            nextCursor: null,
+          }),
+    );
+    renderWithProviders(<SearchPage />);
+    const add = await screen.findByRole('button', { name: 'Want to read: Pedro Páramo' });
+    const row = add.closest('li') as HTMLElement;
+
+    await userEvent.click(add);
+
+    const status = await within(row).findByRole('button', { name: 'Want to read' });
+    expect(status).toBeDisabled();
+    expect(within(row).getByRole('link')).toHaveAttribute('href', `/works/${saved}`);
+    // The row keeps the keyboard focus although its ref changed.
+    await waitFor(() => expect(row.contains(document.activeElement)).toBe(true));
+    expect(screen.getByRole('button', { name: 'Want to read: Other' })).toBeEnabled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a saved book with its status and read count', async () => {
+    nav.search = 'q=pedro';
+    stubFetch(() =>
+      json({
+        items: [
+          work('ol:OL1W', 'Pedro Páramo', {
+            libraryStatus: {
+              userBookId: '0190f0f0-1234-7abc-8def-0123456789ab',
+              status: 'READ',
+              readCount: 3,
+              editionRef: 'ol:OL1M',
+            },
+          }),
+        ],
+        moreMatches: [],
+        nextCursor: null,
+      }),
+    );
+    renderWithProviders(<SearchPage />);
+
+    expect(await screen.findByRole('button', { name: 'Read' })).toBeDisabled();
+    expect(screen.getByText('Read 3 times')).toBeInTheDocument();
   });
 
   it('loads more with the cursor and hides the button on the last page', async () => {

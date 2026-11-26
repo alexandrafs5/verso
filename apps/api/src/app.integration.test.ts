@@ -9,6 +9,9 @@ import { AppModule } from './app.module.js';
 import { ZodValidationPipe } from './common/zod-validation.pipe.js';
 import { setupApp } from './setup-app.js';
 
+const ORIGIN = 'http://localhost:3000';
+process.env['WEB_ORIGIN'] ??= ORIGIN;
+
 const bookSchema = z.object({ title: z.string().min(1), pages: z.number().int().positive() });
 
 @Controller('test')
@@ -68,13 +71,19 @@ describe('API skeleton (integration)', () => {
   });
 
   it('valid body passes the ZodValidationPipe', async () => {
-    const res = await request(server).post('/api/test/books').send({ title: 'Dune', pages: 412 });
+    const res = await request(server)
+      .post('/api/test/books')
+      .set('Origin', ORIGIN)
+      .send({ title: 'Dune', pages: 412 });
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ title: 'Dune', pages: 412 });
   });
 
   it('invalid body -> 400 VALIDATION_ERROR with errors[] path and message', async () => {
-    const res = await request(server).post('/api/test/books').send({ title: '', pages: 'x' });
+    const res = await request(server)
+      .post('/api/test/books')
+      .set('Origin', ORIGIN)
+      .send({ title: '', pages: 'x' });
     expect(res.status).toBe(400);
     expect(res.headers['content-type']).toMatch(/^application\/problem\+json/);
     const problem = problemSchema.parse(res.body);
@@ -86,6 +95,7 @@ describe('API skeleton (integration)', () => {
   it('malformed JSON -> 400 VALIDATION_ERROR', async () => {
     const res = await request(server)
       .post('/api/test/books')
+      .set('Origin', ORIGIN)
       .set('Content-Type', 'application/json')
       .send('{not json');
     expect(res.status).toBe(400);
