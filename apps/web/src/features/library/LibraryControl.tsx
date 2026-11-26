@@ -2,7 +2,7 @@
 
 import type { BookStatus, LibraryStatus } from '@verso/shared';
 import { useTranslations } from 'next-intl';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { focusRing } from '@/components/shell/nav';
 import { AddToLibraryButton } from '@/components/verso';
 import { cn } from '@/lib/utils';
@@ -40,18 +40,19 @@ export function LibraryControl({
   };
   const readCount = libraryStatus?.readCount ?? 0;
 
+  // The pressed button is disabled while pending and replaced after a success, which drops the
+  // focus to the page. Keep the keyboard user here, unless they have moved on. An effect, so it
+  // runs after the render: the old button may or may not be there yet.
+  const { isSuccess, isError } = add;
+  useEffect(() => {
+    if (!isSuccess && !isError) return;
+    const element = wrapper.current;
+    const active = document.activeElement;
+    if (active === document.body || (isSuccess && element?.contains(active))) element?.focus();
+  }, [isSuccess, isError]);
+
   const onAdd = (status: BookStatus) =>
-    add.mutate(
-      { body: { workRef, editionRef, status }, aliases },
-      {
-        // The pressed button is disabled or replaced, which drops the focus to the page. Keep
-        // the keyboard user here, unless they have moved on.
-        onSettled: () =>
-          requestAnimationFrame(() => {
-            if (document.activeElement === document.body) wrapper.current?.focus();
-          }),
-      },
-    );
+    add.mutate({ body: { workRef, editionRef, status }, aliases });
 
   return (
     <div

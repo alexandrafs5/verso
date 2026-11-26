@@ -35,8 +35,8 @@ function SeriesSkeleton() {
                   <Skeleton className="h-4 w-1/4" />
                 </div>
               </div>
-              <div className="pb-3 pl-34 md:pr-3 md:pb-0 md:pl-0">
-                <Skeleton className="h-11 w-52 md:h-10" />
+              <div className="pb-3 pl-2 min-[360px]:pl-34 md:pr-3 md:pb-0 md:pl-0">
+                <Skeleton className="h-11 w-44 md:h-10 md:w-52" />
               </div>
             </li>
           ))}
@@ -86,7 +86,7 @@ function SeriesWorks({ works }: { works: SeriesDetail['works'] }) {
             </span>
           </Link>
           {/* Beside the link, never inside it. Under the text on phones (past the cover). */}
-          <div className="pb-3 pl-34 md:shrink-0 md:pr-3 md:pb-0 md:pl-0">
+          <div className="pb-3 pl-2 min-[360px]:pl-34 md:shrink-0 md:pr-3 md:pb-0 md:pl-0">
             <LibraryControl
               workRef={work.ref}
               title={work.title}

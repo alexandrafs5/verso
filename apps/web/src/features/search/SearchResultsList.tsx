@@ -41,7 +41,7 @@ function SkeletonRows() {
           </div>
           {/* The add to library control. */}
           <div className="pb-3 pl-22 md:pr-3 md:pb-0 md:pl-0">
-            <Skeleton className="h-11 w-52 md:h-10" />
+            <Skeleton className="h-11 w-44 md:h-10 md:w-52" />
           </div>
         </li>
       ))}
