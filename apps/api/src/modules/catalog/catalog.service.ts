@@ -5,6 +5,7 @@ import {
   type EditionDto,
   ErrorCode,
   type IsbnResult,
+  pickDefaultEdition,
   type SearchBooksQuery,
   type SearchBooksResponse,
   type SeriesDetail,
@@ -20,6 +21,8 @@ import {
 import {
   CATALOG_PROVIDER,
   type CatalogProvider,
+  type ExternalAuthor,
+  type ExternalEdition,
   type ExternalWork,
   type WorkSearchResult,
 } from '../../infra/catalog/catalog-provider.js';
@@ -36,9 +39,11 @@ import {
   overlayProviderWork,
   searchResultToSummary,
 } from './catalog.mappers.js';
+import { toEditionRecord, toWorkRecord, type WorkRecord } from './catalog.records.js';
 import {
   authorWorksQuery,
   buildSearchQuery,
+  type CatalogRef,
   decodeCursor,
   encodeCursor,
   isUuid,
@@ -82,6 +87,26 @@ export async function mapCatalogErrors<T>(call: () => Promise<T>): Promise<T> {
     throw error;
   }
 }
+
+const editionNotInWork = () =>
+  new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.EDITION_NOT_IN_WORK);
+const noEdition = () =>
+  new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.NO_EDITION_AVAILABLE);
+
+/** A manual work is always saved; an Open Library work may not be yet (`workId` null). */
+export type LibraryTarget =
+  { olWorkKey: null; workId: string } | { olWorkKey: string; workId: string | null };
+
+export type SavedBook = { workId: string; editionId: string; editionRef: string };
+
+const savedBook = (
+  workId: string,
+  edition: { id: string; olEditionKey: string | null },
+): SavedBook => ({
+  workId,
+  editionId: edition.id,
+  editionRef: edition.olEditionKey ? olRef(edition.olEditionKey) : edition.id,
+});
 
 /** A private (manual) work is visible only to the user who created it. */
 const canView = (work: Pick<WorkRow, 'catalogStatus' | 'createdById'>, userId: string): boolean =>
@@ -390,13 +415,115 @@ export class CatalogService {
     };
   }
 
+  /**
+   * The work a user wants to add: a saved work they can see, or an Open Library work that is not
+   * saved yet. Reads only.
+   */
+  async findWorkForLibrary(userId: string, ref: string): Promise<LibraryTarget> {
+    const parsed = parseRef(ref, 'W');
+    if (!parsed) throw invalidRef();
+    const row =
+      parsed.kind === 'local'
+        ? await this.repo.findWorkById(parsed.id)
+        : await this.repo.findWorkByOlKey(parsed.key);
+    if (row) {
+      if (!canView(row, userId)) throw notFound();
+      return { workId: row.id, olWorkKey: row.olWorkKey };
+    }
+    if (parsed.kind === 'local') throw notFound();
+    return { workId: null, olWorkKey: parsed.key };
+  }
+
+  /**
+   * Chooses the edition and saves what is missing: the only place that writes catalog rows. The
+   * edition must belong to the work (SPEC 20). Without `editionRef` it is the default one.
+   */
+  async saveForLibrary(
+    target: LibraryTarget,
+    choice: { editionRef?: string; locale: string },
+  ): Promise<SavedBook> {
+    let requested: CatalogRef | null = null;
+    if (choice.editionRef !== undefined) {
+      requested = parseRef(choice.editionRef, 'M');
+      if (!requested) throw invalidRef();
+    }
+    // An edition already saved for this work needs no provider, so an outage does not matter.
+    if (target.workId !== null && requested) {
+      const saved = await this.repo.findEditionOfWork(
+        target.workId,
+        requested.kind === 'local' ? { id: requested.id } : { olEditionKey: requested.key },
+      );
+      if (saved) return savedBook(target.workId, saved);
+    }
+    // Any other local id is not an edition of this work.
+    if (requested?.kind === 'local') throw editionNotInWork();
+
+    if (target.olWorkKey === null) {
+      // A manual work: only its saved editions exist.
+      if (requested) throw editionNotInWork();
+      const editions = await this.repo.findEditionsByWork(target.workId);
+      const original = originalLanguage(editions);
+      const chosen = pickDefaultEdition(
+        editions.map((edition) => ({
+          edition,
+          language: edition.language,
+          isOriginalLanguage: original !== null && edition.language === original,
+        })),
+        choice.locale,
+      );
+      if (!chosen) throw noEdition();
+      return savedBook(target.workId, chosen.edition);
+    }
+
+    const { olWorkKey } = target;
+    const chosen = await this.chooseExternalEdition(olWorkKey, requested?.key, choice.locale);
+    const existing = await this.repo.findEditionByOlKey(chosen.olEditionKey);
+    if (existing && existing.workId !== target.workId) throw editionNotInWork();
+
+    const work = target.workId === null ? await this.fetchWorkRecord(olWorkKey) : null;
+    const saved = await this.repo.saveOpenLibraryBook(olWorkKey, work, toEditionRecord(chosen));
+    // Only a concurrent add can still bring an edition of another work.
+    if (saved.edition.workId !== saved.workId) throw editionNotInWork();
+    return savedBook(saved.workId, saved.edition);
+  }
+
+  /** The requested edition, or the default one, out of the provider list of the work. */
+  private async chooseExternalEdition(
+    olWorkKey: string,
+    requestedKey: string | undefined,
+    locale: string,
+  ): Promise<ExternalEdition> {
+    const editions = await mapCatalogErrors(() => this.provider.listEditions(olWorkKey, {}));
+    if (requestedKey !== undefined) {
+      const requested = editions.find((edition) => edition.olEditionKey === requestedKey);
+      if (!requested) throw editionNotInWork();
+      return requested;
+    }
+    const original = originalLanguage(editions);
+    // Ranked like the editions endpoint, so the default is the one the work page shows.
+    const chosen = pickDefaultEdition(
+      rankEditions(editions).map((edition) => ({
+        edition,
+        language: edition.language,
+        isOriginalLanguage: original !== null && edition.language === original,
+      })),
+      locale,
+    );
+    if (!chosen) throw noEdition();
+    return chosen.edition;
+  }
+
+  private async fetchWorkRecord(olWorkKey: string): Promise<WorkRecord> {
+    const work = await mapCatalogErrors(() => this.provider.getWork(olWorkKey));
+    return toWorkRecord(olWorkKey, work, await this.fetchAuthors(work.authorKeys));
+  }
+
   /** At most MAX_AUTHORS. An author Open Library no longer knows is dropped; an outage fails. */
-  private async resolveAuthors(authorKeys: string[]): Promise<AuthorLink[]> {
+  private async fetchAuthors(authorKeys: string[]): Promise<ExternalAuthor[]> {
     const found = await Promise.all(
-      authorKeys.slice(0, MAX_AUTHORS).map(async (key) => {
+      [...new Set(authorKeys)].slice(0, MAX_AUTHORS).map(async (key) => {
         try {
-          const author = await mapCatalogErrors(() => this.provider.getAuthor(key));
-          return { ref: olRef(author.olAuthorKey), name: author.name };
+          return await mapCatalogErrors(() => this.provider.getAuthor(key));
         } catch (error) {
           if (error instanceof ApiException && error.code === ErrorCode.CATALOG_NOT_FOUND) {
             return null;
@@ -405,6 +532,11 @@ export class CatalogService {
         }
       }),
     );
-    return found.filter((author): author is AuthorLink => author !== null);
+    return found.filter((author): author is ExternalAuthor => author !== null);
+  }
+
+  private async resolveAuthors(authorKeys: string[]): Promise<AuthorLink[]> {
+    const authors = await this.fetchAuthors(authorKeys);
+    return authors.map((author) => ({ ref: olRef(author.olAuthorKey), name: author.name }));
   }
 }

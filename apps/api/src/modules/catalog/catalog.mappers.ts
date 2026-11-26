@@ -83,7 +83,7 @@ export function overlayProviderWork(
 }
 
 /** `series:` subjects feed the series line, not the genre chips. */
-const genreSubjects = (work: ExternalWork): string[] =>
+export const genreSubjects = (work: ExternalWork): string[] =>
   work.subjects.filter((subject) => !isSeriesSubject(subject)).slice(0, MAX_GENRES);
 
 export function externalWorkToDetail(work: ExternalWork, authors: AuthorLink[]): WorkDetail {

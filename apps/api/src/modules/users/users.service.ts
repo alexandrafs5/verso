@@ -10,6 +10,7 @@ import type {
 } from '@verso/shared';
 import { ApiException } from '../../common/api-exception.js';
 import type { User } from '../../generated/prisma/client.js';
+import { isUniqueViolation } from '../../infra/prisma/unique-violation.js';
 import { buildAvatarPath, isAvatarPathOwnedBy } from '../../infra/storage/avatar-path.js';
 import { FILE_STORAGE, type FileStorage } from '../../infra/storage/file-storage.js';
 import { GoalPolicy } from './domain/goal-policy.js';
@@ -38,9 +39,6 @@ export function toMe(user: User): Me {
     onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() ?? null,
   };
 }
-
-const isUniqueViolation = (error: unknown): boolean =>
-  typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002';
 
 /** Every method acts on the session user id it is given and never takes a user id from the client. */
 @Injectable()
