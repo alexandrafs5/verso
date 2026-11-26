@@ -269,10 +269,10 @@ Conventions: primary keys are UUID v7 strings (`id`); timestamps are `timestampt
 
 | Table | Key columns |
 | --- | --- |
-| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `progressStyle` (PAGES, PERCENT, nullable: null means "use `User.progressStyle`"; set when the user switches the toggle in the Log progress modal, see DESIGN S9), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`) |
-| `Reading` | `userBookId`, `number` (1, 2, …), `state` (IN_PROGRESS, FINISHED, ABANDONED), `startedOn` (date, nullable), `finishedOn` (date, nullable), `currentPage` (nullable), `percentBp` (int 0–10000, basis points); partial unique index: one IN_PROGRESS per `userBookId` |
+| `UserBook` | `userId`, `workId`, `editionId`, `status` (READING, READ, WANT_TO_READ, ABANDONED), `rating` (int 0–100, nullable), `hiddenFromProfile`, `annotationVisibility` (INHERIT, PUBLIC, PRIVATE), `progressStyle` (PAGES, PERCENT, nullable: null means "use `User.progressStyle`"; set when the user switches the toggle in the Log progress modal, see DESIGN S9), `archivedAt` (nullable, soft delete), `addedAt`; **unique** (`userId`, `workId`); CHECK `rating`; deleting a `Work` or `Edition` in use is restricted; the service checks that the edition belongs to the work |
+| `Reading` | `userBookId`, `number` (1, 2, …), `state` (IN_PROGRESS, FINISHED, ABANDONED), `startedOn` (date, nullable), `finishedOn` (date, nullable), `currentPage` (nullable), `percentBp` (int 0–10000, basis points); unique (`userBookId`, `number`); partial unique index: one IN_PROGRESS per `userBookId` (Prisma `partialIndexes` preview feature); CHECK `percentBp` and `currentPage` |
 | `ReadingSession` | `readingId`, `userId` (denormalized for streak and stats queries), `localDate` (date in the user's time zone at write time), `fromPage`, `toPage`, `fromPercentBp`, `toPercentBp`, `pagesRead` (int, derived) |
-| `Tag` | `userId`, `name`, `color` (WINE, TOBACCO, BRASS, FOREST, NAVY, OXBLOOD, SLATE, SAND); unique (`userId`, `name`) |
+| `Tag` | `userId`, `name` (citext, so unique ignoring case), `color` (WINE, TOBACCO, BRASS, FOREST, NAVY, OXBLOOD, SLATE, SAND); unique (`userId`, `name`) |
 | `UserBookTag` | `userBookId`, `tagId` |
 | `ProfileFavorite` | `userId`, `workId`, `position` (1–4); unique (`userId`, `position`) |
 | `YearlyGoal` | `userId`, `year`, `targetBooks`; unique (`userId`, `year`) |
@@ -341,15 +341,29 @@ stateDiagram-v2
   [*] --> WANT_TO_READ: add (default)
   [*] --> READING: add as Reading (starts Reading #1)
   [*] --> READ: add as Read (finished Reading, dates optional)
+  [*] --> ABANDONED: add as Abandoned (abandoned Reading, no dates)
   WANT_TO_READ --> READING: start (new Reading)
   READING --> READ: finish (Reading FINISHED, finishedOn = today)
   READING --> ABANDONED: abandon (Reading ABANDONED, keeps page)
   ABANDONED --> READING: resume (same Reading, from saved page)
   ABANDONED --> READING: start over (new Reading from 0)
   READ --> READING: reread (new Reading #n+1)
-  READ --> WANT_TO_READ: manual change
-  READING --> WANT_TO_READ: manual change (Reading discarded if no sessions)
+  READING --> WANT_TO_READ: manual change (Reading discarded if no sessions, else ABANDONED)
+  READ --> WANT_TO_READ: manual change (history stays)
+  ABANDONED --> WANT_TO_READ: manual change (history stays)
+  WANT_TO_READ --> READ: manual change (unknown finish date)
+  ABANDONED --> READ: manual change (unknown finish date)
+  WANT_TO_READ --> ABANDONED: manual change
+  READ --> ABANDONED: manual change
 ```
+
+Status changes (SPEC 19):
+
+- Every status reaches every other status. Choosing the current status changes nothing. A change that matches a named action (start, finish, abandon, resume, reread) behaves like it.
+- A named action called from any other status is an error, and so is an inconsistent stored state (a READING book without exactly one open reading, an open reading on any other status, an ABANDONED book whose latest reading is not abandoned, a READ book without a finished reading).
+- To Read without an open reading, first match wins: an empty abandoned latest reading (no dates, progress or sessions) is deleted when a finished one exists; a WANT_TO_READ book that already has a finished reading changes status only; an abandoned latest reading becomes FINISHED with no finish date; a book without readings gets a FINISHED reading with no dates.
+- To ABANDONED without an open reading: the latest reading is reused if abandoned, else an ABANDONED reading with no dates is created.
+- Every reading that becomes FINISHED gets `percentBp` 10000. A new reading takes the highest number plus one.
 
 Rules:
 
