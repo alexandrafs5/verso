@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
+import { OriginGuard } from './common/origin/origin.guard.js';
 import { ProblemJsonFilter } from './common/problem-json.filter.js';
 import { serializeRequest } from './common/redact-request.js';
 import { CatalogInfraModule } from './infra/catalog/catalog-infra.module.js';
@@ -39,6 +40,9 @@ import { UsersModule } from './modules/users/users.module.js';
     CatalogModule,
     HealthModule,
   ],
-  providers: [{ provide: APP_FILTER, useClass: ProblemJsonFilter }],
+  providers: [
+    { provide: APP_FILTER, useClass: ProblemJsonFilter },
+    { provide: APP_GUARD, useClass: OriginGuard },
+  ],
 })
 export class AppModule {}
