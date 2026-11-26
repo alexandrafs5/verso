@@ -1,6 +1,6 @@
 import type { EditionDto } from '@verso/shared';
 import { describe, expect, it } from 'vitest';
-import { languageName, pickDefaultEdition, pickDescription } from './edition-utils';
+import { languageName, pickDescription } from './edition-utils';
 
 describe('languageName', () => {
   it('starts every language name with a capital letter in Spanish', () => {
@@ -33,16 +33,6 @@ const edition = (ref: string, language: string | null, isOriginalLanguage = fals
   coverUrl: null,
   isOriginalLanguage,
   description: null,
-});
-
-describe('pickDefaultEdition', () => {
-  it('takes the original-language edition, then the UI language, then the first', () => {
-    const list = [edition('a', 'ca'), edition('b', 'es'), edition('c', 'en', true)];
-    expect(pickDefaultEdition(list, 'es')?.ref).toBe('c');
-    expect(pickDefaultEdition([edition('a', 'ca'), edition('b', 'es')], 'es')?.ref).toBe('b');
-    expect(pickDefaultEdition([edition('a', 'ca'), edition('b', 'de')], 'es')?.ref).toBe('a');
-    expect(pickDefaultEdition([], 'es')).toBeNull();
-  });
 });
 
 describe('pickDescription', () => {

@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  authorRefSchema,
   editionsQuerySchema,
   isbnResultSchema,
   searchBooksQuerySchema,
   searchBooksResponseSchema,
   seriesIdSchema,
   workDetailSchema,
-  workRefSchema,
 } from './catalog';
+import { authorRefSchema, workRefSchema } from './refs';
 
 const UUID = '0190f0f0-1234-7abc-8def-0123456789ab';
 
@@ -89,7 +88,7 @@ describe('editionsQuerySchema', () => {
 });
 
 describe('response shapes', () => {
-  it('parses a search response and keeps libraryStatus null', () => {
+  it('parses a search response with a null or filled libraryStatus', () => {
     const item = {
       ref: 'ol:OL1W',
       title: 'Pedro Páramo',
@@ -110,6 +109,19 @@ describe('response shapes', () => {
         nextCursor: null,
       }).success,
     ).toBe(false);
+    const libraryStatus = {
+      userBookId: UUID,
+      status: 'READING',
+      readCount: 0,
+      editionRef: 'ol:OL1M',
+    };
+    expect(
+      searchBooksResponseSchema.safeParse({
+        items: [{ ...item, libraryStatus }],
+        moreMatches: [],
+        nextCursor: null,
+      }).success,
+    ).toBe(true);
     expect(
       searchBooksResponseSchema.safeParse({ items: [item], moreMatches: [item], nextCursor: null })
         .success,

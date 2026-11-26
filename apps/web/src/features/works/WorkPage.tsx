@@ -1,6 +1,6 @@
 'use client';
 
-import { pickCoverTone } from '@verso/shared';
+import { pickCoverTone, pickDefaultEdition } from '@verso/shared';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
@@ -12,7 +12,7 @@ import { BackButton } from '@/components/shell/BackButton';
 import { isCatalogNotFound, isRateLimited } from '@/features/catalog/catalog-errors';
 import { EditionLine } from './EditionLine';
 import { EditionSelectorDialog } from './EditionSelectorDialog';
-import { pickDefaultEdition, pickDescription } from './edition-utils';
+import { pickDescription } from './edition-utils';
 import { useWork } from './use-work';
 import { useWorkEditions } from './use-work-editions';
 import { WorkInfo } from './WorkInfo';
