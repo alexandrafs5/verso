@@ -252,6 +252,28 @@ describe('CatalogService saving for the library (real Postgres, fake provider)',
     expect((await savedWork(key))?.editions[0]?.isbn13).toBe(chosen.isbn13);
   });
 
+  it('reuses the rows when another add saves the work after the lookup', async () => {
+    fresh();
+    const { key } = olWork();
+    provider.addEdition(edition(key));
+    const listEditions = provider.listEditions.bind(provider);
+    let first: Awaited<ReturnType<typeof add>> | undefined;
+    let raced = false;
+    // The second add has found no saved work yet when the first one commits.
+    provider.listEditions = async (olWorkKey, opts) => {
+      if (!raced) {
+        raced = true;
+        first = await add(`ol:${key}`, undefined, 'en', otherId);
+      }
+      return listEditions(olWorkKey, opts);
+    };
+
+    const second = await add(`ol:${key}`);
+
+    expect(second).toEqual(first);
+    expect(await prisma.work.count({ where: { olWorkKey: key } })).toBe(1);
+  });
+
   it('adds a second edition to a saved work', async () => {
     fresh();
     const { key } = olWork();

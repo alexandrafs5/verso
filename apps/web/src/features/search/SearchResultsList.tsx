@@ -40,7 +40,7 @@ function SkeletonRows() {
             </div>
           </div>
           {/* The add to library control. */}
-          <div className="pb-3 pl-22 md:pr-3 md:pb-0 md:pl-0">
+          <div className="pb-3 pl-2 min-[380px]:pl-22 md:pr-3 md:pb-0 md:pl-0">
             <Skeleton className="h-11 w-44 md:h-10 md:w-52" />
           </div>
         </li>

@@ -41,14 +41,18 @@ export function LibraryControl({
   const readCount = libraryStatus?.readCount ?? 0;
 
   // The pressed button is disabled while pending and replaced after a success, which drops the
-  // focus to the page. Keep the keyboard user here, unless they have moved on. An effect, so it
-  // runs after the render: the old button may or may not be there yet.
+  // focus to the page. Keep the keyboard user here, unless they have moved on: on the status
+  // after a success, back on the button after a failure. An effect, so it runs after the render.
+  // Never scrolls: the user may be reading elsewhere by the time a slow add ends.
   const { isSuccess, isError } = add;
   useEffect(() => {
     if (!isSuccess && !isError) return;
     const element = wrapper.current;
+    if (!element) return;
     const active = document.activeElement;
-    if (active === document.body || (isSuccess && element?.contains(active))) element?.focus();
+    if (active !== document.body && !element.contains(active)) return;
+    const target = isSuccess ? element : element.querySelector<HTMLElement>('button');
+    target?.focus({ preventScroll: true });
   }, [isSuccess, isError]);
 
   const onAdd = (status: BookStatus) =>
@@ -58,8 +62,10 @@ export function LibraryControl({
     <div
       ref={wrapper}
       tabIndex={-1}
+      role="group"
+      aria-label={title}
       className={cn(
-        'inline-flex max-w-full items-center gap-2 rounded-(--radius-button)',
+        'inline-flex max-w-full flex-wrap items-center gap-2 rounded-(--radius-button)',
         focusRing,
         className,
       )}

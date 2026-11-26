@@ -1,6 +1,6 @@
 # SPEC 20 — Add to library (M4.2)
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 03, SPEC 06, SPEC 12, SPEC 14, SPEC 15, SPEC 16, SPEC 17, SPEC 18, SPEC 19
 > **Date:** 2026-11-26
 > **Objective:** Let a signed-in user add a book to their library from the search, work, author and series pages, saving the work lazily and showing the library status of each book.
@@ -106,7 +106,7 @@ New error codes in `packages/shared/src/problem.ts`:
 
 - Guards: `SessionGuard` and `UserThrottlerGuard`. The route uses the `writes` bucket (120 per minute per user).
 - Success: `201` with `addToLibraryResponseSchema`.
-- Other errors: `401`, `400 VALIDATION_ERROR`, `400 INVALID_REF`, `404 CATALOG_NOT_FOUND`, `429 RATE_LIMITED`, `503 CATALOG_UNAVAILABLE`.
+- Other errors: `401`, `400 VALIDATION_ERROR` (also a malformed `workRef` or `editionRef`, which the body schema rejects), `404 CATALOG_NOT_FOUND`, `429 RATE_LIMITED`, `503 CATALOG_UNAVAILABLE`.
 
 Date rules:
 
@@ -222,10 +222,10 @@ Manual works do not change.
 
 Per screen:
 
-- **S2:** the control is on every row, also under "Show more matches". From tablet width it sits at the right end of the row. On phones it sits under the book text. The row link and the control are siblings. No control is inside a link.
+- **S2:** the control is on every row, also under "Show more matches". From tablet width it sits at the right end of the row. On phones it sits under the book text; below 380px it starts at the row edge so it fits. The row link and the control are siblings. No control is inside a link.
 - **S3:** the control sits in the info column, above the edition line. Adding sends the selected edition, or no edition while editions are loading or failed. For a saved book, S3 selects `libraryStatus.editionRef`. The cover changes to that edition's cover only when it is not the default edition, so adding the default edition keeps the work cover (amended after manual testing, 2026-11-26). If the saved edition is not in the list, the default applies. Picking another edition stays local.
 - **S5:** a book in the library has a text badge on a corner of its cover: the status, plus "×N" from 2 finished readings. New component `components/verso/StatusBadge.tsx`. The badge is part of the link name.
-- **S6:** the same control and layout as S2. The header shows "You've read N of M". N counts listed works with `readCount` of 1 or more. M counts the listed works. It shows when N is 0, and is hidden when the list is empty.
+- **S6:** the same control and layout as S2, starting at the row edge below 420px, where the number column leaves less room. The header shows "You've read N of M". N counts listed works with `readCount` of 1 or more. M counts the listed works. It shows when N is 0, and is hidden when the list is empty.
 
 ## Implementation plan
 
@@ -247,105 +247,105 @@ Integration tests need Postgres (`docker compose up -d`). Manual checks need `pn
 
 Origin:
 
-- [ ] A `POST /api/v1/library` or `PATCH /api/v1/me` without `Origin`, or with another origin, returns `403 ORIGIN_NOT_ALLOWED`.
-- [ ] The same requests with `Origin` equal to `WEB_ORIGIN` pass the check.
-- [ ] `GET` requests without `Origin` still work, and the auth tests still pass.
+- [x] A `POST /api/v1/library` or `PATCH /api/v1/me` without `Origin`, or with another origin, returns `403 ORIGIN_NOT_ALLOWED`.
+- [x] The same requests with `Origin` equal to `WEB_ORIGIN` pass the check.
+- [x] `GET` requests without `Origin` still work, and the auth tests still pass.
 
 Add:
 
-- [ ] Adding an `ol:` work returns `201` and creates one `Work`, its `Author` and `WorkAuthor` rows, its mapped `WorkGenre` rows, one `Edition` and one `UserBook`.
-- [ ] Each status creates the readings that `ReadingLifecycle.add` returns. `WANT_TO_READ` creates none.
-- [ ] `READING` starts the reading on today's date in the user's time zone, also when it differs from the UTC date.
-- [ ] `READ` with dates stores them. `READ` without dates stores null dates.
-- [ ] Dates with another status, or `startedOn` after `finishedOn`, return `400 VALIDATION_ERROR`.
-- [ ] A future date returns `400 READING_DATE_IN_FUTURE`.
-- [ ] Without `editionRef`, the saved edition is the original-language one, else the user's language, else the first ranked one.
-- [ ] An edition of another work returns `422 EDITION_NOT_IN_WORK`.
-- [ ] A work with no edition returns `422 NO_EDITION_AVAILABLE` and writes nothing.
-- [ ] A second add of the same work returns `409`, also when the first book is archived.
-- [ ] Two concurrent adds of one book by one user give one `201` and one `409`, with one row per catalog key.
-- [ ] Two users adding the same work share one `Work` row.
-- [ ] An `isbn13` clash saves the edition with `isbn13` null.
-- [ ] A failed library transaction leaves no `UserBook` and no `Reading`.
-- [ ] No session returns `401`. Another user's private work returns `404` and writes nothing.
-- [ ] A provider outage returns `503` and writes nothing, unless the edition is already saved.
-- [ ] Viewing a search, work, author or series page writes no catalog row.
+- [x] Adding an `ol:` work returns `201` and creates one `Work`, its `Author` and `WorkAuthor` rows, its mapped `WorkGenre` rows, one `Edition` and one `UserBook`.
+- [x] Each status creates the readings that `ReadingLifecycle.add` returns. `WANT_TO_READ` creates none.
+- [x] `READING` starts the reading on today's date in the user's time zone, also when it differs from the UTC date.
+- [x] `READ` with dates stores them. `READ` without dates stores null dates.
+- [x] Dates with another status, or `startedOn` after `finishedOn`, return `400 VALIDATION_ERROR`.
+- [x] A future date returns `400 READING_DATE_IN_FUTURE`.
+- [x] Without `editionRef`, the saved edition is the original-language one, else the user's language, else the first ranked one.
+- [x] An edition of another work returns `422 EDITION_NOT_IN_WORK`.
+- [x] A work with no edition returns `422 NO_EDITION_AVAILABLE` and writes nothing.
+- [x] A second add of the same work returns `409`, also when the first book is archived.
+- [x] Two concurrent adds of one book by one user give one `201` and one `409`, with one row per catalog key.
+- [x] Two users adding the same work share one `Work` row.
+- [x] An `isbn13` clash saves the edition with `isbn13` null.
+- [x] A failed library transaction leaves no `UserBook` and no `Reading`.
+- [x] No session returns `401`. Another user's private work returns `404` and writes nothing.
+- [x] A provider outage returns `503` and writes nothing, unless the edition is already saved.
+- [x] Viewing a search, work, author or series page writes no catalog row.
 
 Library status:
 
-- [ ] All four catalog responses carry `libraryStatus` for the viewer's books and null for the rest.
-- [ ] Another user's book never appears in the viewer's `libraryStatus`.
-- [ ] An archived book gives null.
-- [ ] `readCount` counts only FINISHED readings.
-- [ ] A row that merged a saved duplicate shows its status and has the saved work id as `ref`.
-- [ ] One search response runs at most two library queries.
+- [x] All four catalog responses carry `libraryStatus` for the viewer's books and null for the rest.
+- [x] Another user's book never appears in the viewer's `libraryStatus`.
+- [x] An archived book gives null.
+- [x] `readCount` counts only FINISHED readings.
+- [x] A row that merged a saved duplicate shows its status and has the saved work id as `ref`.
+- [x] One search response runs at most two library queries.
 
 Saved works:
 
-- [ ] A saved Open Library work still returns its cover, genres and series.
-- [ ] With the provider failing, a saved work returns `200` with local data.
+- [x] A saved Open Library work still returns its cover, genres and series.
+- [x] With the provider failing, a saved work returns `200` with local data.
 
 Web:
 
-- [ ] A POST answered with `CATALOG_UNAVAILABLE` is sent once.
-- [ ] Each failure in the table shows its toast in EN and ES, and the button works again.
-- [ ] After an add, every cached screen shows the status without a new request.
-- [ ] The dropdown of a saved book is disabled.
-- [ ] No button is nested inside a link.
-- [ ] Add and the status menu work with the keyboard only.
-- [ ] New UI strings come from `packages/i18n`, and no component uses a raw hex color.
+- [x] A POST answered with `CATALOG_UNAVAILABLE` is sent once.
+- [x] Each failure in the table shows its toast in EN and ES, and the button works again.
+- [x] After an add, every cached screen shows the status without a new request.
+- [x] The dropdown of a saved book is disabled.
+- [x] No button is nested inside a link.
+- [x] Add and the status menu work with the keyboard only.
+- [x] New UI strings come from `packages/i18n`, and no component uses a raw hex color.
 
 Docs and checks:
 
-- [ ] `ARCHITECTURE.md` §7, §8 and §10 match this spec.
-- [ ] `docs/DESIGN.md` states the disabled dropdown, the S5 badge, the S6 count and the deferred series positions.
-- [ ] SPEC 15 and SPEC 18 point to this spec.
-- [ ] M4.2 is ticked in `ROADMAP.md`.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` pass.
+- [x] `ARCHITECTURE.md` §7, §8 and §10 match this spec.
+- [x] `docs/DESIGN.md` states the disabled dropdown, the S5 badge, the S6 count and the deferred series positions.
+- [x] SPEC 15 and SPEC 18 point to this spec.
+- [x] M4.2 is ticked in `ROADMAP.md`.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` pass.
 
 ### UI states: S2 search results
 
-- [ ] **Normal:** every row shows the add control or the disabled status dropdown.
-- [ ] **Loading:** the existing skeleton matches the row with its control; a pending add disables only that control.
-- [ ] **Empty:** N/A, the "no results" state does not change.
-- [ ] **Error:** a failed add shows a toast and re-enables the button.
-- [ ] **Light theme:** control, disabled status and "×N" are legible and use tokens.
-- [ ] **Dark theme:** control, disabled status and "×N" are legible and use tokens.
-- [ ] **Mobile:** the control is under the text, with a 44px target and no horizontal scroll in EN and ES.
-- [ ] **Desktop:** the control is at the right end of the row (also at tablet width).
+- [x] **Normal:** every row shows the add control or the disabled status dropdown.
+- [x] **Loading:** the existing skeleton matches the row with its control; a pending add disables only that control.
+- [x] **Empty:** N/A, the "no results" state does not change.
+- [x] **Error:** a failed add shows a toast and re-enables the button.
+- [x] **Light theme:** control, disabled status and "×N" are legible and use tokens.
+- [x] **Dark theme:** control, disabled status and "×N" are legible and use tokens.
+- [x] **Mobile:** the control is under the text, with a 44px target and no horizontal scroll in EN and ES.
+- [x] **Desktop:** the control is at the right end of the row (also at tablet width).
 
 ### UI states: S3 work page
 
-- [ ] **Normal:** the control is above the edition line; a saved book opens on its saved edition; adding without picking an edition keeps the cover and the edition line.
-- [ ] **Loading:** the skeleton reserves the control space.
-- [ ] **Empty:** a work with no editions still shows the control, and adding shows the no-edition toast.
-- [ ] **Error:** an editions error keeps the control usable.
-- [ ] **Light theme:** legible with tokens.
-- [ ] **Dark theme:** legible with tokens.
-- [ ] **Mobile:** no horizontal scroll in EN and ES.
-- [ ] **Desktop:** the control sits in the info column.
+- [x] **Normal:** the control is above the edition line; a saved book opens on its saved edition; adding without picking an edition keeps the cover and the edition line.
+- [x] **Loading:** the skeleton reserves the control space.
+- [x] **Empty:** a work with no editions still shows the control, and adding shows the no-edition toast.
+- [x] **Error:** an editions error keeps the control usable.
+- [x] **Light theme:** legible with tokens.
+- [x] **Dark theme:** legible with tokens.
+- [x] **Mobile:** no horizontal scroll in EN and ES.
+- [x] **Desktop:** the control sits in the info column.
 
 ### UI states: S5 author page
 
-- [ ] **Normal:** only books in the library show a badge.
-- [ ] **Loading:** N/A, badges arrive with the works.
-- [ ] **Empty:** N/A, an empty works list has no covers.
-- [ ] **Error:** N/A, the badge has no request of its own.
-- [ ] **Light theme:** the badge is legible on light and dark covers.
-- [ ] **Dark theme:** the badge is legible on light and dark covers.
-- [ ] **Mobile:** the longest ES label fits a two-column cover.
-- [ ] **Desktop:** the badge fits a six-column cover.
+- [x] **Normal:** only books in the library show a badge.
+- [x] **Loading:** N/A, badges arrive with the works.
+- [x] **Empty:** N/A, an empty works list has no covers.
+- [x] **Error:** N/A, the badge has no request of its own.
+- [x] **Light theme:** the badge is legible on light and dark covers.
+- [x] **Dark theme:** the badge is legible on light and dark covers.
+- [x] **Mobile:** the longest ES label fits a two-column cover.
+- [x] **Desktop:** the badge fits a six-column cover.
 
 ### UI states: S6 series page
 
-- [ ] **Normal:** the count and a control or status on every row.
-- [ ] **Loading:** the skeleton matches the new row and header.
-- [ ] **Empty:** no count and no control.
-- [ ] **Error:** a failed add shows a toast and re-enables the button.
-- [ ] **Light theme:** legible with tokens.
-- [ ] **Dark theme:** legible with tokens.
-- [ ] **Mobile:** the control is under the text, with no horizontal scroll.
-- [ ] **Desktop:** the control is at the right end of the row.
+- [x] **Normal:** the count and a control or status on every row.
+- [x] **Loading:** the skeleton matches the new row and header.
+- [x] **Empty:** no count and no control.
+- [x] **Error:** a failed add shows a toast and re-enables the button.
+- [x] **Light theme:** legible with tokens.
+- [x] **Dark theme:** legible with tokens.
+- [x] **Mobile:** the control is under the text, with no horizontal scroll.
+- [x] **Desktop:** the control is at the right end of the row.
 
 ## Decisions
 

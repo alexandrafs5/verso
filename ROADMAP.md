@@ -63,6 +63,8 @@ Screen ids (S1, P2, …) refer to `docs/DESIGN.md`; section numbers (§) refer t
 - [ ] **M4.5** Tags CRUD with colors; Settings → Tags.
 - [ ] **M4.6** Archive, restore, delete permanently (dialog from S8); Settings → Data → archived books.
 
+Deferred to the end of F1 or F1.5 (SPEC 20): series positions ("Book 2 of 5") and series stored in our own tables.
+
 **Done when:** you can add books in any status, organize them with tags, and archive or delete them.
 
 ### M5. Reading progress and Home

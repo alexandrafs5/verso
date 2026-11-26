@@ -103,6 +103,39 @@ describe('LibraryControl', () => {
     expect(mainButton().parentElement).toHaveAttribute('aria-busy', 'true');
   });
 
+  it('gives the focus back to the button after a failure', async () => {
+    mockApi({ 'POST /api/v1/library': () => problem(500, 'INTERNAL_ERROR') });
+    renderControl();
+
+    await userEvent.click(mainButton());
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    await waitFor(() => expect(mainButton()).toHaveFocus());
+  });
+
+  it('leaves the focus where the user moved it during a slow add', async () => {
+    let finish!: (response: Response) => void;
+    mockApi({
+      'POST /api/v1/library': () => new Promise<Response>((resolve) => (finish = resolve)),
+    });
+    renderControl();
+    const elsewhere = document.body.appendChild(document.createElement('button'));
+
+    await userEvent.click(mainButton());
+    await waitFor(() => expect(mainButton()).toBeDisabled());
+    elsewhere.focus();
+    finish(problem(500, 'INTERNAL_ERROR'));
+
+    await waitFor(() => expect(mainButton()).toBeEnabled());
+    expect(elsewhere).toHaveFocus();
+    elsewhere.remove();
+  });
+
+  it('names the control after the book', () => {
+    renderControl(status());
+    expect(screen.getByRole('group', { name: 'Pedro Páramo' })).toBeInTheDocument();
+  });
+
   it('shows a saved book as a disabled status', () => {
     renderControl(status());
     expect(screen.getByRole('button', { name: 'Read' })).toBeDisabled();

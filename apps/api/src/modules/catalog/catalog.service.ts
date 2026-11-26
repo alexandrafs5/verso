@@ -478,9 +478,11 @@ export class CatalogService {
     const { olWorkKey } = target;
     const chosen = await this.chooseExternalEdition(olWorkKey, requested?.key, choice.locale);
     const existing = await this.repo.findEditionByOlKey(chosen.olEditionKey);
-    if (existing && existing.workId !== target.workId) throw editionNotInWork();
+    // Read the work after the edition: a concurrent add may have saved both since the lookup.
+    const workId = target.workId ?? (await this.repo.findWorkByOlKey(olWorkKey))?.id ?? null;
+    if (existing && existing.workId !== workId) throw editionNotInWork();
 
-    const work = target.workId === null ? await this.fetchWorkRecord(olWorkKey) : null;
+    const work = workId === null ? await this.fetchWorkRecord(olWorkKey) : null;
     const saved = await this.repo.saveOpenLibraryBook(olWorkKey, work, toEditionRecord(chosen));
     // Only a concurrent add can still bring an edition of another work.
     if (saved.edition.workId !== saved.workId) throw editionNotInWork();

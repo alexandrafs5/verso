@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import type { AddToLibraryResponse, WorkSummary } from '@verso/shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { queryKeys } from '@/lib/query-keys';
 import { applyAddedBook, refetchCatalogViews } from './library-cache';
 
@@ -84,6 +84,40 @@ describe('applyAddedBook', () => {
     expect(invalidated(queryKeys.work('ol:OL2W'))).toBe(true);
     expect(invalidated(queryKeys.workEditions('ol:OL1W'))).toBe(false);
     expect(invalidated(queryKeys.me)).toBe(false);
+  });
+
+  it('leaves a username check for "author" or "series" alone', () => {
+    const client = seeded();
+    client.setQueryData(queryKeys.usernameAvailability('author'), { available: true });
+
+    refetchCatalogViews(client);
+
+    expect(client.getQueryState(queryKeys.usernameAvailability('author'))?.isInvalidated).toBe(
+      false,
+    );
+  });
+
+  it('writes the status again when a request that was already running ends', async () => {
+    const client = seeded();
+    const key = queryKeys.series('ol:Saga');
+    let answer!: (data: { works: WorkSummary[] }) => void;
+    const running = client.fetchQuery({
+      queryKey: key,
+      queryFn: () => new Promise<{ works: WorkSummary[] }>((resolve) => (answer = resolve)),
+      staleTime: 0,
+    });
+
+    applyAddedBook(client, ['ol:OL1W'], added);
+    // The old request ends with data from before the add.
+    answer({ works: [row('ol:OL1W')] });
+    await running;
+
+    await vi.waitFor(() =>
+      expect(client.getQueryData(key)).toMatchObject({
+        works: [{ ref: WORK, libraryStatus: status }],
+      }),
+    );
+    expect(client.getQueryState(key)?.isInvalidated).toBe(true);
   });
 
   it('refetches the catalog views on request', () => {

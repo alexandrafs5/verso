@@ -50,8 +50,9 @@ export function SearchResultRow({ work }: { work: WorkSummary }) {
             {meta.length > 0 ? <p className="mt-1 text-sm text-muted">{meta.join(' · ')}</p> : null}
           </div>
         </Link>
-        {/* Beside the link, never inside it. Under the text on phones (past the cover). */}
-        <div className="pb-3 pl-22 md:shrink-0 md:pr-3 md:pb-0 md:pl-0">
+        {/* Beside the link, never inside it. On phones under the text (past the cover), or
+            further left on narrow ones so it fits. */}
+        <div className="pb-3 pl-2 min-[380px]:pl-22 md:shrink-0 md:pr-3 md:pb-0 md:pl-0">
           <LibraryControl
             workRef={work.ref}
             title={work.title}

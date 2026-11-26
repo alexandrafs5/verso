@@ -20,11 +20,11 @@ function SeriesSkeleton() {
   return (
     <div className={PAGE}>
       <BackButton className="mb-4" />
-      <div aria-hidden="true" className="space-y-6">
+      <div aria-hidden="true">
         <Skeleton className="h-10 w-1/2" />
-        {/* "You've read N of M". */}
-        <Skeleton className="h-5 w-40" />
-        <ul className="divide-y divide-border">
+        {/* "You've read N of M", with the same spacing as the loaded page. */}
+        <Skeleton className="mt-2 h-6.5 w-40" />
+        <ul className="mt-6 divide-y divide-border">
           {Array.from({ length: 5 }, (_, i) => (
             <li key={i} className="md:flex md:items-center md:gap-4">
               <div className="flex items-center gap-4 px-2 py-3 md:flex-1 md:px-3">
@@ -35,7 +35,7 @@ function SeriesSkeleton() {
                   <Skeleton className="h-4 w-1/4" />
                 </div>
               </div>
-              <div className="pb-3 pl-2 min-[360px]:pl-34 md:pr-3 md:pb-0 md:pl-0">
+              <div className="pb-3 pl-2 min-[420px]:pl-34 md:pr-3 md:pb-0 md:pl-0">
                 <Skeleton className="h-11 w-44 md:h-10 md:w-52" />
               </div>
             </li>
@@ -87,8 +87,9 @@ function SeriesWorks({ works }: { works: SeriesDetail['works'] }) {
                 )}
               </span>
             </Link>
-            {/* Beside the link, never inside it. Under the text on phones (past the cover). */}
-            <div className="pb-3 pl-2 min-[360px]:pl-34 md:shrink-0 md:pr-3 md:pb-0 md:pl-0">
+            {/* Beside the link, never inside it. On phones under the text (past the cover), or
+                further left on narrow ones so it fits. */}
+            <div className="pb-3 pl-2 min-[420px]:pl-34 md:shrink-0 md:pr-3 md:pb-0 md:pl-0">
               <LibraryControl
                 workRef={work.ref}
                 title={work.title}

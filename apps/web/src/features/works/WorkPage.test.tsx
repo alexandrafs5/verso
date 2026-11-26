@@ -262,6 +262,25 @@ describe('WorkPage', () => {
       expect(bodyOf(post?.[1])).toEqual({ workRef: 'ol:OL1W', status: 'WANT_TO_READ' });
     });
 
+    it('keeps the control for a work without editions, and adding shows the toast', async () => {
+      const fetchMock = mockApi({
+        'GET /api/v1/works/ol%3AOL1W': () => json(work()),
+        'GET /api/v1/works/ol%3AOL1W/editions': () => json([]),
+        'POST /api/v1/library': () => problem(422, 'NO_EDITION_AVAILABLE'),
+      });
+      renderWithProviders(<WorkPage workRef="ol:OL1W" />);
+      await screen.findByRole('heading', { level: 1 });
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+      await userEvent.click(screen.getByRole('button', { name: 'Want to read: Pedro Páramo' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('This book has no edition to add yet'),
+      );
+      const post = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST');
+      expect(bodyOf(post?.[1])).toEqual({ workRef: 'ol:OL1W', status: 'WANT_TO_READ' });
+    });
+
     it('keeps the cover and the edition when adding without picking one', async () => {
       mockApi({
         'GET /api/v1/works/ol%3AOL1W': () =>

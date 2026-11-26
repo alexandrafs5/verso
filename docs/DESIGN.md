@@ -41,7 +41,7 @@ These terms are used consistently in the UI and in this spec.
 | Term | Meaning | UI rules |
 | --- | --- | --- |
 | Work | A book as an idea ("Pedro Páramo"), independent of printing | Search results and the book page are always at work level |
-| Edition | A specific printing: ISBN, language, publisher, year, page count, format, cover | Picked automatically (user's language, most common); changeable via the edition selector |
+| Edition | A specific printing: ISBN, language, publisher, year, page count, format, cover | Picked automatically (original language, else the user's language, else the first listed); changeable via the edition selector |
 | Author | Person who wrote a work | Has its own page |
 | Series | Ordered set of works ("Book 2 of X") | Has its own page; data may be missing for some books |
 | Status | One of 4 fixed, mutually exclusive states: Reading, Read, Want to read, Abandoned | A book has exactly one status; cannot be deleted or renamed |
@@ -232,7 +232,7 @@ End: lands on Home in its empty state.
 
 - Query field at top, tabs **Books** and **Users** with counts. F1 ships the Books list only, with a "Books" heading and no tabs or counts (the API returns no total). Tabs, counts and Users arrive with user search in M8.5 [F2].
 - **Books:** Near-duplicate works are merged into one row, and 1-edition entries sit behind one "Show more matches (N)" button after the list (M3.3b). List rows — cover thumbnail, title (serif), author(s), first publication year, number of editions ("12 editions"). If the book is in the user's library, its row shows the status in the Add-to-library control, and the row links to the saved work. Click → Work page.
-- Quick action on each row: the Add-to-library control (below), also under "Show more matches". At the right end of the row from tablet width, under the book text on phones. The top-bar quick results have no control and no badge.
+- Quick action on each row: the Add-to-library control (below), also under "Show more matches". At the right end of the row from tablet width, under the book text on phones (from the row edge on narrow phones: below 380px here, below 420px on S6, so it fits). The top-bar quick results have no control and no badge.
 - **Users** (M8.5 [F2]): avatar, display name, @username, "Private" lock badge if applicable. Click → Profile (follow button lives only there).
 - "Can't find your book? Add it manually" link at the bottom of book results → S14.
 - Empty: "No books match ‘{query}’" + manual add link. Error and loading states as global.
